@@ -2,6 +2,7 @@ package me.anno.zauberei
 
 // todo Kotlin-syntax like language
 //  - compiles to C/C++ and to GLSL
+//  - UTF-8 by default
 //  - annotation to run things on the GPU @ComputeShader
 //  - nice debugging on the GPU
 //  - Rust-style enums
@@ -25,6 +26,8 @@ package me.anno.zauberei
 //  - easy C interop!!! (we compile to C++, so should be easy)
 //  - soft and hard generics: when generics are used, the user shall decide to create a specialized implementation,
 //     and within generics, the type shall always be available (if so desired)
+
+// todo focus on extension functions like Rust, so we can have multiple inheritance
 
 // todo allow binding any symbols to any functions
 //  e.g. @Symbol("^=") fun xorEquals()

@@ -1,3 +1,7 @@
 package me.anno.zauberei.astbuilder.expression
 
-class UnaryOp(val type: String, val base: Expression): Expression()
+class UnaryOp(val symbol: String, val base: Expression): Expression() {
+    override fun toString(): String {
+        return "$symbol$base"
+    }
+}
