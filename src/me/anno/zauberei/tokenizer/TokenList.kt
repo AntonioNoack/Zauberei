@@ -28,6 +28,7 @@ class TokenList(val src: String) {
             getType(size - 1) == TokenType.SYMBOL &&
             i0 == offsets[size * 2 - 1]
         ) {
+            // todo only accept a symbol if the previous is not =, or the current one is =, too
             // extend symbol
             offsets[size * 2 - 1] = i1
         } else {
@@ -39,8 +40,7 @@ class TokenList(val src: String) {
     }
 
     fun equals(i: Int, type: TokenType): Boolean = (getType(i) == type)
-    fun equals(i: Int, type: TokenType, str: String): Boolean {
-        if (!equals(i, type)) return false
+    fun equals(i: Int, str: String): Boolean {
         val i0 = getI0(i)
         val i1 = getI1(i)
         if (i1 - i0 != str.length) return false
@@ -48,6 +48,9 @@ class TokenList(val src: String) {
             str[strIndex] == src[i0 + strIndex]
         }
     }
+
+    fun equals(i: Int, type: TokenType, str: String): Boolean =
+        equals(i, type) && equals(i, str)
 
     override fun toString(): String {
         return (0 until size).map { i ->
