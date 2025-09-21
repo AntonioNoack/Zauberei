@@ -17,7 +17,7 @@ fun main() {
         println("Compiling $text")
         val tokens = Tokenizer(text).tokenize()
         println(tokens)
-        val ast = ASTBuilder(tokens, rootPackage).readFileLevel()
+        ASTBuilder(tokens, rootPackage).readFileLevel()
     }
 
     fun addSource(file: File) {
