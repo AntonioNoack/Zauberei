@@ -110,7 +110,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     assert(isVar.toInt() + isVal.toInt() == 1) { "Expected either val or var" }
                     val keywords = packKeywords()
                     val initialValue = readExpression()
-                    val field = Field(isVar, isVal, name, null, initialValue, keywords)
+                    val type: Type? = null // unknown in this case
+                    val field = Field(isVar, isVal, name, type, initialValue, keywords)
                     currPackage.fields.add(field)
                 }
                 else -> throw NotImplementedError(
