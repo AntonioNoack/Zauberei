@@ -4,7 +4,6 @@ package me.anno.zauberei.tokenizer
 class TokenList(val src: String, val fileName: String) {
 
     var size = 0
-        private set
 
     private var tokenTypes = ByteArray(16)
     private var offsets = IntArray(32)
@@ -58,8 +57,8 @@ class TokenList(val src: String, val fileName: String) {
         var depth = 1
         var j = i + 1
         while (depth > 0) {
-            if (equals(i, open)) depth++
-            else if (equals(i, close)) depth--
+            if (equals(j, open)) depth++
+            else if (equals(j, close)) depth--
             else when (getType(j)) {
                 TokenType.OPEN_CALL, TokenType.OPEN_ARRAY, TokenType.OPEN_BLOCK -> depth++
                 TokenType.CLOSE_CALL, TokenType.CLOSE_ARRAY, TokenType.CLOSE_BLOCK -> depth--
@@ -150,7 +149,7 @@ class TokenList(val src: String, val fileName: String) {
         size--
     }
 
-    fun findToken(i0: Int, type: TokenType, str: String): Int {
+    fun findToken(i0: Int, str: String): Int {
         var depth = 0
         for (i in i0 until size) {
             when {

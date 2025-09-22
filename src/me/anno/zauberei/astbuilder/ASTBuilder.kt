@@ -196,12 +196,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
     fun readParamExpressions(): ArrayList<Expression> {
         val params = ArrayList<Expression>()
-        if (i < tokens.size) {
-            while (true) {
-                params.add(readExpression())
-                if (i < tokens.size && tokens.equals(i, TokenType.COMMA)) i++
-                else break
-            }
+        while (i < tokens.size) {
+            params.add(readExpression())
+            readComma()
         }
         return params
     }
@@ -230,8 +227,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     result.add(Parameter(isVar, isVal, name, type, initialValue))
                     keywords.clear()
 
-                    if (i < tokens.size && tokens.equals(i, TokenType.COMMA)) i++
-                    else if (i < tokens.size) throw IllegalStateException("Expected comma or end")
+                    readComma()
                 }
                 else -> throw NotImplementedError("Unknown token in params at ${tokens.err(i)}")
             }
@@ -249,8 +245,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 val type = if (tokens.equals(i, ":")) readType()
                 else AnyType
                 params.add(Parameter(false, true, name, type, null))
-                if (i < tokens.size && tokens.equals(i, TokenType.COMMA)) i++
-                else if (i < tokens.size) throw IllegalStateException("Unexpected symbol at ${tokens.err(i)}")
+                readComma()
             }
             params
         }
@@ -345,7 +340,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     val cases = ArrayList<WhenCase>()
                     pushBlock {
                         while (i < tokens.size) {
-                            val nextArrow = tokens.findToken(i, TokenType.SYMBOL, "->")
+                            val nextArrow = tokens.findToken(i, "->")
                             assert(nextArrow != -1)
                             val condition = push(nextArrow) {
                                 if (tokens.equals(i, "else")) null
@@ -574,13 +569,37 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         return expr
     }
 
-    fun readLambda(): ExpressionList {
-        val arrow = tokens.findToken(i, TokenType.SYMBOL, "->")
+    fun readLambda(): Expression {
+        val arrow = tokens.findToken(i, "->")
         if (arrow >= 0) {
-            // todo only accept arrow if nothing weird is in-between
-            TODO("parse destructuring at ${tokens.err(i)}")
-        }
-        return readFunctionBody()
+            val variables = ArrayList<LambdaVariable>()
+            tokens.push(arrow) {
+                while (i < tokens.size) {
+                    if (tokens.equals(i, TokenType.OPEN_CALL)) {
+                        val names = ArrayList<String>()
+                        pushCall {
+                            while (i < tokens.size) {
+                                if (tokens.equals(i, TokenType.NAME)) names.add(tokens.toString(i++))
+                                else throw IllegalStateException("Expected name")
+                                readComma()
+                            }
+                        }
+                        variables.add(LambdaDestructuring(names))
+                    } else if (tokens.equals(i, TokenType.NAME)) {
+                        tokens.toString(i++)
+                    } else throw NotImplementedError()
+                    readComma()
+                }
+            }
+            i++ // skip ->
+            val body = readFunctionBody()
+            return LambdaExpression(variables, body)
+        } else return readFunctionBody()
+    }
+
+    fun readComma() {
+        if (i < tokens.size && tokens.equals(i, TokenType.COMMA)) i++
+        else if (i < tokens.size) throw IllegalStateException("Expected comma at ${tokens.err(i)}")
     }
 
     fun readFunctionBody(): ExpressionList {

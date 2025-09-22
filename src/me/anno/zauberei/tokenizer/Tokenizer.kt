@@ -21,6 +21,17 @@ class Tokenizer(val src: String, fileName: String) {
     var n = src.length
     val tokens = TokenList(src, fileName)
 
+    fun skipSingleLineComment() {
+        i += 2
+        while (i < n && src[i] != '\n') i++
+    }
+
+    fun skipBlockComment() {
+        i += 2
+        while (i + 1 < n && !(src[i] == '*' && src[i + 1] == '/')) i++
+        i += 2
+    }
+
     fun tokenize(): TokenList {
         while (i < n) {
             val c = src[i]
@@ -29,15 +40,8 @@ class Tokenizer(val src: String, fileName: String) {
                 c.isWhitespace() -> i++ // skip spaces
 
                 // comments
-                c == '/' && i + 1 < n && src[i + 1] == '/' -> {
-                    i += 2
-                    while (i < n && src[i] != '\n') i++
-                }
-                c == '/' && i + 1 < n && src[i + 1] == '*' -> {
-                    i += 2
-                    while (i + 1 < n && !(src[i] == '*' && src[i + 1] == '/')) i++
-                    i += 2
-                }
+                c == '/' && i + 1 < n && src[i + 1] == '/' -> skipSingleLineComment()
+                c == '/' && i + 1 < n && src[i + 1] == '*' -> skipBlockComment()
 
                 // identifiers
                 c.isLetter() || c == '_' -> {
@@ -125,9 +129,7 @@ class Tokenizer(val src: String, fileName: String) {
 
         var chunkStart = i
         fun flushChunk(until: Int) {
-            if (until > chunkStart) {
-                tokens.add(TokenType.STRING, chunkStart, until)
-            }
+            tokens.add(TokenType.STRING, chunkStart, until)
         }
 
         while (i < n) {
@@ -135,10 +137,6 @@ class Tokenizer(val src: String, fileName: String) {
                 '\\' -> i += 2 // skip escaped char
                 '"' -> {
                     flushChunk(i)
-
-                    if (tokens.size > 0 && tokens.equals(tokens.size - 1, TokenType.APPEND_STRING)) {
-                        tokens.removeLast()
-                    }
 
                     i++ // skip closing "
                     tokens.add(TokenType.CLOSE_CALL, i - 1, i)
@@ -158,8 +156,18 @@ class Tokenizer(val src: String, fileName: String) {
                         val innerStart = i
                         var depth = 1
                         while (i < n && depth > 0) {
-                            if (src[i] == '{') depth++
-                            else if (src[i] == '}') depth--
+                            if (src[i] in "([{") depth++
+                            else if (src[i] in ")]}") depth--
+                            else if (i + 1 < src.length && src[i] == '/' && src[i + 1] == '/') {
+                                skipSingleLineComment()
+                            } else if (i + 1 < src.length && src[i] == '/' && src[i + 1] == '*') {
+                                skipBlockComment()
+                            } else if (src[i] == '"') {
+                                // skip string
+                                val size = tokens.size
+                                parseString()
+                                tokens.size = size
+                            }
                             i++
                         }
                         val innerEnd = i - 1

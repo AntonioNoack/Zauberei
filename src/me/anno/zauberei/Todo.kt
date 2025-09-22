@@ -27,6 +27,8 @@ package me.anno.zauberei
 //  - soft and hard generics: when generics are used, the user shall decide to create a specialized implementation,
 //     and within generics, the type shall always be available (if so desired)
 
+// todo custom fixed point types, vector types, matrix types, fp16, fp80, ...
+
 // todo focus on extension functions like Rust, so we can have multiple inheritance
 
 // todo allow binding any symbols to any functions
