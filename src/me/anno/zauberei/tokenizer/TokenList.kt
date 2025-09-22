@@ -37,6 +37,10 @@ class TokenList(val src: String, val fileName: String) {
                 equals(j, close) -> depth--
             }
         }
+        return push(j, readImpl)
+    }
+
+    fun <R> push(j: Int, readImpl: () -> R): R {
         val oldSize = size
         size = j
         val result = readImpl()
@@ -138,6 +142,13 @@ class TokenList(val src: String, val fileName: String) {
 
     fun removeLast() {
         size--
+    }
+
+    fun findToken(i0: Int, type: TokenType, str: String): Int {
+        for (i in i0 until size) {
+            if (equals(i, type, str)) return i
+        }
+        return -1
     }
 
 }

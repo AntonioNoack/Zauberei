@@ -299,7 +299,20 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 if (tokens.equals(i, TokenType.OPEN_CALL)) {
                     TODO("read declaration, assignment or name at ${tokens.err(i)}")
                 } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
-                    TODO("read boolean expressions, arrows, and their following blocks at ${tokens.err(i)}")
+                    val cases = ArrayList<WhenCase>()
+                    pushBlock {
+                        while (i < tokens.size) {
+                            val nextArrow = tokens.findToken(i, TokenType.SYMBOL, "->")
+                            assert(nextArrow != -1)
+                            val condition = push(nextArrow) {
+                                if(tokens.equals(i, TokenType.NAME, "else")) null
+                                else readExpressionWithPostfix()
+                            }
+                            val expr = readBodyOrLine()
+                            cases.add(WhenCase(condition,expr))
+                        }
+                    }
+                    return WhenBranchExpression(cases)
                 } else {
                     throw IllegalStateException("Unexpected token after when at ${tokens.err(i)}")
                 }
@@ -441,6 +454,12 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     fun <R> pushBlock(readImpl: () -> R): R {
         val result = tokens.pushBlock(i++, readImpl)
         i++ // skip }
+        return result
+    }
+
+    fun <R> push(endTokenIdx: Int, readImpl: () -> R): R {
+        val result = tokens.pushBlock(endTokenIdx, readImpl)
+        i = endTokenIdx + 1 // skip }
         return result
     }
 
