@@ -2,6 +2,21 @@ package me.anno.zauberei.tokenizer
 
 class Tokenizer(val src: String, fileName: String) {
 
+    companion object {
+        private val hardKeywords = listOf(
+            "true", "false", "null",
+            "class", "interface", "object", "package",
+            "val", "var", "fun",
+
+            "if", "else", "do", "while", "when", "for",
+            "return", "break", "throw", "continue",
+            "in", "!in", "is", "!is", "as", "as?",
+
+            "super", "this",
+            "try", "typealias", "typeof",
+        ).toSet()
+    }
+
     var i = 0
     var n = src.length
     val tokens = TokenList(src, fileName)
@@ -64,15 +79,43 @@ class Tokenizer(val src: String, fileName: String) {
                 c == '[' -> tokens.add(TokenType.OPEN_ARRAY, i++, i)
                 c == ']' -> tokens.add(TokenType.CLOSE_ARRAY, i++, i)
 
+                c == '?' -> {
+                    // parse 'as?'
+                    if (tokens.size > 0 && tokens.equals(tokens.size - 1, "as")) {
+                        val i0 = tokens.getI0(tokens.size - 1)
+                        tokens.removeLast()
+                        tokens.add(TokenType.SYMBOL, i0, ++i)
+                    } else tokens.add(TokenType.SYMBOL, i++, i)
+                }
+
+                c == '!' -> {
+                    // parse !in and !is
+                    if (i + 2 < src.length && src[i + 1] == 'i' && src[i + 2] == 's') {
+                        tokens.add(TokenType.SYMBOL, i, i + 3)
+                        i += 3
+                    } else if (i + 2 < src.length && src[i + 1] == 'i' && src[i + 2] == 's') {
+                        tokens.add(TokenType.SYMBOL, i, i + 3)
+                        i += 3
+                    } else tokens.add(TokenType.SYMBOL, i++, i)
+                }
+
                 // symbols
-                else -> {
-                    val start = i
-                    i++
-                    tokens.add(TokenType.SYMBOL, start, i)
+                else -> tokens.add(TokenType.SYMBOL, i++, i)
+            }
+        }
+        convertHardKeywords()
+        return tokens
+    }
+
+    private fun convertHardKeywords() {
+        for (i in 0 until tokens.size) {
+            if (tokens.getType(i) == TokenType.NAME) {
+                val asString = tokens.toString(i)
+                if (asString in hardKeywords) {
+                    tokens.setType(i, TokenType.KEYWORD)
                 }
             }
         }
-        return tokens
     }
 
     private fun parseString() {

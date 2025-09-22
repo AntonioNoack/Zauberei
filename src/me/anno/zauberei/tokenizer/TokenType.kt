@@ -8,6 +8,8 @@ enum class TokenType {
     SYMBOL, // anything like +-*/=&%$§
     LABEL,
 
+    KEYWORD,
+
     APPEND_STRING,// special string concat operator
     // LINE_BREAK,
 
@@ -21,6 +23,7 @@ enum class TokenType {
     CLOSE_CALL,
     CLOSE_BLOCK,
     CLOSE_ARRAY,
+
 
     ;
 
