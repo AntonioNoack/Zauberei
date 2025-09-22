@@ -8,6 +8,7 @@ enum class TokenType {
     SYMBOL, // anything like +-*/=&%$§
 
     PLUS,// special string concat operator
+    // LINE_BREAK,
 
     // todo the following could all be symbols
     COMMA,
@@ -19,6 +20,7 @@ enum class TokenType {
     CLOSE_CALL,
     CLOSE_BLOCK,
     CLOSE_ARRAY,
+
     ;
 
     val contentAlwaysSame: Boolean

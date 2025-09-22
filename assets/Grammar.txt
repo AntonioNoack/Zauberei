@@ -1,0 +1,7 @@
+
+Digit = { '0'-'9' }
+HexDigit = { '0'-'9', 'A'-'F', 'a'-'f' }
+Integer = (Digit)[1..]
+Float = { [Integer, '.', Integer], [Integer, '.', Integer, { 'e', 'E' }, { '+', '-', [] }, Integer ] }
+
+String =

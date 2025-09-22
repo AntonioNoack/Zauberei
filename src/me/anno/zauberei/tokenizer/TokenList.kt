@@ -54,11 +54,11 @@ class TokenList(val src: String) {
 
     override fun toString(): String {
         return (0 until size).map { i ->
-            "${getType(i)}(${getString(i)})"
+            "${getType(i)}(${toString(i)})"
         }.toString()
     }
 
-    fun getString(i: Int): String {
+    fun toString(i: Int): String {
         return src.substring(getI0(i), getI1(i))
     }
 

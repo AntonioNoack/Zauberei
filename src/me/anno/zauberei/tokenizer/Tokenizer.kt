@@ -10,6 +10,7 @@ class Tokenizer(val src: String) {
         while (i < n) {
             val c = src[i]
             when {
+                // c == '\n' -> list.add(TokenType.LINE_BREAK, i++, i)
                 c.isWhitespace() -> i++ // skip spaces
 
                 // comments
@@ -52,27 +53,13 @@ class Tokenizer(val src: String) {
                 c == '"' -> parseString()
 
                 // special one-char tokens
-                c == ',' -> {
-                    list.add(TokenType.COMMA, i, i + 1); i++
-                }
-                c == '(' -> {
-                    list.add(TokenType.OPEN_CALL, i, i + 1); i++
-                }
-                c == ')' -> {
-                    list.add(TokenType.CLOSE_CALL, i, i + 1); i++
-                }
-                c == '{' -> {
-                    list.add(TokenType.OPEN_BLOCK, i, i + 1); i++
-                }
-                c == '}' -> {
-                    list.add(TokenType.CLOSE_BLOCK, i, i + 1); i++
-                }
-                c == '[' -> {
-                    list.add(TokenType.OPEN_ARRAY, i, i + 1); i++
-                }
-                c == ']' -> {
-                    list.add(TokenType.CLOSE_ARRAY, i, i + 1); i++
-                }
+                c == ',' -> list.add(TokenType.COMMA, i++, i)
+                c == '(' -> list.add(TokenType.OPEN_CALL, i++, i)
+                c == ')' -> list.add(TokenType.CLOSE_CALL, i++, i)
+                c == '{' -> list.add(TokenType.OPEN_BLOCK, i++, i)
+                c == '}' -> list.add(TokenType.CLOSE_BLOCK, i++, i)
+                c == '[' -> list.add(TokenType.OPEN_ARRAY, i++, i)
+                c == ']' -> list.add(TokenType.CLOSE_ARRAY, i++, i)
 
                 // symbols
                 else -> {
