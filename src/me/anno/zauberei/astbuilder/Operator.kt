@@ -4,7 +4,7 @@ enum class Assoc { LEFT, RIGHT }
 
 data class Operator(val symbol: String, val precedence: Int, val assoc: Assoc)
 
-private val operators = mapOf(
+val operators = mapOf(
     "=" to Operator("=", 5, Assoc.RIGHT),
     "||" to Operator("||", 6, Assoc.LEFT),
     "&&" to Operator("&&", 7, Assoc.LEFT),

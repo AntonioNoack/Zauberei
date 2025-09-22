@@ -1,10 +1,10 @@
 package me.anno.zauberei.tokenizer
 
-class Tokenizer(val src: String) {
+class Tokenizer(val src: String, fileName: String) {
 
     var i = 0
     var n = src.length
-    val list = TokenList(src)
+    val list = TokenList(src, fileName)
 
     fun tokenize(): TokenList {
         while (i < n) {

@@ -11,6 +11,19 @@ import me.anno.zauberei.types.Field
 import me.anno.zauberei.types.Package
 import me.anno.zauberei.types.Type
 
+// todo our current approach is pretty inflexible, and we should respect borders ([{<>}]) stricter, can we split this class,
+//  and create a token sublist?
+
+// I want macros... how could we implement them? learn about Rust macros
+//  -> we get tokens as attributes in a specific pattern,
+//  and after resolving the pattern, we can copy-paste these pattern variables as we please
+
+//  -> we should be able to implement when() and for() using these
+
+// todo getting started quickly is important for my Dopamine levels!
+
+// todo first parse class structures, function contents later, so we can immediately fill in what a variable name belongs to (type, local, class member, ...)
+
 class ASTBuilder(val tokens: TokenList, val root: Package) {
 
     companion object {
@@ -20,9 +33,6 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         )
         private val paramLevelKeywords = listOf(
             "private", "var", "val"
-        )
-        private val expressionLevelKeywords = listOf(
-            "if", "else", "while", "do", "for", "when"
         )
     }
 
@@ -83,8 +93,35 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                         }
                         isFun -> {
                             val keywords = packKeywords()
-                            readParameters()
-                            TODO("read function")
+
+                            // parse optional <T, U>
+                            val typeParams = readFunctionTypeParameters()
+
+                            // parse parameters (...)
+                            val parameters = readParameters()
+
+                            // optional return type
+                            val returnType = if (tokens.equals(i, TokenType.SYMBOL, ":")) {
+                                i++
+                                readType()
+                            } else null
+
+                            // body (or just = expression)
+                            val body = if (tokens.equals(i, TokenType.SYMBOL, "=")) {
+                                i++
+                                readExpressionWithPostfix()
+                            } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
+                                tokens.pushBlock(i++) {
+                                    readFunctionBody()
+                                }
+                            } else null
+
+                            val function = Function(
+                                names.removeFirst(),
+                                typeParams, parameters,
+                                returnType, body, keywords
+                            )
+                            currPackage.functions.add(function)
                         }
                         isObject -> throw IllegalStateException("Objects cannot have parameters")
                         else -> throw IllegalStateException("Cannot happen")
@@ -120,7 +157,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     val isVal = keywords.remove("val")
                     assert(isVar.toInt() + isVal.toInt() == 1) { "Expected either val or var" }
                     val keywords = packKeywords()
-                    val initialValue = readExpression()
+                    val initialValue = readExpressionWithPostfix()
                     val type: Type? = null // unknown in this case
                     val field = Field(isVar, isVal, name, type, initialValue, keywords)
                     println("read field $name: $type = $initialValue")
@@ -133,10 +170,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     i++
                     return // finished :)
                 }
-                else -> throw NotImplementedError(
-                    "Unknown token ${tokens.getType(i)}, ${tokens.toString(i)} in " +
-                            currPackage.path.joinToString(".")
-                )
+                else -> throw NotImplementedError("Unknown token at ${tokens.err(i)}")
             }
         }
     }
@@ -162,7 +196,6 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     fun readParameters(): List<Parameter> {
         val result = ArrayList<Parameter>()
         while (i < n) {
-            println("param[$i]: ${tokens.toString(i)}")
             when {
                 tokens.equals(i, TokenType.NAME) -> collectNames(paramLevelKeywords)
                 tokens.equals(i, TokenType.SYMBOL, ":") -> {
@@ -170,13 +203,15 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     val isVal = keywords.remove("val")
                     assert(names.size == 1) { "Expected exactly one name, got $names" }
                     val name = names.removeLast()
-                    i++
-                    val type = readType()
-                    println("type: $type")
+                    i++ // skip ':'
+
+                    val type = readType() // <-- handles generics now
+
                     val initialValue = if (tokens.equals(i, TokenType.SYMBOL, "=")) {
                         i++
-                        readExpression()
+                        readExpressionWithPostfix()
                     } else null
+
                     result.add(Parameter(isVar, isVal, name, type, initialValue))
                     keywords.clear()
 
@@ -186,25 +221,36 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                             i++
                             return result
                         }
-                        else -> throw IllegalStateException("Unknown token in params")
+                        else -> throw IllegalStateException("Unknown token in params at ${tokens.err(i)}")
                     }
                 }
-                // todo read annotations
-                else -> throw NotImplementedError("Unknown token ${tokens.getType(i)}, ${tokens.toString(i)}")
+                else -> throw NotImplementedError("Unknown token in params at ${tokens.err(i)}")
             }
         }
         return result
     }
 
-    fun readType(): Type {
-        val path = readPath()
-        if (tokens.equals(i, TokenType.SYMBOL, "<")) TODO("read generics")
-        return ClassType(path)
+    fun readFunctionTypeParameters(): List<Package> {
+        if (!tokens.equals(i, TokenType.SYMBOL, "<")) return emptyList()
+        i++ // consume '<'
+        val params = mutableListOf<Package>()
+        while (true) {
+            assert(tokens.equals(i, TokenType.NAME)) { "Expected type parameter name" }
+            params.add(readPath())
+            when {
+                tokens.equals(i, TokenType.COMMA) -> i++
+                tokens.equals(i, TokenType.SYMBOL, ">") -> {
+                    i++; break
+                }
+                else -> throw IllegalStateException("Expected , or > in type parameters")
+            }
+        }
+        return params
     }
 
     fun readExpressionCondition(): Expression {
         assert(tokens.equals(i++, TokenType.OPEN_CALL))
-        val expr = readExpression()
+        val expr = readExpressionWithPostfix()
         assert(tokens.equals(i++, TokenType.CLOSE_CALL))
         return expr
     }
@@ -214,11 +260,11 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             i++
             readFunctionBody()
         } else {
-            readExpression()
+            readExpressionWithPostfix()
         }
     }
 
-    fun readExpressionPart(): Expression {
+    fun readPrefix(): Expression {
         when {
             tokens.equals(i, TokenType.NUMBER) -> return NumberExpression(tokens.toString(i++))
             tokens.equals(i, TokenType.STRING) -> return StringExpression(tokens.toString(i++))
@@ -232,7 +278,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 } else ExpressionList.empty
                 return IfElseBranch(condition, ifTrue, ifFalse)
             }
-            tokens.equals(i, TokenType.NAME, "else") -> throw IllegalStateException("Unexpected else")
+            tokens.equals(i, TokenType.NAME, "else") ->
+                throw IllegalStateException("Unexpected else at ${tokens.err(i)}")
             tokens.equals(i, TokenType.NAME, "while") -> {
                 i++
                 val condition = readExpressionCondition()
@@ -251,22 +298,43 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     TODO("read declaration, assignment or name")
                 } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
                     TODO("read boolean expressions, arrows, and their following blocks")
-                } else throw IllegalStateException(
-                    "Unexpected token after when ${tokens.getType(i)}, ${tokens.toString(i)}"
-                )
+                } else {
+                    throw IllegalStateException("Unexpected token after when at ${tokens.err(i)}")
+                }
             }
             tokens.equals(i, TokenType.NAME) -> {
-                val variableName = tokens.toString(i++)
-               /* if (tokens.startsWith(i, "<")) {
+                val namePath = readPath()
+                println("reading name: $namePath, ${tokens.err(i)}")
+                val typeArgs = if (tokens.equals(i, TokenType.SYMBOL, "<")) {
+                    readTypeArguments()
+                } else emptyList()
 
-                }*/
-                TODO()
-                return VariableExpression(variableName)
+                return if (tokens.equals(i, TokenType.OPEN_CALL)) {
+                    // constructor or function call with type args
+                    i++ // consume (
+                    val args = mutableListOf<Expression>()
+                    if (!tokens.equals(i, TokenType.CLOSE_CALL)) {
+                        do {
+                            args.add(readExpressionWithPostfix())
+                        } while (tokens.equals(i, TokenType.COMMA).also { if (it) i++ })
+                    }
+                    assert(tokens.equals(i, TokenType.CLOSE_CALL))
+                    i++
+
+                    if (Character.isUpperCase(namePath.name!![0])) {
+                        // heuristic: class constructor
+                        ConstructorExpression(namePath, typeArgs, args)
+                    } else {
+                        CallExpression(VariableExpression(namePath.name), typeArgs, args)
+                    }
+                } else {
+                    VariableExpression(namePath.name!!)
+                }
             }
             tokens.equals(i, TokenType.OPEN_CALL) -> {
                 // just something in brackets
                 i++
-                val inside = readExpressionPart()
+                val inside = readPrefix()
                 assert(tokens.equals(i, TokenType.CLOSE_CALL))
                 i++
                 return inside
@@ -275,75 +343,85 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         }
     }
 
-    fun readExpression(): Expression {
-        val chain = ArrayList<Expression>()
-        val symbols = ArrayList<String>()
-        chain.add(readExpressionPart())
+    fun readType(): Type {
+        val path = readPath() // e.g. ArrayList
+        val typeArgs = if (tokens.equals(i, TokenType.SYMBOL, "<")) {
+            readTypeArguments()
+        } else emptyList()
+        return ClassType(path, typeArgs)
+    }
 
-        loop@ while (true) {
+    fun readTypeArguments(): List<Type> {
+        assert(tokens.equals(i, TokenType.SYMBOL, "<"))
+        i++ // consume '<'
+
+        val args = mutableListOf<Type>()
+        while (true) {
+            args.add(readType()) // recursive type
             when {
-                tokens.equals(i, TokenType.SYMBOL) -> {
-                    symbols.add(tokens.toString(i++))
-                    when {
-                        tokens.equals(i, TokenType.SYMBOL, "-") -> {
-                            i++
-                            chain.add(UnaryOp("-", readExpressionPart()))
-                        }
-                        tokens.equals(i, TokenType.SYMBOL, "!") -> {
-                            i++
-                            chain.add(UnaryOp("!", readExpressionPart()))
-                        }
-                        else -> chain.add(readExpressionPart())
-                    }
+                tokens.equals(i, TokenType.COMMA) -> i++
+                tokens.equals(i, TokenType.SYMBOL, ">") -> {
+                    i++ // consume '>'
+                    break
                 }
+                else -> throw IllegalStateException("Expected , or > in type arguments, got ${tokens.err(i)}")
+            }
+        }
+        return args
+    }
+
+    fun readExpressionWithoutPostfix(minPrecedence: Int = 0): Expression {
+        var left = readPrefix()
+
+        while (i < n && tokens.getType(i) == TokenType.SYMBOL) {
+            val sym = tokens.toString(i)
+            val op = operators[sym] ?: break
+            if (op.precedence < minPrecedence) break
+
+            i++ // consume operator
+
+            val rhs = readExpressionWithoutPostfix(if (op.assoc == Assoc.LEFT) op.precedence + 1 else op.precedence)
+            left = BinaryOp(left, op.symbol, rhs)
+        }
+
+        return left
+    }
+
+    fun readExpressionWithPostfix(minPrecedence: Int = 0): Expression {
+        var expr = readExpressionWithoutPostfix(minPrecedence)
+        loop@ while (i < tokens.size) {
+            when {
                 tokens.equals(i, TokenType.OPEN_CALL) -> {
-                    i++
-                    val params = ArrayList<Expression>()
-                    params@ while (true) {
-                        params.add(readExpression())
-                        if (tokens.equals(i, TokenType.COMMA)) {
-                            i++
-                        } else if (tokens.equals(i, TokenType.CLOSE_CALL)) {
-                            i++
-                            break@params
-                        } else throw IllegalStateException("Expected comma or closing bracket")
-                    }
+                    val params = tokens.pushCall(i++) { readParamList() }
                     if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
-                        i++
-                        params.add(readLambda())
+                        tokens.pushBlock(i++) { params += readLambda() }
                     }
-                    chain[chain.lastIndex] = CallExpression(chain.last(), params)
+                    expr = CallExpression(expr, emptyList(), params)
+                }
+                tokens.equals(i, TokenType.OPEN_ARRAY) -> {
+                    val params = tokens.pushArray(i++) { readParamList() }
+                    expr = ArrayExpression(expr, params)
                 }
                 tokens.equals(i, TokenType.OPEN_BLOCK) -> {
                     i++
-                    val params = listOf(readLambda())
-                    chain[chain.lastIndex] = CallExpression(chain.last(), params)
-                }
-                tokens.equals(i, TokenType.OPEN_ARRAY) -> {
-                    i++
-                    val params = ArrayList<Expression>()
-                    params@ while (true) {
-                        params.add(readExpression())
-                        if (tokens.equals(i, TokenType.COMMA)) {
-                            i++
-                        } else if (tokens.equals(i, TokenType.CLOSE_ARRAY)) {
-                            i++
-                            break@params
-                        } else throw IllegalStateException("Expected comma or closing bracket")
-                    }
-                    if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
-                        i++
-                        params.add(readLambda())
-                    }
-                    chain[chain.lastIndex] = ArrayExpression(chain.last(), params)
+                    expr = CallExpression(expr, emptyList(), listOf(readLambda()))
                 }
                 else -> break@loop
             }
         }
+        return expr
+    }
 
-        if (chain.size == 1) return chain.first()
-
-        TODO("read sort elements by precedence, $chain, $symbols")
+    fun readParamList(): ArrayList<Expression> {
+        val params = ArrayList<Expression>()
+        if (i < tokens.size) {
+            while (true) {
+                params.add(readExpressionWithPostfix())
+                if (i < tokens.size && tokens.equals(i, TokenType.COMMA)) i++
+                else break
+            }
+        }
+        return params
     }
 
     fun readLambda(): ExpressionList {
@@ -376,7 +454,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 i++
             }
 
-            result.add(readExpression())
+            result.add(readExpressionWithoutPostfix())
         }
     }
 

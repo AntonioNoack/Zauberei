@@ -8,22 +8,20 @@ import java.io.File
 fun main() {
     // todo compile and run our samples, and confirm all tests work as expected (write unit tests as samples)
 
-    val root = File("./Samples/src")
-    val rootLen = root.absolutePath.length
+    val project = File(".")
+    val root = File(project, "Samples/src")
 
     val rootPackage = Package()
 
     fun compile(text: String, fileName: String) {
-        println("Compiling $text")
-        val tokens = Tokenizer(text).tokenize()
-        println(tokens)
+        val tokens = Tokenizer(text, fileName).tokenize()
         ASTBuilder(tokens, rootPackage).readFileLevel()
     }
 
-    fun addSource(file: File) {
+    fun addSource(file: File, rootLen: Int = file.absolutePath.length + 1) {
         if (file.isDirectory) {
             for (child in file.listFiles()!!) {
-                addSource(child)
+                addSource(child, rootLen)
             }
         } else if (file.extension == "kt") {
             compile(file.readText(), file.absolutePath.substring(rootLen))
@@ -31,6 +29,6 @@ fun main() {
     }
 
     addSource(root)
-    addSource(File(root, "../../src"))
+    addSource(File(project, "src"))
 
 }

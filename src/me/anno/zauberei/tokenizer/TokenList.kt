@@ -1,7 +1,7 @@
 package me.anno.zauberei.tokenizer
 
 // could be placed into a token list...
-class TokenList(val src: String) {
+class TokenList(val src: String, val fileName: String) {
 
     var size = 0
         private set
@@ -11,8 +11,51 @@ class TokenList(val src: String) {
     private var tokenTypes = ByteArray(16)
     private var offsets = IntArray(32)
 
+    fun <R> pushCall(i: Int, readImpl: () -> R): R {
+        return push(i, TokenType.OPEN_CALL, TokenType.CLOSE_CALL, readImpl)
+    }
+
+    fun <R> pushBlock(i: Int, readImpl: () -> R): R {
+        return push(i, TokenType.OPEN_BLOCK, TokenType.CLOSE_BLOCK, readImpl)
+    }
+
+    fun <R> pushArray(i: Int, readImpl: () -> R): R {
+        return push(i, TokenType.OPEN_ARRAY, TokenType.CLOSE_ARRAY, readImpl)
+    }
+
+    fun <R> push(
+        i: Int, open: TokenType, close: TokenType,
+        readImpl: () -> R
+    ): R {
+        assert(equals(i, open))
+        var depth = 1
+        var j = i
+        while (depth > 0) {
+            j++
+            when {
+                equals(j, open) -> depth++
+                equals(j, close) -> depth--
+            }
+        }
+        val oldSize = size
+        size = j
+        val result = readImpl()
+        size = oldSize
+        return result
+    }
+
     fun getType(i: Int): TokenType {
+        if (i >= size) throw IndexOutOfBoundsException("$i >= $size at ${err(size - 1)}")
         return TokenType.entries[tokenTypes[i].toInt()]
+    }
+
+    fun err(i: Int): String {
+        val before = src.substring(0, getI0(i))
+        val lineNumber = before.count { it == '\n' } + 1
+        val lastLineBreak = before.lastIndexOf('\n')
+        val pos0 = getI0(i) - lastLineBreak
+        val pos1 = getI1(i) - lastLineBreak
+        return "$fileName:$lineNumber, ${pos0}-${pos1}, ${getType(i)}, '${toString(i)}'"
     }
 
     fun getI0(i: Int) = offsets[i * 2]

@@ -35,4 +35,8 @@ class Package(val name: String? = null, val parent: Package? = null) {
             return path
         }
 
+    override fun toString(): String {
+        return "Package[${path.joinToString(".")}]"
+    }
+
 }
