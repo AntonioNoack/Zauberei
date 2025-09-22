@@ -2,6 +2,7 @@ package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.astbuilder.flow.DoWhileLoop
+import me.anno.zauberei.astbuilder.flow.ForLoop
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.WhileLoop
 import me.anno.zauberei.tokenizer.TokenList
@@ -164,9 +165,6 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     println("read field $name: $type = $initialValue")
                     currPackage.fields.add(field)
                 }
-                /*tokens.equals(i, TokenType.LINE_BREAK) -> {
-                    i++
-                }*/
                 tokens.equals(i, TokenType.CLOSE_BLOCK) -> {
                     i++
                     return // finished :)
@@ -244,7 +242,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     fun readFunctionTypeParameters(): List<Parameter> {
         if (!tokens.equals(i, "<")) return emptyList()
         val params = mutableListOf<Parameter>()
-        tokens.push(i++, TokenType.SYMBOL, "<", TokenType.SYMBOL, ">") {
+        tokens.push(i++, "<", ">") {
             while (i < tokens.size) {
                 assert(tokens.equals(i, TokenType.NAME)) { "Expected type parameter name" }
                 val name = tokens.toString(i++)
@@ -290,12 +288,21 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             tokens.equals(i, "false") -> {
                 i++; return VariableExpression("false")
             }
+            tokens.equals(i, "!") -> {
+                i++; return UnaryOp("!", readExpression())
+            }
+            tokens.equals(i, "+") -> {
+                i++; return readPrefix()
+            }
+            tokens.equals(i, "-") -> {
+                i++; return UnaryOp("-", readExpression())
+            }
 
             tokens.equals(i, "if") -> {
                 i++
                 val condition = readExpressionCondition()
                 val ifTrue = readBodyOrLine()
-                val ifFalse = if (tokens.equals(i, "else")) {
+                val ifFalse = if (i < tokens.size && tokens.equals(i, "else")) {
                     i++
                     readBodyOrLine()
                 } else ExpressionList.empty
@@ -314,6 +321,21 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 val body = readBodyOrLine()
                 val condition = readExpressionCondition()
                 return DoWhileLoop(body, condition, label)
+            }
+            tokens.equals(i, "for") -> {
+                i++ // skip for
+                lateinit var name: String
+                lateinit var iterable: Expression
+                pushCall {
+                    assert(tokens.equals(i, TokenType.NAME))
+                    name = tokens.toString(i++)
+                    // to do type?
+                    assert(tokens.equals(i++, "in"))
+                    iterable = readExpression()
+                    assert(i == tokens.size)
+                }
+                val body = readBodyOrLine()
+                return ForLoop(name, iterable, body, label)
             }
             tokens.equals(i, "when") -> {
                 i++
@@ -502,8 +524,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 else -> break@loop
             }
 
-            val op = operators[symbol] ?: break
-            if (op.precedence < minPrecedence) break
+            val op = operators[symbol] ?: break@loop
+            if (op.precedence < minPrecedence) break@loop
 
             i++ // consume operator
 
@@ -586,11 +608,18 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     fun readDeclaration(isVar: Boolean, isLateinit: Boolean = false): Expression {
         i++ // skip var/val
         assert(tokens.equals(i, TokenType.NAME))
-        val name = tokens.toString(i)
+        val name = tokens.toString(i++)
+        println("reading var/val $name")
         val type = if (tokens.equals(i, ":")) {
+            println("skipping : for type")
             i++ // skip :
-            readType()
-        } else null
+            readType().apply {
+                println("type: $this")
+            }
+        } else {
+            println("no type present")
+            null
+        }
         val value = if (tokens.equals(i, "=")) {
             i++ // skip =
             readExpression()

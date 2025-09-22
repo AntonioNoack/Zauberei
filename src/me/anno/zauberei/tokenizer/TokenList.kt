@@ -6,8 +6,6 @@ class TokenList(val src: String, val fileName: String) {
     var size = 0
         private set
 
-    val indices get() = 0 until size
-
     private var tokenTypes = ByteArray(16)
     private var offsets = IntArray(32)
 
@@ -26,10 +24,20 @@ class TokenList(val src: String, val fileName: String) {
     fun <R> push(
         i: Int, open: TokenType, close: TokenType,
         readImpl: () -> R
-    ): R {
-        val end = findBlockEnd(i, open, close)
-        return push(end, readImpl)
+    ): R = push(findBlockEnd(i, open, close), readImpl)
+
+    fun <R> push(j: Int, readImpl: () -> R): R {
+        val oldSize = size
+        size = j
+        val result = readImpl()
+        size = oldSize
+        return result
     }
+
+    fun <R> push(
+        i: Int, openStr: String, closeStr: String,
+        readImpl: () -> R
+    ): R = push(findBlockEnd(i, openStr, closeStr), readImpl)
 
     fun findBlockEnd(i: Int, open: TokenType, close: TokenType): Int {
         assert(equals(i, open))
@@ -45,33 +53,21 @@ class TokenList(val src: String, val fileName: String) {
         return j - 1
     }
 
-    fun <R> push(j: Int, readImpl: () -> R): R {
-        val oldSize = size
-        size = j
-        val result = readImpl()
-        size = oldSize
-        return result
-    }
-
-    fun <R> push(
-        i: Int, open: TokenType, openStr: String, close: TokenType, closeStr: String,
-        readImpl: () -> R
-    ): R {
-        assert(equals(i, openStr))
+    fun findBlockEnd(i: Int, open: String, close: String): Int {
+        assert(equals(i, open))
         var depth = 1
-        var j = i
+        var j = i + 1
         while (depth > 0) {
-            j++
-            when {
-                equals(j, openStr) -> depth++
-                equals(j, closeStr) -> depth--
+            if (equals(i, open)) depth++
+            else if (equals(i, close)) depth--
+            else when (getType(j)) {
+                TokenType.OPEN_CALL, TokenType.OPEN_ARRAY, TokenType.OPEN_BLOCK -> depth++
+                TokenType.CLOSE_CALL, TokenType.CLOSE_ARRAY, TokenType.CLOSE_BLOCK -> depth--
+                else -> {}
             }
+            j++
         }
-        val oldSize = size
-        size = j
-        val result = readImpl()
-        size = oldSize
-        return result
+        return j - 1
     }
 
     fun getType(i: Int): TokenType {
