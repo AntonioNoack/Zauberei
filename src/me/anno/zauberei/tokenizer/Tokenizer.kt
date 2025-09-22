@@ -4,7 +4,7 @@ class Tokenizer(val src: String, fileName: String) {
 
     var i = 0
     var n = src.length
-    val list = TokenList(src, fileName)
+    val tokens = TokenList(src, fileName)
 
     fun tokenize(): TokenList {
         while (i < n) {
@@ -24,12 +24,15 @@ class Tokenizer(val src: String, fileName: String) {
                     i += 2
                 }
 
-                // identifiers / strings
+                // identifiers
                 c.isLetter() || c == '_' -> {
                     val start = i
                     i++
                     while (i < n && (src[i].isLetterOrDigit() || src[i] == '_')) i++
-                    list.add(TokenType.NAME, start, i)
+                    if (i < n && src[i] == '@') {
+                        tokens.add(TokenType.LABEL, start, i)
+                        i++
+                    } else tokens.add(TokenType.NAME, start, i)
                 }
 
                 // numbers
@@ -37,7 +40,7 @@ class Tokenizer(val src: String, fileName: String) {
                     val start = i
                     i++
                     while (i < n && (src[i].isDigit() || src[i] in ".eE+-")) i++
-                    list.add(TokenType.NUMBER, start, i)
+                    tokens.add(TokenType.NUMBER, start, i)
                 }
 
                 // char literal = number
@@ -46,61 +49,64 @@ class Tokenizer(val src: String, fileName: String) {
                     i++
                     if (i < n && src[i] != '\'') i++
                     if (i < n && src[i] == '\'') i++
-                    list.add(TokenType.NUMBER, start, i)
+                    tokens.add(TokenType.NUMBER, start, i)
                 }
 
                 // string with interpolation
                 c == '"' -> parseString()
 
                 // special one-char tokens
-                c == ',' -> list.add(TokenType.COMMA, i++, i)
-                c == '(' -> list.add(TokenType.OPEN_CALL, i++, i)
-                c == ')' -> list.add(TokenType.CLOSE_CALL, i++, i)
-                c == '{' -> list.add(TokenType.OPEN_BLOCK, i++, i)
-                c == '}' -> list.add(TokenType.CLOSE_BLOCK, i++, i)
-                c == '[' -> list.add(TokenType.OPEN_ARRAY, i++, i)
-                c == ']' -> list.add(TokenType.CLOSE_ARRAY, i++, i)
+                c == ',' -> tokens.add(TokenType.COMMA, i++, i)
+                c == '(' -> tokens.add(TokenType.OPEN_CALL, i++, i)
+                c == ')' -> tokens.add(TokenType.CLOSE_CALL, i++, i)
+                c == '{' -> tokens.add(TokenType.OPEN_BLOCK, i++, i)
+                c == '}' -> tokens.add(TokenType.CLOSE_BLOCK, i++, i)
+                c == '[' -> tokens.add(TokenType.OPEN_ARRAY, i++, i)
+                c == ']' -> tokens.add(TokenType.CLOSE_ARRAY, i++, i)
 
                 // symbols
                 else -> {
                     val start = i
                     i++
-                    list.add(TokenType.SYMBOL, start, i)
+                    tokens.add(TokenType.SYMBOL, start, i)
                 }
             }
         }
-        return list
+        return tokens
     }
 
     private fun parseString() {
         val open = i
         i++ // skip initial "
-        list.add(TokenType.OPEN_CALL, open, open + 1)
+        tokens.add(TokenType.OPEN_CALL, open, open + 1)
 
         var chunkStart = i
         fun flushChunk(until: Int) {
             if (until > chunkStart) {
-                list.add(TokenType.STRING, chunkStart, until)
+                tokens.add(TokenType.STRING, chunkStart, until)
             }
         }
 
         while (i < n) {
-            when (val ch = src[i]) {
+            when (src[i]) {
                 '\\' -> i += 2 // skip escaped char
-
                 '"' -> {
                     flushChunk(i)
+
+                    if (tokens.size > 0 && tokens.equals(tokens.size - 1, TokenType.APPEND_STRING)) {
+                        tokens.removeLast()
+                    }
+
                     i++ // skip closing "
-                    list.add(TokenType.CLOSE_CALL, i - 1, i)
+                    tokens.add(TokenType.CLOSE_CALL, i - 1, i)
                     return
                 }
-
                 '$' -> {
                     flushChunk(i)
 
                     // Begin: + ( ... )
-                    list.add(TokenType.PLUS, i, i + 1)
-                    list.add(TokenType.OPEN_CALL, i, i)
+                    tokens.add(TokenType.APPEND_STRING, i, i + 1)
+                    tokens.add(TokenType.OPEN_CALL, i, i)
 
                     i++ // consume $
                     if (i < n && src[i] == '{') {
@@ -131,16 +137,15 @@ class Tokenizer(val src: String, fileName: String) {
                         val start = i
                         i++
                         while (i < n && (src[i].isLetterOrDigit() || src[i] == '_')) i++
-                        list.add(TokenType.NAME, start, i)
+                        tokens.add(TokenType.NAME, start, i)
                     }
 
                     // End: )
-                    list.add(TokenType.CLOSE_CALL, i, i)
-                    list.add(TokenType.PLUS, i, i)
+                    tokens.add(TokenType.CLOSE_CALL, i, i)
+                    tokens.add(TokenType.APPEND_STRING, i, i)
 
                     chunkStart = i
                 }
-
                 else -> i++
             }
         }

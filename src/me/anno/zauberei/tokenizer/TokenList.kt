@@ -44,6 +44,27 @@ class TokenList(val src: String, val fileName: String) {
         return result
     }
 
+    fun <R> push(
+        i: Int, open: TokenType, openStr: String, close: TokenType, closeStr: String,
+        readImpl: () -> R
+    ): R {
+        assert(equals(i, open, openStr))
+        var depth = 1
+        var j = i
+        while (depth > 0) {
+            j++
+            when {
+                equals(j, open, openStr) -> depth++
+                equals(j, close, closeStr) -> depth--
+            }
+        }
+        val oldSize = size
+        size = j
+        val result = readImpl()
+        size = oldSize
+        return result
+    }
+
     fun getType(i: Int): TokenType {
         if (i >= size) throw IndexOutOfBoundsException("$i >= $size at ${err(size - 1)}")
         return TokenType.entries[tokenTypes[i].toInt()]
@@ -82,7 +103,7 @@ class TokenList(val src: String, val fileName: String) {
         }
     }
 
-    fun equals(i: Int, type: TokenType): Boolean = (getType(i) == type)
+    fun equals(i: Int, type: TokenType): Boolean = getType(i) == type
     fun equals(i: Int, str: String): Boolean {
         val i0 = getI0(i)
         val i1 = getI1(i)
@@ -102,7 +123,21 @@ class TokenList(val src: String, val fileName: String) {
     }
 
     fun toString(i: Int): String {
+        if (i >= size) throw IndexOutOfBoundsException("$i >= $size, ${TokenType.entries[tokenTypes[i].toInt()]}")
         return src.substring(getI0(i), getI1(i))
+    }
+
+    fun isSameLine(tokenI: Int, tokenJ: Int): Boolean {
+        val i0 = getI0(tokenI)
+        val i1 = getI1(tokenJ)
+        for (i in i0 until i1) {
+            if (src[i] == '\n') return false
+        }
+        return true
+    }
+
+    fun removeLast() {
+        size--
     }
 
 }

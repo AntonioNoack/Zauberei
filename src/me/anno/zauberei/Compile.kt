@@ -15,6 +15,7 @@ fun main() {
 
     fun compile(text: String, fileName: String) {
         val tokens = Tokenizer(text, fileName).tokenize()
+        println(tokens)
         ASTBuilder(tokens, rootPackage).readFileLevel()
     }
 

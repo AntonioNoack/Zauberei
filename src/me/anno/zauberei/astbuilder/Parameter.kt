@@ -9,4 +9,8 @@ class Parameter(
     val name: String,
     val type: Type,
     val initialValue: Expression?
-)
+) {
+    override fun toString(): String {
+        return "${if (isVar) "var " else ""}${if (isVal) "val " else ""}$name: $type${if(initialValue != null) " = $initialValue" else ""}"
+    }
+}

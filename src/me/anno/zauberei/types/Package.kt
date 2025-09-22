@@ -1,6 +1,7 @@
 package me.anno.zauberei.types
 
 import me.anno.zauberei.astbuilder.Function
+import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.expression.Expression
 
 class Package(val name: String? = null, val parent: Package? = null) {
@@ -13,6 +14,8 @@ class Package(val name: String? = null, val parent: Package? = null) {
     val fields = ArrayList<Field>()
 
     val initialization = ArrayList<Expression>()
+
+    var primaryConstructorParams: List<Parameter>? = null
 
     fun getOrPut(name: String): Package {
         var child = children.firstOrNull { it.name == name }
