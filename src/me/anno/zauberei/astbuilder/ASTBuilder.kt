@@ -305,11 +305,11 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                             val nextArrow = tokens.findToken(i, TokenType.SYMBOL, "->")
                             assert(nextArrow != -1)
                             val condition = push(nextArrow) {
-                                if(tokens.equals(i, TokenType.NAME, "else")) null
+                                if (tokens.equals(i, TokenType.NAME, "else")) null
                                 else readExpressionWithPostfix()
                             }
                             val expr = readBodyOrLine()
-                            cases.add(WhenCase(condition,expr))
+                            cases.add(WhenCase(condition, expr))
                         }
                     }
                     return WhenBranchExpression(cases)
@@ -458,7 +458,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     }
 
     fun <R> push(endTokenIdx: Int, readImpl: () -> R): R {
-        val result = tokens.pushBlock(endTokenIdx, readImpl)
+        val result = tokens.push(endTokenIdx, readImpl)
         i = endTokenIdx + 1 // skip }
         return result
     }
@@ -490,6 +490,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     i++ // skip --
                     expr = DecExpression(expr)
                 }
+                tokens.equals(i, TokenType.SYMBOL, "!!") -> {
+                    i++ // skip --
+                    expr = NonNullExpression(expr)
+                }
                 else -> break@loop
             }
         }
@@ -497,23 +501,12 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     }
 
     fun readLambda(): ExpressionList {
-        // todo check for arrow
-        val params = ArrayList<String>()
-        val x = { a: Int, c: Int ->
-
+        val arrow = tokens.findToken(i, TokenType.SYMBOL, "->")
+        if (arrow >= 0) {
+            // todo only accept arrow if nothing weird is in-between
+            TODO("parse destructuring at ${tokens.err(i)}")
         }
-        var j = i
-        while (true) {
-            if (tokens.equals(j, TokenType.OPEN_CALL)) {
-                j++
-                TODO("parse destructuring")
-            }
-            if (tokens.equals(j, TokenType.SYMBOL, "->")) {
-                TODO("")
-            }
-        }
-
-        TODO("")
+        return readFunctionBody()
     }
 
     fun readFunctionBody(): ExpressionList {

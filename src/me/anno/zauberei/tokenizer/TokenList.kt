@@ -94,7 +94,8 @@ class TokenList(val src: String, val fileName: String) {
 
         if (size > 0 && type == TokenType.SYMBOL &&
             getType(size - 1) == TokenType.SYMBOL &&
-            i0 == offsets[size * 2 - 1]
+            i0 == offsets[size * 2 - 1] &&
+            src[i0] != ';'
         ) {
             // todo only accept a symbol if the previous is not =, or the current one is =, too
             // extend symbol
@@ -145,8 +146,17 @@ class TokenList(val src: String, val fileName: String) {
     }
 
     fun findToken(i0: Int, type: TokenType, str: String): Int {
+        var depth = 0
         for (i in i0 until size) {
-            if (equals(i, type, str)) return i
+            when {
+                depth == 0 && equals(i, type, str) -> return i
+                equals(i, TokenType.OPEN_BLOCK) ||
+                        equals(i, TokenType.OPEN_ARRAY) ||
+                        equals(i, TokenType.OPEN_CALL) -> depth++
+                equals(i, TokenType.CLOSE_BLOCK) ||
+                        equals(i, TokenType.CLOSE_ARRAY) ||
+                        equals(i, TokenType.CLOSE_CALL) -> depth--
+            }
         }
         return -1
     }
