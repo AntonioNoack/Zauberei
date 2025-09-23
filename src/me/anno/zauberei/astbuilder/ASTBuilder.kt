@@ -44,12 +44,13 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     }
 
     val AnyType = ClassType(root.getOrPut("Any"), emptyList())
+    val NullableAnyType = NullableType(AnyType)
 
     val imports = ArrayList<Package>()
     val keywords = ArrayList<String>()
 
     // todo assign them appropriately
-    val annotations = ArrayList<Expression>()
+    val annotations = ArrayList<Annotation>()
 
     var currPackage = root
     var i = 0
@@ -74,6 +75,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         val name = tokens.toString(i++)
         val clazz = currPackage.getOrPut(name)
         val keywords = packKeywords()
+        clazz.typeParams = readFunctionTypeParameters()
+
         val privateConstructor = if (tokens.equals(i, "private")) i++ else -1
         if (tokens.equals(i, "constructor")) i++
         val constructorParams = if (tokens.equals(i, TokenType.OPEN_CALL)) {
@@ -92,6 +95,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         val name = tokens.toString(i++)
         val clazz = currPackage.getOrPut(name)
         val keywords = packKeywords()
+        clazz.typeParams = readFunctionTypeParameters()
 
         readSuperCalls(clazz)
         readClassBody(name, keywords)
@@ -322,27 +326,22 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     }
                 }
                 tokens.equals(i, "set") -> {
-                    i++
+                    i++ // skip set
                     val field = lastField!!
                     field.privateSet = keywords.remove("private")
-
                     if (tokens.equals(i, TokenType.OPEN_CALL)) {
-                        i++
-                        assert(tokens.equals(i, TokenType.NAME))
+                        assert(tokens.equals(++i, TokenType.NAME))
                         field.setterFieldName = tokens.toString(i++)
-                        assert(tokens.equals(i, TokenType.CLOSE_CALL))
+                        // println("found set ${field.name}, ${field.setterFieldName}")
+                        assert(tokens.equals(i++, TokenType.CLOSE_CALL))
                         field.setterExpr = if (tokens.equals(i, "=")) readExpression()
                         else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
                             pushBlock { readFunctionBody() }
                         } else null
-                    }
+                    }// else println("found set without anything else, ${field.name}")
                 }
 
-                tokens.equals(i, "@") -> {
-                    i++ // skip @
-                    // todo find save end: {} is not (yet?) supported by annotations
-                    annotations.add(readExpression())
-                }
+                tokens.equals(i, "@") -> annotations.add(readAnnotation())
 
                 tokens.equals(i, TokenType.NAME) || tokens.equals(i, TokenType.KEYWORD) ->
                     collectNames(fileLevelKeywords)
@@ -350,6 +349,17 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 else -> throw NotImplementedError("Unknown token at ${tokens.err(i)}")
             }
         }
+    }
+
+    fun readAnnotation(): Annotation {
+        // todo find save end: {} is not (yet?) supported by annotations
+        assert(tokens.equals(i++, "@"))
+        assert(tokens.equals(i, TokenType.NAME))
+        val path = readPath(false)
+        val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
+            pushCall { readParamExpressions() }
+        } else emptyList()
+        return Annotation(path, params)
     }
 
     fun packKeywords(): List<String> {
@@ -395,7 +405,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
                     val isVar = keywords.remove("var")
                     val isVal = keywords.remove("val")
-                    assert(tokens.equals(i++, ":"))
+                    assert(tokens.equals(i++, ":")) { "Expected colon in var/val at ${tokens.err(i - 1)}" }
 
                     val type = readType() // <-- handles generics now
 
@@ -415,6 +425,24 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         return result
     }
 
+    fun readGenericParams(): List<GenericParam> {
+        val result = ArrayList<GenericParam>()
+        loop@ while (i < tokens.size) {
+            if (tokens.equals(i, TokenType.NAME) &&
+                tokens.equals(i + 1, ":") &&
+                tokens.equals(i + 2, TokenType.NAME)
+            ) {
+                val name = tokens.toString(i)
+                i += 2
+                result.add(GenericParam(name, readType()))
+            } else if (tokens.equals(i, TokenType.NAME)) {
+                result.add(GenericParam(null, readType()))
+            } else throw IllegalStateException("Expected name: Type or name at ${tokens.err(i)}")
+            readComma()
+        }
+        return result
+    }
+
     fun readFunctionTypeParameters(): List<Parameter> {
         if (!tokens.equals(i, "<")) return emptyList()
         val params = ArrayList<Parameter>()
@@ -425,7 +453,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 val type = if (tokens.equals(i, ":")) {
                     i++ // skip :
                     readType()
-                } else AnyType
+                } else NullableAnyType
                 params.add(Parameter(false, true, name, type, null))
                 readComma()
             }
@@ -453,6 +481,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             else null
 
         when {
+            tokens.equals(i, "@") -> {
+                val annotation = readAnnotation()
+                return AnnotatedExpression(annotation, readPrefix())
+            }
             tokens.equals(i, TokenType.NUMBER) -> return NumberExpression(tokens.toString(i++))
             tokens.equals(i, TokenType.STRING) -> return StringExpression(tokens.toString(i++))
 
@@ -682,11 +714,14 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 tokens.equals(i, TokenType.NAME) -> {} // ok
                 tokens.equals(i, "<") -> depth++
                 tokens.equals(i, ">") -> depth--
-                tokens.equals(i, "?") -> {} // ok
+                tokens.equals(i, "?") ||
+                        tokens.equals(i, "->") ||
+                        tokens.equals(i, "*") -> {
+                } // ok
+                tokens.equals(i, TokenType.OPEN_CALL) -> depth++
+                tokens.equals(i, TokenType.CLOSE_CALL) -> depth--
                 tokens.equals(i, TokenType.OPEN_BLOCK) ||
                         tokens.equals(i, TokenType.CLOSE_BLOCK) ||
-                        tokens.equals(i, TokenType.OPEN_CALL) ||
-                        tokens.equals(i, TokenType.CLOSE_CALL) ||
                         tokens.equals(i, TokenType.OPEN_ARRAY) ||
                         tokens.equals(i, TokenType.CLOSE_ARRAY) ||
                         tokens.equals(i, TokenType.SYMBOL) ||
@@ -701,10 +736,16 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     }
 
     fun readType(): Type {
+
+        if (tokens.equals(i, "*")) {
+            i++
+            return NullableAnyType
+        }
+
         if (tokens.equals(i, TokenType.OPEN_CALL)) {
             val endI = tokens.findBlockEnd(i, TokenType.OPEN_CALL, TokenType.CLOSE_CALL)
             if (tokens.equals(endI + 1, "->")) {
-                val parameters = pushCall { readParamDeclarations() }
+                val parameters = pushCall { readGenericParams() }
                 i = endI + 2 // skip ) and ->
                 val returnType = readType()
                 return LambdaType(parameters, returnType)

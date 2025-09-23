@@ -1,8 +1,8 @@
 package me.anno.zauberei.types
 
-import me.anno.zauberei.astbuilder.Parameter
+import me.anno.zauberei.astbuilder.GenericParam
 
-class LambdaType(val parameters: List<Parameter>, val returnType:Type) : Type() {
+class LambdaType(val parameters: List<GenericParam>, val returnType: Type) : Type() {
     override fun toString(): String {
         return "(${parameters.joinToString(", ")}) -> $returnType"
     }

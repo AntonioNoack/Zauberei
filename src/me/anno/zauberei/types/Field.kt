@@ -17,7 +17,7 @@ class Field(
 
     var getterExpr: Expression? = null
 
-    var setterFieldName: String = "field"
+    var setterFieldName: String = "value"
     var setterExpr: Expression? = null
 
 }

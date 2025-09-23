@@ -21,6 +21,8 @@ class Package(val name: String? = null, val parent: Package? = null) {
     val superCalls = ArrayList<Expression>()
     val enumValues = ArrayList<Expression>()
 
+    var typeParams: List<Parameter> = emptyList()
+
     fun getOrPut(name: String): Package {
         var child = children.firstOrNull { it.name == name }
         if (child != null) return child
