@@ -37,4 +37,7 @@ fun main() {
     addSource(root)
     addSource(File(project, "src"))
 
+    val remsEngine = File(project, "../RemsEngine")
+    addSource(File(remsEngine, "src"))
+
 }

@@ -7,6 +7,7 @@ import me.anno.zauberei.astbuilder.flow.*
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.TokenType
 import me.anno.zauberei.types.*
+import kotlin.math.min
 
 // I want macros... how could we implement them? learn about Rust macros
 //  -> we get tokens as attributes in a specific pattern,
@@ -24,7 +25,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         private val fileLevelKeywords = listOf(
             "enum", "private", "fun", "class", "data",
             "companion", "object", "constructor", "inline",
-            "override", "abstract", "open", "final"
+            "override", "abstract", "open", "final", "operator",
+            "const"
         )
 
         private val paramLevelKeywords = listOf(
@@ -45,6 +47,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
     val imports = ArrayList<Package>()
     val keywords = ArrayList<String>()
+
+    // todo assign them appropriately
+    val annotations = ArrayList<Expression>()
 
     var currPackage = root
     var i = 0
@@ -78,6 +83,17 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         readSuperCalls(clazz)
 
         clazz.primaryConstructorParams = constructorParams
+        readClassBody(name, keywords)
+    }
+
+    private fun readInterface() {
+        keywords.add("interface")
+        assert(tokens.equals(++i, TokenType.NAME))
+        val name = tokens.toString(i++)
+        val clazz = currPackage.getOrPut(name)
+        val keywords = packKeywords()
+
+        readSuperCalls(clazz)
         readClassBody(name, keywords)
     }
 
@@ -115,20 +131,37 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
             pushBlock {
                 if ("enum" in keywords) {
-                    var endIndex = tokens.findToken(i, ";")
-                    if (endIndex < 0) endIndex = tokens.size
-                    push(endIndex) {
-                        while (i < tokens.size) {
-                            currPackage.enumValues.add(readExpression())
-                            readComma()
-                        }
-                    }
-                    i = endIndex // at semicolon, that will be skipped
+                    val endIndex = readEnumBody()
+                    i = min(endIndex + 1, tokens.size) // skipping over semicolon
                 }
                 readFileLevel()
             }
         }
         currPackage = currPackage.parent!!
+    }
+
+    private fun readEnumBody(): Int {
+        var endIndex = tokens.findToken(i, ";")
+        if (endIndex < 0) endIndex = tokens.size
+        push(endIndex) {
+            while (i < tokens.size) {
+                // read enum value
+                assert(tokens.equals(i, TokenType.NAME))
+                val name = tokens.toString(i++)
+                val typeParams = readTypeParams()
+                val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
+                    pushCall { readParamExpressions() }
+                } else emptyList()
+                if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
+                    readClassBody(name, emptyList())
+                }
+
+                val call = CallExpression(VariableExpression(name), typeParams, params)
+                currPackage.enumValues.add(call)
+                readComma()
+            }
+        }
+        return endIndex
     }
 
     var lastField: Field? = null
@@ -148,6 +181,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             i++
             // todo find reasonable end index, e.g. fun, class, private, object, and limit to that
             readExpression()
+        } else if (tokens.equals(i, "by")) {
+            i++
+            // todo find reasonable end index, e.g. fun, class, private, object, and limit to that
+            DelegateExpression(readExpression())
         } else null
 
         val field = Field(isVar, !isVar, name, type, initialValue, keywords)
@@ -195,6 +232,48 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         return function
     }
 
+    private fun readConstructor(): Constructor {
+        i++ // skip 'fun'
+
+        val keywords = packKeywords()
+
+        // parse optional <T, U>
+        val typeParameters = readFunctionTypeParameters()
+
+        println("constructor <$typeParameters> (...")
+
+        // parse parameters (...)
+        assert(tokens.equals(i, TokenType.OPEN_CALL))
+        val parameters = pushCall { readParamDeclarations() }
+
+        // optional return type
+        val superCall = if (tokens.equals(i, ":")) {
+            i++
+            assert(tokens.equals(i, "this") || tokens.equals(i, "super"))
+            val name = tokens.toString(i++)
+            val typeParams = readTypeParams()
+            val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
+                pushCall { readParamExpressions() }
+            } else emptyList()
+            CallExpression(VariableExpression(name), typeParams, params)
+        } else null
+
+        // body (or just = expression)
+        val body = if (tokens.equals(i, "=")) {
+            i++ // skip =
+            readExpression()
+        } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
+            pushBlock { readFunctionBody() }
+        } else null
+
+        val function = Constructor(
+            typeParameters, parameters,
+            superCall, body, keywords
+        )
+        currPackage.constructors.add(function)
+        return function
+    }
+
     fun readFileLevel() {
         loop@ while (i < tokens.size) {
             println("readFileLevel[$i]: ${tokens.err(i)}")
@@ -208,7 +287,14 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
                 tokens.equals(i, "class") -> readClass()
                 tokens.equals(i, "object") -> readObject()
-                tokens.equals(i, "fun") -> readFunction()
+                tokens.equals(i, "fun") -> {
+                    if (tokens.equals(i + 1, "interface")) {
+                        keywords.add("fun"); i++
+                        readInterface()
+                    } else readFunction()
+                }
+                tokens.equals(i, "interface") -> readInterface()
+                tokens.equals(i, "constructor") -> readConstructor()
                 tokens.equals(i, "var") -> readVarValInClass(true)
                 tokens.equals(i, "val") -> readVarValInClass(false)
                 tokens.equals(i, "init") -> {
@@ -216,8 +302,47 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     currPackage.initialization += pushBlock { readFunctionBody() }
                 }
 
-                tokens.equals(i, "get") -> TODO("read getter")
-                tokens.equals(i, "set") -> TODO("read setter")
+                tokens.equals(i, "get") -> {
+                    assert(tokens.equals(++i, TokenType.OPEN_CALL))
+                    assert(tokens.equals(++i, TokenType.CLOSE_CALL))
+
+                    i++ // skipping )
+
+                    val field = lastField!!
+                    field.privateGet = keywords.remove("private")
+                    when {
+                        tokens.equals(i, "=") -> {
+                            i++ // skip =
+                            field.getterExpr = readExpression()
+                        }
+                        tokens.equals(i, TokenType.OPEN_BLOCK) -> {
+                            field.getterExpr = pushBlock { readFunctionBody() } // will read the body
+                        }
+                        else -> throw IllegalStateException("Expected = or {} after get() at ${tokens.err(i)}")
+                    }
+                }
+                tokens.equals(i, "set") -> {
+                    i++
+                    val field = lastField!!
+                    field.privateSet = keywords.remove("private")
+
+                    if (tokens.equals(i, TokenType.OPEN_CALL)) {
+                        i++
+                        assert(tokens.equals(i, TokenType.NAME))
+                        field.setterFieldName = tokens.toString(i++)
+                        assert(tokens.equals(i, TokenType.CLOSE_CALL))
+                        field.setterExpr = if (tokens.equals(i, "=")) readExpression()
+                        else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
+                            pushBlock { readFunctionBody() }
+                        } else null
+                    }
+                }
+
+                tokens.equals(i, "@") -> {
+                    i++ // skip @
+                    // todo find save end: {} is not (yet?) supported by annotations
+                    annotations.add(readExpression())
+                }
 
                 tokens.equals(i, TokenType.NAME) || tokens.equals(i, TokenType.KEYWORD) ->
                     collectNames(fileLevelKeywords)
@@ -343,6 +468,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             tokens.equals(i, "this") -> {
                 i++; return VariableExpression("this")
             }
+            tokens.equals(i - 1, "::") && tokens.equals(i, "class") -> { // ::class
+                i++; return VariableExpression("class")
+            }
             tokens.equals(i, "!") -> {
                 i++; return PrefixExpression("!", readExpression())
             }
@@ -401,7 +529,13 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             tokens.equals(i, "when") -> {
                 i++
                 if (tokens.equals(i, TokenType.OPEN_CALL)) {
-                    val subject = pushCall { readExpression() }
+                    val subject = pushCall {
+                        when {
+                            tokens.equals(i, "val") -> readDeclaration(false, isLateinit = false)
+                            tokens.equals(i, "var") -> readDeclaration(true, isLateinit = false)
+                            else -> readExpression()
+                        }
+                    }
                     assert(tokens.equals(i, TokenType.OPEN_BLOCK))
                     val cases = ArrayList<SubjectWhenCase>()
                     pushBlock {
@@ -441,7 +575,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     pushBlock {
                         while (i < tokens.size) {
                             val nextArrow = tokens.findToken(i, "->")
-                            assert(nextArrow > i) { "Missing arrow at ${tokens.err(i)} ($nextArrow vs $i)" }
+                            assert(nextArrow > i) {
+                                tokens.printTokensInBlocks(i, TokenType.OPEN_CALL, TokenType.CLOSE_CALL)
+                                "Missing arrow at ${tokens.err(i)} ($nextArrow vs $i)"
+                            }
                             val condition = push(nextArrow) {
                                 if (tokens.equals(i, "else")) null
                                 else readExpression()
@@ -454,6 +591,23 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 } else {
                     throw IllegalStateException("Unexpected token after when at ${tokens.err(i)}")
                 }
+            }
+            tokens.equals(i, "try") -> {
+                i++ // skip try
+                val tryBody = readBodyOrLine()
+                val catches = ArrayList<Catch>()
+                while (tokens.equals(i, "catch")) {
+                    assert(tokens.equals(++i, TokenType.OPEN_CALL))
+                    val params = pushCall { readParamDeclarations() }
+                    assert(params.size == 1)
+                    val handler = readBodyOrLine()
+                    catches.add(Catch(params[0], handler))
+                }
+                val finally = if (tokens.equals(i, "finally")) {
+                    i++ // skip finally
+                    readBodyOrLine()
+                } else null
+                return TryCatchBlock(tryBody, catches, finally)
             }
             tokens.equals(i, "return") -> {
                 i++ // skip return
@@ -477,7 +631,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             }
             tokens.equals(i, TokenType.NAME) -> {
                 val namePath = tokens.toString(i++)
-                val typeArgs = readTypeArguments()
+                val typeArgs = readTypeParams()
                 return if (tokens.equals(i, TokenType.OPEN_CALL)) {
                     // constructor or function call with type args
                     val start = i
@@ -501,6 +655,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             tokens.equals(i, TokenType.OPEN_CALL) -> {
                 // just something in brackets
                 return pushCall { readExpression() }
+            }
+            tokens.equals(i, TokenType.OPEN_BLOCK) -> {
+                return pushBlock { readLambda() }
             }
             else -> throw NotImplementedError("Unknown expression part at ${tokens.err(i)}")
         }
@@ -559,7 +716,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         }
 
         val path = readPath(false) // e.g. ArrayList
-        val typeArgs = readTypeArguments()
+        val typeArgs = readTypeParams()
         val isNullable = consumeNullable()
         val baseType = ClassType(path, typeArgs)
         return if (isNullable) NullableType(baseType) else baseType
@@ -571,7 +728,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         return isNullable
     }
 
-    fun readTypeArguments(): List<Type> {
+    fun readTypeParams(): List<Type> {
         if (i < tokens.size) {
             println("checking for type-args, ${tokens.err(i)}, ${isTypeArgsStartingHere(i)}")
         }
@@ -636,6 +793,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 else -> {
                     // postfix
                     expr = tryReadPostfix(expr) ?: break@loop
+                    continue@loop
                 }
             }
 
@@ -651,12 +809,20 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
                 i++ // consume operator
 
-                val rhs = readExpression(if (op.assoc == Assoc.LEFT) op.precedence + 1 else op.precedence)
-                expr = if (isInfix) {
-                    val self = GetPropertyExpression(expr, op.symbol)
-                    CallExpression(self, emptyList(), listOf(rhs))
-                } else {
-                    BinaryOp(expr, op.symbol, rhs)
+                when (symbol) {
+                    "as", "as?", "is", "!is" -> {
+                        val rhs = readType()
+                        expr = BinaryTypeOp(expr, op.symbol, rhs)
+                    }
+                    else -> {
+                        val rhs = readExpression(if (op.assoc == Assoc.LEFT) op.precedence + 1 else op.precedence)
+                        expr = if (isInfix) {
+                            val self = GetPropertyExpression(expr, op.symbol)
+                            CallExpression(self, emptyList(), listOf(rhs))
+                        } else {
+                            BinaryOp(expr, op.symbol, rhs)
+                        }
+                    }
                 }
             }
         }
@@ -741,7 +907,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 tokens.equals(i, ";") -> i++ // skip
                 tokens.equals(i, "val") -> result.add(readDeclaration(false))
                 tokens.equals(i, "var") -> result.add(readDeclaration(true))
-                tokens.equals(i, "fun") -> result.add( readFunction())
+                tokens.equals(i, "fun") -> result.add(readFunction())
                 tokens.equals(i, "lateinit") -> {
                     assert(tokens.equals(++i, "var"))
                     result.add(readDeclaration(true, isLateinit = true))
@@ -757,6 +923,25 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
     fun readDeclaration(isVar: Boolean, isLateinit: Boolean = false): Expression {
         i++ // skip var/val
+
+        if (tokens.equals(i, TokenType.OPEN_CALL)) {
+            val names = ArrayList<String>()
+            pushCall {
+                while (i < tokens.size) {
+                    assert(tokens.equals(i, TokenType.NAME))
+                    names.add(tokens.toString(i++))
+                    if (tokens.equals(i, ":"))
+                        throw NotImplementedError("Read type in destructuring at ${tokens.err(i)}")
+                    readComma()
+                }
+            }
+            val value = if (tokens.equals(i, "=")) {
+                i++ // skip =
+                readExpression()
+            } else throw IllegalStateException("Expected value for destructuring at ${tokens.err(i)}")
+            return DestructuringExpression(names, value, isVar, isLateinit)
+        }
+
         assert(tokens.equals(i, TokenType.NAME))
         val name = tokens.toString(i++)
         println("reading var/val $name")
@@ -770,6 +955,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             println("no type present")
             null
         }
+
         val value = if (tokens.equals(i, "=")) {
             i++ // skip =
             readExpression()

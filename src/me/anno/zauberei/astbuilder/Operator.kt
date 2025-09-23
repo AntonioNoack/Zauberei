@@ -38,6 +38,8 @@ val operators = mapOf(
     "&&" to Operator("&&", 7, Assoc.LEFT),
 
     // comparing
+    "===" to Operator("===", 8, Assoc.LEFT),
+    "!==" to Operator("!==", 8, Assoc.LEFT),
     "==" to Operator("==", 8, Assoc.LEFT),
     "!=" to Operator("!=", 8, Assoc.LEFT),
     "<" to Operator("<", 9, Assoc.LEFT),
@@ -54,5 +56,6 @@ val operators = mapOf(
 
     "?." to Operator(".?", 30, Assoc.LEFT),
     "." to Operator(".", 30, Assoc.LEFT),
+    "::" to Operator("::", 30, Assoc.LEFT),
     // add more as needed
 )

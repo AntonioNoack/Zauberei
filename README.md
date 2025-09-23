@@ -27,6 +27,7 @@ Ideally much faster.
 - [x] Tokenizing Kotlin
 - [ ] Parsing Kotlin to an AST
 - [ ] ...
+- [ ] Compile the compiler using the compiler
 
 ### Progress Estimation
 

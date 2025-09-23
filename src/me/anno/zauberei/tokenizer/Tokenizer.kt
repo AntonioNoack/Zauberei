@@ -58,14 +58,15 @@ class Tokenizer(val src: String, fileName: String) {
                 c.isDigit() -> {
                     val start = i
                     i++
-                    while (i < n && (src[i].isDigit() || src[i] in ".eE+-")) i++
+                    // todo support hH for half fp :)
+                    while (i < n && (src[i].isDigit() || src[i] in ".eE+-lLuUfFdDhH_")) i++
                     tokens.add(TokenType.NUMBER, start, i)
                 }
 
                 // char literal = number
                 c == '\'' -> {
                     val start = i++
-                    if (i < n && src[i] == '\\') i++
+                    if (i < n && src[i] == '\\') i += 2
                     while (i < n && src[i] != '\'') i++
                     if (i < n) i++ // skip \'
                     tokens.add(TokenType.NUMBER, start, i)
