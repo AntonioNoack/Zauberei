@@ -24,20 +24,20 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
     companion object {
         private val fileLevelKeywords = listOf(
-            "enum", "private", "fun", "class", "data",
+            "enum", "private", "protected", "fun", "class", "data",
             "companion", "object", "constructor", "inline",
             "override", "abstract", "open", "final", "operator",
-            "const", "lateinit", "annotation"
+            "const", "lateinit", "annotation", "internal", "inner", "sealed"
         )
 
         private val paramLevelKeywords = listOf(
-            "private", "var", "val", "open", "override",
+            "private", "protected", "var", "val", "open", "override",
             "crossinline", "vararg", "final"
         )
 
         private val supportedInfixFunctions = listOf(
             // these shall only be supported for legacy reasons: I dislike that their order of precedence isn't clear
-            "shl", "shr", "ushr", "and", "or",
+            "shl", "shr", "ushr", "and", "or", "xor",
 
             // I like these:
             "in", "to", "step", "until", "downTo",
@@ -60,10 +60,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     fun readPath(allowStarOperator: Boolean): Package {
         assert(tokens.equals(i, TokenType.NAME))
         var path = root.getOrPut(tokens.toString(i++))
-        while (tokens.equals(i, ".")) {
-            i++
-            assert(tokens.equals(i, TokenType.NAME))
-            path = path.getOrPut(tokens.toString(i++))
+        while (tokens.equals(i, ".") && tokens.equals(i + 1, TokenType.NAME)) {
+            path = path.getOrPut(tokens.toString(i + 1))
+            i += 2
         }
         if (allowStarOperator && tokens.equals(i, ".*")) {
             i++
@@ -123,7 +122,13 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             if (endIndex < 0) endIndex = tokens.size
             push(endIndex) {
                 while (i < tokens.size) {
-                    clazz.superCalls.add(readExpression())
+                    var expr = readExpression()
+                    if (tokens.equals(i, "by")) {
+                        i++ // skip by
+                        val proxy = readExpression()
+                        expr = ImplementationByProxy(expr, proxy)
+                    }
+                    clazz.superCalls.add(expr)
                     readComma()
                 }
             }
@@ -180,6 +185,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         push(endIndex) {
             while (i < tokens.size) {
                 // read enum value
+                while (tokens.equals(i, "@")) {
+                    annotations.add(readAnnotation())
+                }
                 assert(tokens.equals(i, TokenType.NAME))
                 val name = tokens.toString(i++)
                 val typeParams = readTypeParams()
@@ -535,6 +543,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         val params = ArrayList<Parameter>()
         tokens.push(i++, "<", ">") {
             while (i < tokens.size) {
+                // todo store & use these?
+                if (tokens.equals(i, "in")) i++
+                if (tokens.equals(i, "out")) i++
+
                 assert(tokens.equals(i, TokenType.NAME)) { "Expected type parameter name" }
                 val name = tokens.toString(i++)
                 val type = if (tokens.equals(i, ":")) {
@@ -626,6 +638,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             }
             tokens.equals(i, "--") -> {
                 i++; return PrefixExpression("--", readExpression())
+            }
+            tokens.equals(i, "*") -> {
+                // from varargs parameter to varargs call
+                i++; return PrefixExpression("*", readExpression())
             }
             tokens.equals(i, "::") -> {
                 i++
@@ -963,6 +979,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 tokens.equals(i, ">") -> depth--
                 tokens.equals(i, "?") ||
                         tokens.equals(i, "->") ||
+                        tokens.equals(i, ":") || // names are allowed
                         tokens.equals(i, ".") ||
                         tokens.equals(i, "*") -> {
                     // ok
@@ -978,7 +995,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                         tokens.equals(i, TokenType.NUMBER) ||
                         tokens.equals(i, TokenType.APPEND_STRING) ||
                         tokens.equals(i, "val") ||
-                        tokens.equals(i, "var") -> return false
+                        tokens.equals(i, "var") ||
+                        tokens.equals(i, "else") ||
+                        tokens.equals(i, "this") -> return false
                 else -> throw NotImplementedError("Can ${tokens.err(i)} appear inside a type?")
             }
             i++
@@ -1008,9 +1027,14 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         }
 
         val path = readPath(false) // e.g. ArrayList
+        val subType = if (tokens.equals(i, ".") && tokens.equals(i + 1, "(")) {
+            i++ // skip .
+            readType()
+        } else null
+
         val typeArgs = readTypeParams()
         val isNullable = consumeNullable()
-        val baseType = ClassType(path, typeArgs)
+        val baseType = ClassType(path, typeArgs, subType)
         return if (isNullable) NullableType(baseType) else baseType
     }
 
@@ -1029,6 +1053,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
             val args = ArrayList<Type>()
             while (true) {
+                // todo store these (?)
+                if (tokens.equals(i, "in")) i++
+                if (tokens.equals(i, "out")) i++
                 args.add(readType()) // recursive type
                 when {
                     tokens.equals(i, TokenType.COMMA) -> i++

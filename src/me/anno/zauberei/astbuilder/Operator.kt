@@ -22,6 +22,7 @@ val operators = mapOf(
     "ushr" to Operator("ushr", 3, Assoc.LEFT),
     "and" to Operator("and", 3, Assoc.LEFT),
     "or" to Operator("or", 3, Assoc.LEFT),
+    "xor" to Operator("xor", 3, Assoc.LEFT),
     "in" to Operator("in", 3, Assoc.LEFT),
     "is" to Operator("is", 3, Assoc.LEFT),
     "as" to Operator("as", 3, Assoc.LEFT),

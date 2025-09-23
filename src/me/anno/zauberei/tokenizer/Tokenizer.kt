@@ -54,6 +54,13 @@ class Tokenizer(val src: String, fileName: String) {
                     } else tokens.add(TokenType.NAME, start, i)
                 }
 
+                c == '`' -> {
+                    val start = i++
+                    while (i < n && src[i] != '`') i++
+                    i++ // skip end '`'
+                    tokens.add(TokenType.NAME, start, i)
+                }
+
                 // numbers
                 c.isDigit() -> readNumber()
 
