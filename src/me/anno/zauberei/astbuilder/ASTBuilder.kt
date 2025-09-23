@@ -27,7 +27,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             "enum", "private", "protected", "fun", "class", "data",
             "companion", "object", "constructor", "inline",
             "override", "abstract", "open", "final", "operator",
-            "const", "lateinit", "annotation", "internal", "inner", "sealed"
+            "const", "lateinit", "annotation", "internal", "inner", "sealed",
+            "infix"
         )
 
         private val paramLevelKeywords = listOf(
@@ -79,6 +80,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         clazz.typeParams = readFunctionTypeParameters()
 
         val privateConstructor = if (tokens.equals(i, "private")) i++ else -1
+        readAnnotations()
         if (tokens.equals(i, "constructor")) i++
         val constructorParams = if (tokens.equals(i, TokenType.OPEN_CALL)) {
             pushCall { readParamDeclarations() }
@@ -100,6 +102,12 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
         readSuperCalls(clazz)
         readClassBody(name, keywords)
+    }
+
+    private fun readAnnotations() {
+        if (tokens.equals(i, "@")) {
+            annotations.add(readAnnotation())
+        }
     }
 
     private fun readObject() {
@@ -185,9 +193,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         push(endIndex) {
             while (i < tokens.size) {
                 // read enum value
-                while (tokens.equals(i, "@")) {
-                    annotations.add(readAnnotation())
-                }
+                readAnnotations()
                 assert(tokens.equals(i, TokenType.NAME))
                 val name = tokens.toString(i++)
                 val typeParams = readTypeParams()
@@ -443,8 +449,14 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     }
 
     fun readAnnotation(): Annotation {
-        // todo find save end: {} is not (yet?) supported by annotations
         assert(tokens.equals(i++, "@"))
+        if (tokens.equals(i, TokenType.NAME) &&
+            tokens.equals(i + 1, ":") &&
+            tokens.equals(i + 2, TokenType.NAME)
+        ) {
+            // skipping scope
+            i += 2
+        }
         assert(tokens.equals(i, TokenType.NAME))
         val path = readPath(false)
         val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
@@ -524,8 +536,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         val result = ArrayList<GenericParam>()
         loop@ while (i < tokens.size) {
             if (tokens.equals(i, TokenType.NAME) &&
-                tokens.equals(i + 1, ":") &&
-                tokens.equals(i + 2, TokenType.NAME)
+                tokens.equals(i + 1, ":")
+            // && tokens.equals(i + 2, TokenType.NAME)
             ) {
                 val name = tokens.toString(i)
                 i += 2
@@ -981,6 +993,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                         tokens.equals(i, "->") ||
                         tokens.equals(i, ":") || // names are allowed
                         tokens.equals(i, ".") ||
+                        tokens.equals(i, "in") ||
+                        tokens.equals(i, "out") ||
                         tokens.equals(i, "*") -> {
                     // ok
                 }
@@ -997,6 +1011,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                         tokens.equals(i, "val") ||
                         tokens.equals(i, "var") ||
                         tokens.equals(i, "else") ||
+                        tokens.equals(i, "fun") ||
                         tokens.equals(i, "this") -> return false
                 else -> throw NotImplementedError("Can ${tokens.err(i)} appear inside a type?")
             }

@@ -191,16 +191,17 @@ class Tokenizer(val src: String, fileName: String) {
         }
 
         while (i < n) {
-            when (src[i]) {
-                '\\' -> i += 2 // skip escaped char
-                '"' -> {
+            val ch = src[i]
+            when {
+                ch == '\\' -> i += 2 // skip escaped char
+                ch == '"' -> {
                     flushChunk(i)
 
                     i++ // skip closing "
                     tokens.add(TokenType.CLOSE_CALL, i - 1, i)
                     return
                 }
-                '$' -> {
+                ch == '$' && i + 1 < n && (src[i + 1].isLetter() || src[i + 1] == '{') -> {
                     flushChunk(i)
 
                     // Begin: + ( ... )

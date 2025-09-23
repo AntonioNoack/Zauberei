@@ -45,5 +45,13 @@ fun main() {
     // bonus: compile of Rem's Engine's core module (not working yet, but a few things get parsed)
     val remsEngine = File(project, "../RemsEngine")
     addSource(File(remsEngine, "src"))
+    addSource(File(remsEngine, "Bullet/src"))
+    addSource(File(remsEngine, "Box2d/src"))
+    addSource(File(remsEngine, "Export/src"))
+    addSource(File(remsEngine, "Image/src"))
+    addSource(File(remsEngine, "JVM/src"))
+    addSource(File(remsEngine, "JOML/src"))
+    addSource(File(remsEngine, "Video/src"))
+    addSource(File(remsEngine, "Unpack/src"))
 
 }
