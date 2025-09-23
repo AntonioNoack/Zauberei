@@ -64,10 +64,10 @@ class Tokenizer(val src: String, fileName: String) {
 
                 // char literal = number
                 c == '\'' -> {
-                    val start = i
-                    i++
-                    if (i < n && src[i] != '\'') i++
-                    if (i < n && src[i] == '\'') i++
+                    val start = i++
+                    if (i < n && src[i] == '\\') i++
+                    while (i < n && src[i] != '\'') i++
+                    if (i < n) i++ // skip \'
                     tokens.add(TokenType.NUMBER, start, i)
                 }
 
@@ -151,22 +151,7 @@ class Tokenizer(val src: String, fileName: String) {
                         // ${ expr }
                         i++ // skip {
                         val innerStart = i
-                        var depth = 1
-                        while (i < n && depth > 0) {
-                            if (src[i] in "([{") depth++
-                            else if (src[i] in ")]}") depth--
-                            else if (i + 1 < src.length && src[i] == '/' && src[i + 1] == '/') {
-                                skipSingleLineComment()
-                            } else if (i + 1 < src.length && src[i] == '/' && src[i + 1] == '*') {
-                                skipBlockComment()
-                            } else if (src[i] == '"') {
-                                // skip string
-                                val size = tokens.size
-                                parseString()
-                                tokens.size = size
-                            }
-                            i++
-                        }
+                        skipBlock()
                         val innerEnd = i - 1
 
                         val oldI = i
@@ -197,5 +182,27 @@ class Tokenizer(val src: String, fileName: String) {
                 else -> i++
             }
         }
+    }
+
+    fun skipBlock() {
+        assert(src[i - 1] == '{')
+        var depth = 1
+        loop@ while (i < n && depth > 0) {
+            if (src[i] in "([{") depth++
+            else if (src[i] in ")]}") depth--
+            else if (i + 1 < src.length && src[i] == '/' && src[i + 1] == '/') {
+                skipSingleLineComment()
+            } else if (i + 1 < src.length && src[i] == '/' && src[i + 1] == '*') {
+                skipBlockComment()
+            } else if (src[i] == '"') {
+                // skip string
+                val size = tokens.size
+                parseString()
+                tokens.size = size
+                continue@loop // must not call i++
+            }
+            i++
+        }
+        assert(src[i - 1] == '{')
     }
 }

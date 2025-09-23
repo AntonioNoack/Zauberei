@@ -16,6 +16,8 @@ class Package(val name: String? = null, val parent: Package? = null) {
     val initialization = ArrayList<Expression>()
 
     var primaryConstructorParams: List<Parameter>? = null
+    val superCalls = ArrayList<Expression>()
+    val enumValues = ArrayList<Expression>()
 
     fun getOrPut(name: String): Package {
         var child = children.firstOrNull { it.name == name }

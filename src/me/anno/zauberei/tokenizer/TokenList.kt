@@ -33,7 +33,10 @@ class TokenList(val src: String, val fileName: String) {
         var depth = 1
         var j = i + 1
         while (depth > 0) {
-            if (j >= size) throw IllegalStateException("Could not find block end for $open/$close at ${err(i)}, #${size - i}")
+            if (j >= size) {
+                printTokensInBlocks(i, open, close)
+                throw IllegalStateException("Could not find block end for $open/$close at ${err(i)}, #${size - i}")
+            }
             when (getType(j++)) {
                 open, TokenType.OPEN_CALL, TokenType.OPEN_ARRAY, TokenType.OPEN_BLOCK -> depth++
                 close, TokenType.CLOSE_CALL, TokenType.CLOSE_ARRAY, TokenType.CLOSE_BLOCK -> depth--
@@ -41,6 +44,21 @@ class TokenList(val src: String, val fileName: String) {
             }
         }
         return j - 1
+    }
+
+    fun printTokensInBlocks(i: Int, open: TokenType, close: TokenType) {
+        assert(equals(i, open))
+        var depth = 1
+        var j = i + 1
+        while (depth > 0) {
+            if (j >= size) return
+            println("  ".repeat(depth) + "$j: ${getType(j)}, ${toString(j)}")
+            when (getType(j++)) {
+                open, TokenType.OPEN_CALL, TokenType.OPEN_ARRAY, TokenType.OPEN_BLOCK -> depth++
+                close, TokenType.CLOSE_CALL, TokenType.CLOSE_ARRAY, TokenType.CLOSE_BLOCK -> depth--
+                else -> {}
+            }
+        }
     }
 
     fun findBlockEnd(i: Int, open: String, close: String): Int {
@@ -92,6 +110,9 @@ class TokenList(val src: String, val fileName: String) {
             offsets = offsets.copyOf(size * 4)
         }
 
+        if (i0 > i1) throw IllegalStateException("i0 > i1, $i0 > $i1 in $fileName")
+        if (i1 > src.length) throw IllegalStateException("i1 > src.len, $i1 > ${src.length} in $fileName")
+
         if (size > 0 && type == TokenType.SYMBOL &&
             getType(size - 1) == TokenType.SYMBOL &&
             i0 == offsets[size * 2 - 1] &&
@@ -112,8 +133,12 @@ class TokenList(val src: String, val fileName: String) {
         }
     }
 
-    fun equals(i: Int, type: TokenType): Boolean = getType(i) == type
+    fun equals(i: Int, type: TokenType): Boolean {
+        return i in 0 until size && getType(i) == type
+    }
+
     fun equals(i: Int, str: String): Boolean {
+        if (i !in 0 until size) return false
         if (equals(i, TokenType.STRING)) return false
         val i0 = getI0(i)
         val i1 = getI1(i)
@@ -156,6 +181,22 @@ class TokenList(val src: String, val fileName: String) {
         for (i in i0 until size) {
             when {
                 depth == 0 && equals(i, str) -> return i
+                equals(i, TokenType.OPEN_BLOCK) ||
+                        equals(i, TokenType.OPEN_ARRAY) ||
+                        equals(i, TokenType.OPEN_CALL) -> depth++
+                equals(i, TokenType.CLOSE_BLOCK) ||
+                        equals(i, TokenType.CLOSE_ARRAY) ||
+                        equals(i, TokenType.CLOSE_CALL) -> depth--
+            }
+        }
+        return -1
+    }
+
+    fun findToken(i0: Int, type: TokenType): Int {
+        var depth = 0
+        for (i in i0 until size) {
+            when {
+                depth == 0 && equals(i, type) -> return i
                 equals(i, TokenType.OPEN_BLOCK) ||
                         equals(i, TokenType.OPEN_ARRAY) ||
                         equals(i, TokenType.OPEN_CALL) -> depth++

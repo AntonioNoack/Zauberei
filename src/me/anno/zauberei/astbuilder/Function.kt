@@ -10,4 +10,4 @@ class Function(
     val returnType: Type?,
     val body: Expression?,
     val keywords: List<String>
-)
+) : Expression()
