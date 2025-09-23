@@ -46,16 +46,20 @@ class TokenList(val src: String, val fileName: String) {
         return j - 1
     }
 
+    fun printTokensInBlocks(i: Int) {
+        printTokensInBlocks(i, TokenType.OPEN_CALL, TokenType.CLOSE_CALL)
+    }
+
     fun printTokensInBlocks(i: Int, open: TokenType, close: TokenType) {
-        assert(equals(i, open))
-        var depth = 1
-        var j = i + 1
-        while (depth > 0) {
-            if (j >= size) return
-            println("  ".repeat(depth) + "$j: ${getType(j)}, ${toString(j)}")
-            when (getType(j++)) {
-                open, TokenType.OPEN_CALL, TokenType.OPEN_ARRAY, TokenType.OPEN_BLOCK -> depth++
+        var depth = 0
+        for (j in i until size) {
+            when (getType(j)) {
                 close, TokenType.CLOSE_CALL, TokenType.CLOSE_ARRAY, TokenType.CLOSE_BLOCK -> depth--
+                else -> {}
+            }
+            println("  ".repeat(depth) + "$j: ${getType(j)} '${toString(j)}'")
+            when (getType(j)) {
+                open, TokenType.OPEN_CALL, TokenType.OPEN_ARRAY, TokenType.OPEN_BLOCK -> depth++
                 else -> {}
             }
         }
@@ -118,10 +122,11 @@ class TokenList(val src: String, val fileName: String) {
             i0 == offsets[size * 2 - 1] &&
             src[i0] != ';' &&
             src[i0 - 1] != ';' &&
-            !(src[i0 - 1] == '?' && src[i0] == '>') && // ?>
-            !(src[i0 - 1] == '>' && src[i0] == '?') && // >?
+            (src[i0] != '>' || src[i0 - 1] == '-') && // ?>
+            (src[i0 - 1] != '>' || src[i0] == '=') && // >?, >>, >>., but allow >=
             !(src[i0 - 1] == '<' && src[i0] == '*') && // <*>
             !(src[i0 - 1] == '*' && src[i0] == '>') && // <*>
+            !(src[i0 - 1] == '!' && src[i0] in ":.") && // !!::, !!.
             (src[i0 - 1] != '=' || src[i0] == '=')
         ) {
             // todo only accept a symbol if the previous is not =, or the current one is =, too
@@ -159,6 +164,12 @@ class TokenList(val src: String, val fileName: String) {
     fun toString(i: Int): String {
         if (i >= size) throw IndexOutOfBoundsException("$i >= $size, ${TokenType.entries[tokenTypes[i].toInt()]}")
         return src.substring(getI0(i), getI1(i))
+    }
+
+    fun toString(i0: Int, i1: Int): String {
+        return (i0 until i1).joinToString(", ") { i ->
+            "${getType(i)},'${toString(i)}'"
+        }
     }
 
     fun toStringUnsafe(i: Int): String {
@@ -210,4 +221,12 @@ class TokenList(val src: String, val fileName: String) {
         return -1
     }
 
+    // I hate Java-asserts...
+    fun assert(c: Boolean) {
+        if (!c) throw IllegalStateException()
+    }
+
+    inline fun assert(c: Boolean, msg: () -> String) {
+        if (!c) throw IllegalStateException(msg())
+    }
 }

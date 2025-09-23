@@ -59,7 +59,7 @@ class Tokenizer(val src: String, fileName: String) {
                     val start = i
                     i++
                     // todo support hH for half fp :)
-                    while (i < n && (src[i].isDigit() || src[i] in ".eE+-lLuUfFdDhH_")) i++
+                    while (i < n && (src[i].isDigit() || src[i] in ".eE+-lLuUfFdDhH_xabcdefABCDEF")) i++
                     tokens.add(TokenType.NUMBER, start, i)
                 }
 
