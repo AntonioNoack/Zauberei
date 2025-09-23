@@ -1,5 +1,7 @@
 package me.anno.zauberei.tokenizer
 
+import kotlin.math.max
+
 // could be placed into a token list...
 class TokenList(val src: String, val fileName: String) {
 
@@ -8,24 +10,12 @@ class TokenList(val src: String, val fileName: String) {
     private var tokenTypes = ByteArray(16)
     private var offsets = IntArray(32)
 
-    fun <R> pushCall(i: Int, readImpl: () -> R): R {
-        return push(i, TokenType.OPEN_CALL, TokenType.CLOSE_CALL, readImpl)
-    }
-
-    fun <R> pushBlock(i: Int, readImpl: () -> R): R {
-        return push(i, TokenType.OPEN_BLOCK, TokenType.CLOSE_BLOCK, readImpl)
-    }
-
-    fun <R> pushArray(i: Int, readImpl: () -> R): R {
-        return push(i, TokenType.OPEN_ARRAY, TokenType.CLOSE_ARRAY, readImpl)
-    }
-
-    fun <R> push(
+    inline fun <R> push(
         i: Int, open: TokenType, close: TokenType,
         readImpl: () -> R
     ): R = push(findBlockEnd(i, open, close), readImpl)
 
-    fun <R> push(j: Int, readImpl: () -> R): R {
+    inline fun <R> push(j: Int, readImpl: () -> R): R {
         val oldSize = size
         size = j
         val result = readImpl()
@@ -43,6 +33,7 @@ class TokenList(val src: String, val fileName: String) {
         var depth = 1
         var j = i + 1
         while (depth > 0) {
+            if (j >= size) throw IllegalStateException("Could not find block end for $open/$close at ${err(i)}, #${size - i}")
             when (getType(j++)) {
                 open, TokenType.OPEN_CALL, TokenType.OPEN_ARRAY, TokenType.OPEN_BLOCK -> depth++
                 close, TokenType.CLOSE_CALL, TokenType.CLOSE_ARRAY, TokenType.CLOSE_BLOCK -> depth--
@@ -74,17 +65,22 @@ class TokenList(val src: String, val fileName: String) {
         return TokenType.entries[tokenTypes[i].toInt()]
     }
 
+    fun getTypeUnsafe(i: Int): TokenType {
+        return TokenType.entries[tokenTypes[i].toInt()]
+    }
+
     fun setType(i: Int, keyword: TokenType) {
         tokenTypes[i] = keyword.ordinal.toByte()
     }
 
     fun err(i: Int): String {
+        val i = max(i, 0)
         val before = src.substring(0, getI0(i))
         val lineNumber = before.count { it == '\n' } + 1
         val lastLineBreak = before.lastIndexOf('\n')
         val pos0 = getI0(i) - lastLineBreak
         val pos1 = getI1(i) - lastLineBreak
-        return "$fileName:$lineNumber, ${pos0}-${pos1}, ${getType(i)}, '${toString(i)}'"
+        return "$fileName:$lineNumber, ${pos0}-${pos1}, ${getTypeUnsafe(i)}, '${toStringUnsafe(i)}'"
     }
 
     fun getI0(i: Int) = offsets[i * 2]
@@ -101,6 +97,8 @@ class TokenList(val src: String, val fileName: String) {
             i0 == offsets[size * 2 - 1] &&
             src[i0] != ';' &&
             src[i0 - 1] != ';' &&
+            !(src[i0 - 1] == '?' && src[i0] == '>') && // ?>
+            !(src[i0 - 1] == '>' && src[i0] == '?') && // >?
             (src[i0 - 1] != '=' || src[i0] == '=')
         ) {
             // todo only accept a symbol if the previous is not =, or the current one is =, too
@@ -133,6 +131,10 @@ class TokenList(val src: String, val fileName: String) {
 
     fun toString(i: Int): String {
         if (i >= size) throw IndexOutOfBoundsException("$i >= $size, ${TokenType.entries[tokenTypes[i].toInt()]}")
+        return src.substring(getI0(i), getI1(i))
+    }
+
+    fun toStringUnsafe(i: Int): String {
         return src.substring(getI0(i), getI1(i))
     }
 

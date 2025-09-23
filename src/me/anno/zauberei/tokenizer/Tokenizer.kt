@@ -94,10 +94,7 @@ class Tokenizer(val src: String, fileName: String) {
 
                 c == '!' -> {
                     // parse !in and !is
-                    if (i + 2 < src.length && src[i + 1] == 'i' && src[i + 2] == 's') {
-                        tokens.add(TokenType.SYMBOL, i, i + 3)
-                        i += 3
-                    } else if (i + 2 < src.length && src[i + 1] == 'i' && src[i + 2] == 's') {
+                    if (i + 3 < src.length && src[i + 1] == 'i' && src[i + 2] in "sn" && src[i + 3].isWhitespace()) {
                         tokens.add(TokenType.SYMBOL, i, i + 3)
                         i += 3
                     } else tokens.add(TokenType.SYMBOL, i++, i)

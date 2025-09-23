@@ -14,7 +14,7 @@ val operators = mapOf(
     "/=" to Operator("/=", 1, Assoc.RIGHT),
     "%=" to Operator("%=", 1, Assoc.RIGHT),
 
-    "?:" to Operator("?:", 2, Assoc.RIGHT),
+    "?:" to Operator("?:", 2, Assoc.LEFT),
 
     // infix
     "shl" to Operator("shl", 3, Assoc.LEFT),
@@ -50,6 +50,9 @@ val operators = mapOf(
     "-" to Operator("-", 10, Assoc.LEFT),
     "*" to Operator("*", 20, Assoc.LEFT),
     "/" to Operator("/", 20, Assoc.LEFT),
-    "%" to Operator("%", 20, Assoc.LEFT)
+    "%" to Operator("%", 20, Assoc.LEFT),
+
+    "?." to Operator(".?", 30, Assoc.LEFT),
+    "." to Operator(".", 30, Assoc.LEFT),
     // add more as needed
 )
