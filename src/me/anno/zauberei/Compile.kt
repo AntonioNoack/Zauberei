@@ -17,7 +17,12 @@ fun main() {
         val tokens = Tokenizer(text, fileName).tokenize()
         println(tokens)
         ASTBuilder(tokens, rootPackage).readFileLevel()
-        // todo expand macros
+
+        // todo expand macros:
+        //   compile-time if
+        //   compile-time loop (duplicating instructions)
+        //   compile-time type replacements??? e.g. float -> double
+
         // todo expand hard generics
         // todo dependency & type analysis
         // todo build output C++

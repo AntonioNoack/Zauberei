@@ -31,6 +31,7 @@ val operators = mapOf(
     "to" to Operator("to", 3, Assoc.LEFT),
     "step" to Operator("step", 3, Assoc.LEFT),
     "until" to Operator("until", 3, Assoc.LEFT),
+    "downTo" to Operator("downTo", 3, Assoc.LEFT),
     ".." to Operator("..", 3, Assoc.LEFT),
 
     // logical

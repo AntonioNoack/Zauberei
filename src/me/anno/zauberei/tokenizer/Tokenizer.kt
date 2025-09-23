@@ -55,13 +55,7 @@ class Tokenizer(val src: String, fileName: String) {
                 }
 
                 // numbers
-                c.isDigit() -> {
-                    val start = i
-                    i++
-                    // todo support hH for half fp :)
-                    while (i < n && (src[i].isDigit() || src[i] in ".eE+-lLuUfFdDhH_xabcdefABCDEF")) i++
-                    tokens.add(TokenType.NUMBER, start, i)
-                }
+                c.isDigit() -> readNumber()
 
                 // char literal = number
                 c == '\'' -> {
@@ -101,12 +95,27 @@ class Tokenizer(val src: String, fileName: String) {
                     } else tokens.add(TokenType.SYMBOL, i++, i)
                 }
 
+                c == '.' -> {
+                    // parse !in and !is
+                    if (i + 1 < src.length && src[i + 1].isDigit()) {
+                        readNumber()
+                    } else tokens.add(TokenType.SYMBOL, i++, i)
+                }
+
                 // symbols
                 else -> tokens.add(TokenType.SYMBOL, i++, i)
             }
         }
         convertHardKeywords()
         return tokens
+    }
+
+    private fun readNumber() {
+        val start = i
+        i++
+        // todo support hH for half fp :)
+        while (i < n && (src[i].isDigit() || src[i] in ".eE+-lLuUfFdDhH_xabcdefABCDEF")) i++
+        tokens.add(TokenType.NUMBER, start, i)
     }
 
     private fun convertHardKeywords() {

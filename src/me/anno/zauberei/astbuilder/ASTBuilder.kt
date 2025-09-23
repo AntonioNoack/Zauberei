@@ -38,7 +38,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             "shl", "shr", "ushr", "and", "or",
 
             // I like these:
-            "in", "to", "step", "until",
+            "in", "to", "step", "until", "downTo",
             "is", "!is", "as", "as?"
         )
     }
@@ -210,14 +210,21 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             tokens.equals(i + 1, "<") ||
             tokens.equals(i + 1, "?.")
         ) {
-            var type = readType()
-            if (tokens.equals(i, "?.")) {
-                type = NullableType(type)
-                i++
-            } else {
+            if (tokens.equals(i + 1, ".")) {
+                // avoid packing both type and function name into one
+                val type = UnresolvedType(tokens.toString(i++), emptyList())
                 assert(tokens.equals(i++, "."))
+                type
+            } else {
+                var type = readType()
+                if (tokens.equals(i, "?.")) {
+                    type = NullableType(type)
+                    i++
+                } else {
+                    assert(tokens.equals(i++, "."))
+                }
+                type
             }
-            type
         } else null
 
         assert(tokens.equals(i, TokenType.NAME))
@@ -540,164 +547,21 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 return BinaryRevTypeOp(currPackage, "::", readExpression())
             }
 
-            tokens.equals(i, "if") -> {
-                i++
-                val condition = readExpressionCondition()
-                val ifTrue = readBodyOrLine()
-                val ifFalse = if (tokens.equals(i, "else")) {
-                    i++
-                    readBodyOrLine()
-                } else ExpressionList.empty
-                return IfElseBranch(condition, ifTrue, ifFalse)
-            }
-            tokens.equals(i, "else") ->
-                throw IllegalStateException("Unexpected else at ${tokens.err(i)}")
-            tokens.equals(i, "while") -> {
-                i++
-                val condition = readExpressionCondition()
-                val body = readBodyOrLine()
-                return WhileLoop(condition, body, label)
-            }
-            tokens.equals(i, "do") -> {
-                i++
-                val body = readBodyOrLine()
-                val condition = readExpressionCondition()
-                return DoWhileLoop(body, condition, label)
-            }
-            tokens.equals(i, "for") -> {
-                i++ // skip for
-                if (tokens.equals(i + 1, TokenType.OPEN_CALL)) {
-                    val names = ArrayList<String>()
-                    lateinit var iterable: Expression
-                    pushCall {
-                        assert(tokens.equals(i, TokenType.OPEN_CALL))
-                        pushCall {
-                            while (i < tokens.size) {
-                                assert(tokens.equals(i, TokenType.NAME))
-                                names.add(tokens.toString(i++))
-                                readComma()
-                            }
-                        }
-                        // to do type?
-                        assert(tokens.equals(i++, "in"))
-                        iterable = readExpression()
-                        assert(i == tokens.size)
-                    }
-                    val body = readBodyOrLine()
-                    return DestructuringForLoop(names, iterable, body, label)
-                } else {
-                    lateinit var name: String
-                    lateinit var iterable: Expression
-                    pushCall {
-                        assert(tokens.equals(i, TokenType.NAME))
-                        name = tokens.toString(i++)
-                        // to do type?
-                        assert(tokens.equals(i++, "in"))
-                        iterable = readExpression()
-                        assert(i == tokens.size)
-                    }
-                    val body = readBodyOrLine()
-                    return ForLoop(name, iterable, body, label)
-                }
-            }
+            tokens.equals(i, "if") -> return readIfBranch()
+            tokens.equals(i, "else") -> throw IllegalStateException("Unexpected else at ${tokens.err(i)}")
+            tokens.equals(i, "while") -> return readWhileLoop(label)
+            tokens.equals(i, "do") -> return readDoWhileLoop(label)
+            tokens.equals(i, "for") -> return readForLoop(label)
             tokens.equals(i, "when") -> {
                 i++
-                if (tokens.equals(i, TokenType.OPEN_CALL)) {
-                    val subject = pushCall {
-                        when {
-                            tokens.equals(i, "val") -> readDeclaration(false, isLateinit = false)
-                            tokens.equals(i, "var") -> readDeclaration(true, isLateinit = false)
-                            else -> readExpression()
-                        }
-                    }
-                    assert(tokens.equals(i, TokenType.OPEN_BLOCK))
-                    val cases = ArrayList<SubjectWhenCase>()
-                    pushBlock {
-                        while (i < tokens.size) {
-                            val nextArrow = tokens.findToken(i, "->")
-                            assert(nextArrow != -1)
-                            val conditions = ArrayList<SubjectCondition?>()
-                            println("reading conditions, ${tokens.toString(i, nextArrow)}")
-                            push(nextArrow) {
-                                while (i < tokens.size) {
-                                    println("  reading condition $nextArrow,$i,${tokens.err(i)}")
-                                    when {
-                                        tokens.equals(i, "else") -> {
-                                            i++; conditions.add(null)
-                                        }
-                                        tokens.equals(i, "in") ||
-                                                tokens.equals(i, "!in") ||
-                                                tokens.equals(i, "is") ||
-                                                tokens.equals(i, "!is") -> {
-                                            val keyword = tokens.toString(i++)
-                                            val value = readExpression()
-                                            conditions.add(SubjectCondition(value, keyword))
-                                        }
-                                        else -> {
-                                            val value = readExpression()
-                                            conditions.add(SubjectCondition(value, null))
-                                        }
-                                    }
-                                    println("  read condition ${conditions.last()}")
-                                    readComma()
-                                }
-                            }
-                            val body = readBodyOrLine()
-                            cases.add(SubjectWhenCase(conditions, body))
-                        }
-                    }
-                    return WhenSubjectExpression(subject, cases)
-                } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
-                    val cases = ArrayList<WhenCase>()
-                    pushBlock {
-                        while (i < tokens.size) {
-                            val nextArrow = tokens.findToken(i, "->")
-                            assert(nextArrow > i) {
-                                tokens.printTokensInBlocks(i)
-                                "Missing arrow at ${tokens.err(i)} ($nextArrow vs $i)"
-                            }
-                            val condition = push(nextArrow) {
-                                if (tokens.equals(i, "else")) null
-                                else readExpression()
-                            }
-                            val body = readBodyOrLine()
-                            cases.add(WhenCase(condition, body))
-                        }
-                    }
-                    return WhenBranchExpression(cases)
-                } else {
-                    throw IllegalStateException("Unexpected token after when at ${tokens.err(i)}")
+                return when {
+                    tokens.equals(i, TokenType.OPEN_CALL) -> readWhenWithSubject()
+                    tokens.equals(i, TokenType.OPEN_BLOCK) -> readWhenWithConditions()
+                    else -> throw IllegalStateException("Unexpected token after when at ${tokens.err(i)}")
                 }
             }
-            tokens.equals(i, "try") -> {
-                i++ // skip try
-                val tryBody = readBodyOrLine()
-                val catches = ArrayList<Catch>()
-                while (tokens.equals(i, "catch")) {
-                    assert(tokens.equals(++i, TokenType.OPEN_CALL))
-                    val params = pushCall { readParamDeclarations() }
-                    assert(params.size == 1)
-                    val handler = readBodyOrLine()
-                    catches.add(Catch(params[0], handler))
-                }
-                val finally = if (tokens.equals(i, "finally")) {
-                    i++ // skip finally
-                    readBodyOrLine()
-                } else null
-                return TryCatchBlock(tryBody, catches, finally)
-            }
-            tokens.equals(i, "return") -> {
-                i++ // skip return
-                println("reading return")
-                if (i < tokens.size && tokens.isSameLine(i - 1, i)) {
-                    val value = readExpression()
-                    println("  with value $value")
-                    return ReturnExpression(value, label)
-                } else {
-                    println("  without value")
-                    return ReturnExpression(null, label)
-                }
-            }
+            tokens.equals(i, "try") -> return readTryCatch()
+            tokens.equals(i, "return") -> return readReturn(label)
             tokens.equals(i, "throw") -> {
                 i++ // skip throw
                 val value = readExpression()
@@ -714,6 +578,12 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             tokens.equals(i, "super") -> {
                 val namePath = tokens.toString(i++)
                 return VariableExpression(namePath)
+            }
+            tokens.equals(i, "object") && tokens.equals(i + 1, TokenType.OPEN_BLOCK) -> {
+                return readInlineClass0()
+            }
+            tokens.equals(i, "object") && tokens.equals(i + 1, ":") -> {
+                return readInlineClass()
             }
             tokens.equals(i, TokenType.NAME) -> {
                 val namePath = tokens.toString(i++)
@@ -747,6 +617,197 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             }
             else -> throw NotImplementedError("Unknown expression part at ${tokens.err(i)}")
         }
+    }
+
+    private fun readInlineClass0(): Expression {
+        assert(tokens.equals(i++, "object"))
+        assert(tokens.equals(i, TokenType.OPEN_BLOCK))
+        val name = currPackage.generateName()
+        val clazz = currPackage.getOrPut(name)
+        readClassBody(name, emptyList())
+        return ConstructorExpression2(clazz, emptyList(), emptyList())
+    }
+
+    private fun readInlineClass(): Expression {
+        assert(tokens.equals(i++, "object"))
+        assert(tokens.equals(i++, ":"))
+
+        val name = currPackage.generateName()
+        val clazz = currPackage.getOrPut(name)
+
+        val bodyIndex = tokens.findToken(i, TokenType.OPEN_BLOCK)
+        assert(bodyIndex > i)
+        push(bodyIndex) {
+            while (i < tokens.size) {
+                clazz.superCalls.add(readExpression())
+                readComma()
+            }
+        }
+        i = bodyIndex
+        readClassBody(name, emptyList())
+        return ConstructorExpression2(clazz, emptyList(), emptyList())
+    }
+
+    private fun readIfBranch(): IfElseBranch {
+        i++
+        val condition = readExpressionCondition()
+        val ifTrue = readBodyOrLine()
+        val ifFalse = if (tokens.equals(i, "else")) {
+            i++
+            readBodyOrLine()
+        } else ExpressionList.empty
+        return IfElseBranch(condition, ifTrue, ifFalse)
+    }
+
+    private fun readWhileLoop(label: String?): WhileLoop {
+        i++
+        val condition = readExpressionCondition()
+        val body = readBodyOrLine()
+        return WhileLoop(condition, body, label)
+    }
+
+    private fun readDoWhileLoop(label: String?): DoWhileLoop {
+        i++
+        val body = readBodyOrLine()
+        val condition = readExpressionCondition()
+        return DoWhileLoop(body, condition, label)
+    }
+
+    private fun readForLoop(label: String?): Expression {
+        i++ // skip for
+        if (tokens.equals(i + 1, TokenType.OPEN_CALL)) {
+            val names = ArrayList<String>()
+            lateinit var iterable: Expression
+            pushCall {
+                assert(tokens.equals(i, TokenType.OPEN_CALL))
+                pushCall {
+                    while (i < tokens.size) {
+                        assert(tokens.equals(i, TokenType.NAME))
+                        names.add(tokens.toString(i++))
+                        readComma()
+                    }
+                }
+                // to do type?
+                assert(tokens.equals(i++, "in"))
+                iterable = readExpression()
+                assert(i == tokens.size)
+            }
+            val body = readBodyOrLine()
+            return DestructuringForLoop(names, iterable, body, label)
+        } else {
+            lateinit var name: String
+            lateinit var iterable: Expression
+            pushCall {
+                assert(tokens.equals(i, TokenType.NAME))
+                name = tokens.toString(i++)
+                // to do type?
+                assert(tokens.equals(i++, "in"))
+                iterable = readExpression()
+                assert(i == tokens.size)
+            }
+            val body = readBodyOrLine()
+            return ForLoop(name, iterable, body, label)
+        }
+    }
+
+    private fun readWhenWithSubject(): WhenSubjectExpression {
+        val subject = pushCall {
+            when {
+                tokens.equals(i, "val") -> readDeclaration(false, isLateinit = false)
+                tokens.equals(i, "var") -> readDeclaration(true, isLateinit = false)
+                else -> readExpression()
+            }
+        }
+        assert(tokens.equals(i, TokenType.OPEN_BLOCK))
+        val cases = ArrayList<SubjectWhenCase>()
+        pushBlock {
+            while (i < tokens.size) {
+                val nextArrow = tokens.findToken(i, "->")
+                assert(nextArrow != -1)
+                val conditions = ArrayList<SubjectCondition?>()
+                println("reading conditions, ${tokens.toString(i, nextArrow)}")
+                push(nextArrow) {
+                    while (i < tokens.size) {
+                        println("  reading condition $nextArrow,$i,${tokens.err(i)}")
+                        when {
+                            tokens.equals(i, "else") -> {
+                                i++; conditions.add(null)
+                            }
+                            tokens.equals(i, "in") ||
+                                    tokens.equals(i, "!in") ||
+                                    tokens.equals(i, "is") ||
+                                    tokens.equals(i, "!is") -> {
+                                val keyword = tokens.toString(i++)
+                                val value = readExpression()
+                                conditions.add(SubjectCondition(value, keyword))
+                            }
+                            else -> {
+                                val value = readExpression()
+                                conditions.add(SubjectCondition(value, null))
+                            }
+                        }
+                        println("  read condition ${conditions.last()}")
+                        readComma()
+                    }
+                }
+                println("conditions for body: $conditions")
+                val body = readBodyOrLine()
+                println("read body: $body")
+                cases.add(SubjectWhenCase(conditions, body))
+            }
+        }
+        return WhenSubjectExpression(subject, cases)
+    }
+
+    private fun readWhenWithConditions(): WhenBranchExpression {
+        val cases = ArrayList<WhenCase>()
+        pushBlock {
+            while (i < tokens.size) {
+                val nextArrow = tokens.findToken(i, "->")
+                assert(nextArrow > i) {
+                    tokens.printTokensInBlocks(i)
+                    "Missing arrow at ${tokens.err(i)} ($nextArrow vs $i)"
+                }
+                val condition = push(nextArrow) {
+                    if (tokens.equals(i, "else")) null
+                    else readExpression()
+                }
+                val body = readBodyOrLine()
+                cases.add(WhenCase(condition, body))
+            }
+        }
+        return WhenBranchExpression(cases)
+    }
+
+    private fun readReturn(label: String?): ReturnExpression {
+        i++ // skip return
+        println("reading return")
+        if (i < tokens.size && tokens.isSameLine(i - 1, i)) {
+            val value = readExpression()
+            println("  with value $value")
+            return ReturnExpression(value, label)
+        } else {
+            println("  without value")
+            return ReturnExpression(null, label)
+        }
+    }
+
+    private fun readTryCatch(): TryCatchBlock {
+        i++ // skip try
+        val tryBody = readBodyOrLine()
+        val catches = ArrayList<Catch>()
+        while (tokens.equals(i, "catch")) {
+            assert(tokens.equals(++i, TokenType.OPEN_CALL))
+            val params = pushCall { readParamDeclarations() }
+            assert(params.size == 1)
+            val handler = readBodyOrLine()
+            catches.add(Catch(params[0], handler))
+        }
+        val finally = if (tokens.equals(i, "finally")) {
+            i++ // skip finally
+            readBodyOrLine()
+        } else null
+        return TryCatchBlock(tryBody, catches, finally)
     }
 
     /**
@@ -873,6 +934,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     fun readExpression(minPrecedence: Int = 0): Expression {
         var expr = readPrefix()
         println("prefix: $expr")
+        if (expr.toString() == "\"parentId\"") {
+            RuntimeException("$expr").printStackTrace()
+        }
 
         // main elements
         loop@ while (i < tokens.size) {
@@ -927,7 +991,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
     fun tryReadPostfix(expr: Expression): Expression? {
         return when {
-            i >= tokens.size -> null
+            i >= tokens.size || !tokens.isSameLine(i - 1, i) -> null
             tokens.equals(i, TokenType.OPEN_CALL) -> {
                 val params = pushCall { readParamExpressions() }
                 if (tokens.equals(i, TokenType.OPEN_BLOCK)) {

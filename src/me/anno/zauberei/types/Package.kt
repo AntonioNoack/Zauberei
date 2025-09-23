@@ -44,6 +44,13 @@ class Package(val name: String? = null, val parent: Package? = null) {
             return path
         }
 
+    var nextAnonymousName = 0
+
+    fun generateName(): String {
+        @Suppress("CanConvertToMultiDollarString") // what is that???
+        return "\$lambda${nextAnonymousName++}"
+    }
+
     override fun toString(): String {
         return "Package[${path.joinToString(".")}]"
     }
