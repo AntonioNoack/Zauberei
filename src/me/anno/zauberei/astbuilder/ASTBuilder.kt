@@ -7,6 +7,7 @@ import me.anno.zauberei.astbuilder.flow.*
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.TokenType
 import me.anno.zauberei.types.*
+import kotlin.math.max
 import kotlin.math.min
 
 // I want macros... how could we implement them? learn about Rust macros
@@ -31,7 +32,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
         private val paramLevelKeywords = listOf(
             "private", "var", "val", "open", "override",
-            "crossinline"
+            "crossinline", "vararg", "final"
         )
 
         private val supportedInfixFunctions = listOf(
@@ -140,6 +141,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     tokens.equals(i, "val") ||
                     tokens.equals(i, "var") ||
                     tokens.equals(i, "companion") ||
+                    tokens.equals(i, "override") ||
                     tokens.equals(i, "fun")
                 ) {
                     return i
@@ -209,7 +211,13 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             assert(tokens.equals(++i, TokenType.NAME))
             ownerType = UnresolvedType(name, emptyList())
             name = tokens.toString(i++)
+        } else if (tokens.equals(i, "?.")) {
+            assert(tokens.equals(++i, TokenType.NAME))
+            ownerType = UnresolvedType(name, emptyList())
+            ownerType = NullableType(ownerType)
+            name = tokens.toString(i++)
         }
+
 
         val valueType = if (tokens.equals(i, ":")) {
             i++
@@ -357,6 +365,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 }
                 tokens.equals(i, "interface") -> readInterface()
                 tokens.equals(i, "constructor") -> readConstructor()
+                tokens.equals(i, "typealias") -> readTypeAlias()
                 tokens.equals(i, "var") -> readVarValInClass(true)
                 tokens.equals(i, "val") -> readVarValInClass(false)
                 tokens.equals(i, "init") -> {
@@ -372,6 +381,12 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
                     val field = lastField!!
                     field.privateGet = keywords.remove("private")
+
+                    if (tokens.equals(i, ":")) {
+                        i++
+                        field.valueType = readType()
+                    }
+
                     when {
                         tokens.equals(i, "=") -> {
                             i++ // skip =
@@ -409,6 +424,14 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 else -> throw NotImplementedError("Unknown token at ${tokens.err(i)}")
             }
         }
+    }
+
+    fun readTypeAlias() {
+        assert(tokens.equals(i++, "typealias"))
+        val newName = readType()
+        assert(tokens.equals(i++, "="))
+        val oldName = readType()
+        currPackage.typeAliases.add(TypeAlias(newName, oldName))
     }
 
     fun readAnnotation(): Annotation {
@@ -460,7 +483,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 tokens.equals(i, TokenType.NAME) || tokens.equals(i, TokenType.KEYWORD) -> {
                     val name = tokens.toString(i++)
                     if (name in paramLevelKeywords &&
-                        (tokens.equals(i, TokenType.NAME) || tokens.equals(i, TokenType.KEYWORD))
+                        (tokens.equals(i, TokenType.NAME) ||
+                                tokens.equals(i, TokenType.KEYWORD))
                     ) {
                         keywords.add(name)
                         continue@loop
@@ -680,7 +704,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             tokens.equals(i, TokenType.OPEN_BLOCK) -> {
                 return pushBlock { readLambda() }
             }
-            else -> throw NotImplementedError("Unknown expression part at ${tokens.err(i)}")
+            else -> {
+                tokens.printTokensInBlocks(max(i - 5, 0))
+                throw NotImplementedError("Unknown expression part at ${tokens.err(i)}")
+            }
         }
     }
 
@@ -736,6 +763,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     private fun readDoWhileLoop(label: String?): DoWhileLoop {
         i++
         val body = readBodyOrLine()
+        assert(tokens.equals(i++, "while"))
         val condition = readExpressionCondition()
         return DoWhileLoop(body, condition, label)
     }
@@ -789,7 +817,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         val cases = ArrayList<SubjectWhenCase>()
         pushBlock {
             while (i < tokens.size) {
-                val nextArrow = tokens.findToken(i, "->")
+                val nextArrow = findNextArrow(i)
                 assert(nextArrow != -1)
                 val conditions = ArrayList<SubjectCondition?>()
                 println("reading conditions, ${tokens.toString(i, nextArrow)}")
@@ -800,20 +828,22 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                             tokens.equals(i, "else") -> {
                                 i++; conditions.add(null)
                             }
-                            tokens.equals(i, "in") ||
-                                    tokens.equals(i, "!in") ||
-                                    tokens.equals(i, "is") ||
-                                    tokens.equals(i, "!is") -> {
+                            tokens.equals(i, "in") || tokens.equals(i, "!in") -> {
                                 val keyword = tokens.toString(i++)
                                 val value = readExpression()
-                                conditions.add(SubjectCondition(value, keyword))
+                                conditions.add(SubjectCondition(value, null, keyword))
+                            }
+                            tokens.equals(i, "is") || tokens.equals(i, "!is") -> {
+                                val keyword = tokens.toString(i++)
+                                val type = readType()
+                                conditions.add(SubjectCondition(null, type, keyword))
                             }
                             else -> {
                                 val value = readExpression()
-                                conditions.add(SubjectCondition(value, null))
+                                conditions.add(SubjectCondition(value, null, null))
                             }
                         }
-                        println("  read condition ${conditions.last()}")
+                        println("  read condition '${conditions.last()}'")
                         readComma()
                     }
                 }
@@ -826,11 +856,43 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         return WhenSubjectExpression(subject, cases)
     }
 
+    private fun findNextArrow(i0: Int): Int {
+        var depth = 0
+        var j = i0
+        while (j < tokens.size) {
+            when {
+                tokens.equals(j, "is") ||
+                        tokens.equals(j, "!is") ||
+                        tokens.equals(j, "as") ||
+                        tokens.equals(j, "as?") -> {
+                    val originalI = i
+                    i = j + 1 // after is/!is/as/as?
+                    val type = readType()
+                    println("skipping over type '$type'")
+                    j = i - 1 // continue after the type; -1, because will be incremented immediately after
+                    i = originalI
+                }
+                depth == 0 && tokens.equals(j, "->") -> {
+                    println("found arrow at ${tokens.err(j)}")
+                    return j
+                }
+                tokens.equals(j, TokenType.OPEN_BLOCK) ||
+                        tokens.equals(j, TokenType.OPEN_ARRAY) ||
+                        tokens.equals(j, TokenType.OPEN_CALL) -> depth++
+                tokens.equals(j, TokenType.CLOSE_BLOCK) ||
+                        tokens.equals(j, TokenType.CLOSE_ARRAY) ||
+                        tokens.equals(j, TokenType.CLOSE_CALL) -> depth--
+            }
+            j++
+        }
+        return -1
+    }
+
     private fun readWhenWithConditions(): WhenBranchExpression {
         val cases = ArrayList<WhenCase>()
         pushBlock {
             while (i < tokens.size) {
-                val nextArrow = tokens.findToken(i, "->")
+                val nextArrow = findNextArrow(i)
                 assert(nextArrow > i) {
                     tokens.printTokensInBlocks(i)
                     "Missing arrow at ${tokens.err(i)} ($nextArrow vs $i)"
@@ -849,7 +911,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     private fun readReturn(label: String?): ReturnExpression {
         i++ // skip return
         println("reading return")
-        if (i < tokens.size && tokens.isSameLine(i - 1, i)) {
+        if (i < tokens.size && tokens.isSameLine(i - 1, i) &&
+            !tokens.equals(i, TokenType.COMMA)
+        ) {
             val value = readExpression()
             println("  with value $value")
             return ReturnExpression(value, label)
@@ -885,6 +949,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     private fun isTypeArgsStartingHere(i: Int): Boolean {
         if (i >= tokens.size) return false
         if (!tokens.equals(i, "<")) return false
+        if (!tokens.isSameLine(i - 1, i)) return false
         var depth = 1
         var i = i + 1
         while (depth > 0) {
@@ -911,7 +976,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                         tokens.equals(i, TokenType.SYMBOL) ||
                         tokens.equals(i, TokenType.STRING) ||
                         tokens.equals(i, TokenType.NUMBER) ||
-                        tokens.equals(i, TokenType.APPEND_STRING) -> return false
+                        tokens.equals(i, TokenType.APPEND_STRING) ||
+                        tokens.equals(i, "val") ||
+                        tokens.equals(i, "var") -> return false
                 else -> throw NotImplementedError("Can ${tokens.err(i)} appear inside a type?")
             }
             i++
@@ -1026,7 +1093,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     continue@loop
                 }
             }
-            if (symbol == "in" || symbol == "!in") {
+            if (symbol == "in" || symbol == "!in" || symbol == "is" || symbol == "!is") {
                 // these must be on the same line
                 if (!tokens.isSameLine(i - 1, i)) {
                     break@loop

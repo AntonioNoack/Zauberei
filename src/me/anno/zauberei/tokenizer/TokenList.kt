@@ -57,6 +57,7 @@ class TokenList(val src: String, val fileName: String) {
                 close, TokenType.CLOSE_CALL, TokenType.CLOSE_ARRAY, TokenType.CLOSE_BLOCK -> depth--
                 else -> {}
             }
+            if (depth < 0) break
             println("  ".repeat(depth) + "$j: ${getType(j)} '${toString(j)}'")
             when (getType(j)) {
                 open, TokenType.OPEN_CALL, TokenType.OPEN_ARRAY, TokenType.OPEN_BLOCK -> depth++
@@ -127,6 +128,7 @@ class TokenList(val src: String, val fileName: String) {
             !(src[i0 - 1] == '<' && src[i0] == '*') && // <*>
             !(src[i0 - 1] == '*' && src[i0] == '>') && // <*>
             !(src[i0 - 1] == '!' && src[i0] in ":.") && // !!::, !!.
+            !(src[i0 - 1] == '.' && src[i0] in "+-") && // ..+3.0, ..-3.0
             (src[i0 - 1] != '=' || src[i0] == '=')
         ) {
             // todo only accept a symbol if the previous is not =, or the current one is =, too

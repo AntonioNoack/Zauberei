@@ -20,6 +20,7 @@ class Package(val name: String? = null, val parent: Package? = null) {
     var primaryConstructorParams: List<Parameter>? = null
     val superCalls = ArrayList<Expression>()
     val enumValues = ArrayList<Expression>()
+    val typeAliases = ArrayList<TypeAlias>()
 
     var typeParams: List<Parameter> = emptyList()
 

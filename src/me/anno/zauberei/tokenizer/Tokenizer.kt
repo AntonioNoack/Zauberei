@@ -97,7 +97,9 @@ class Tokenizer(val src: String, fileName: String) {
 
                 c == '.' -> {
                     // parse !in and !is
-                    if (i + 1 < src.length && src[i + 1].isDigit()) {
+                    if (i + 1 < src.length && src[i + 1].isDigit() &&
+                        !(i > 0 && src[i - 1] == '.')
+                    ) {
                         readNumber()
                     } else tokens.add(TokenType.SYMBOL, i++, i)
                 }

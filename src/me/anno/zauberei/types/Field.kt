@@ -7,7 +7,7 @@ class Field(
     val isVal: Boolean,
     val ownerType: Type,
     val name: String,
-    val valueType: Type?,
+    var valueType: Type?,
     val initialValue: Expression?,
     val keywords: List<String>
 ) {

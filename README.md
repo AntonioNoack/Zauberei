@@ -66,3 +66,8 @@ Total Progress: 0.5 %
 ...
 # yes, these probably don't add up to 100%
 ```
+
+## Naming
+
+Programming languages are magic to even most developers, and I like the German words "Zauber" and "Zauberei".
+I'm also thinking about renaming it to "fux" (German & English mixed) or "fox", but idk...
