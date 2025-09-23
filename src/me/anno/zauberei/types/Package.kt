@@ -44,7 +44,7 @@ class Package(val name: String? = null, val parent: Package? = null) {
             return path
         }
 
-    var nextAnonymousName = 0
+    private var nextAnonymousName = 0
 
     fun generateName(): String {
         @Suppress("CanConvertToMultiDollarString") // what is that???

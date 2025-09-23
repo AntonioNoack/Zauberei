@@ -1,13 +1,13 @@
 package me.anno.zauberei.types
 
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.astbuilder.expression.ExpressionList
 
 class Field(
     val isVar: Boolean,
     val isVal: Boolean,
+    val ownerType: Type,
     val name: String,
-    val type: Type?,
+    val valueType: Type?,
     val initialValue: Expression?,
     val keywords: List<String>
 ) {

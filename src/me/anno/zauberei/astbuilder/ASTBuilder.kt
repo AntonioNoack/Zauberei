@@ -30,7 +30,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         )
 
         private val paramLevelKeywords = listOf(
-            "private", "var", "val"
+            "private", "var", "val", "open", "override"
         )
 
         private val supportedInfixFunctions = listOf(
@@ -173,10 +173,17 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     private fun readVarValInClass(isVar: Boolean) {
         i++
         assert(tokens.equals(i, TokenType.NAME))
-        val name = tokens.toString(i++)
+        var ownerType: Type? = null
+        var name = tokens.toString(i++)
         val keywords = packKeywords()
 
-        val type = if (tokens.equals(i, ":")) {
+        if (tokens.equals(i, ".")) {
+            assert(tokens.equals(++i, TokenType.NAME))
+            ownerType = UnresolvedType(name, emptyList())
+            name = tokens.toString(i++)
+        }
+
+        val valueType = if (tokens.equals(i, ":")) {
             i++
             readType()
         } else null
@@ -191,8 +198,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             DelegateExpression(readExpression())
         } else null
 
-        val field = Field(isVar, !isVar, name, type, initialValue, keywords)
-        println("read field $name: $type = $initialValue")
+        if (ownerType == null) ownerType = ClassType(currPackage, emptyList())
+        val field = Field(isVar, !isVar, ownerType, name, valueType, initialValue, keywords)
+        println("read field $name: $valueType = $initialValue")
         currPackage.fields.add(field)
         lastField = field
     }
@@ -354,10 +362,12 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     if (tokens.equals(i, TokenType.OPEN_CALL)) {
                         assert(tokens.equals(++i, TokenType.NAME))
                         field.setterFieldName = tokens.toString(i++)
-                        // println("found set ${field.name}, ${field.setterFieldName}")
+                        println("found set ${field.name}, ${field.setterFieldName}")
                         assert(tokens.equals(i++, TokenType.CLOSE_CALL))
-                        field.setterExpr = if (tokens.equals(i, "=")) readExpression()
-                        else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
+                        field.setterExpr = if (tokens.equals(i, "=")) {
+                            i++ // skip =
+                            readExpression()
+                        } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
                             pushBlock { readFunctionBody() }
                         } else null
                     }// else println("found set without anything else, ${field.name}")
@@ -421,7 +431,9 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 tokens.equals(i, "@") -> annotations.add(readAnnotation())
                 tokens.equals(i, TokenType.NAME) || tokens.equals(i, TokenType.KEYWORD) -> {
                     val name = tokens.toString(i++)
-                    if (name in paramLevelKeywords) {
+                    if (name in paramLevelKeywords &&
+                        (tokens.equals(i, TokenType.NAME) || tokens.equals(i, TokenType.KEYWORD))
+                    ) {
                         keywords.add(name)
                         continue@loop
                     }
@@ -622,8 +634,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     private fun readInlineClass0(): Expression {
         assert(tokens.equals(i++, "object"))
         assert(tokens.equals(i, TokenType.OPEN_BLOCK))
+
         val name = currPackage.generateName()
         val clazz = currPackage.getOrPut(name)
+
         readClassBody(name, emptyList())
         return ConstructorExpression2(clazz, emptyList(), emptyList())
     }
@@ -1087,29 +1101,39 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         return ExpressionList(result)
     }
 
+    private fun readDestructuring(isVar: Boolean, isLateinit: Boolean): DestructuringExpression {
+        val names = ArrayList<String>()
+        pushCall {
+            while (i < tokens.size) {
+                assert(tokens.equals(i, TokenType.NAME))
+                names.add(tokens.toString(i++))
+                if (tokens.equals(i, ":"))
+                    throw NotImplementedError("Read type in destructuring at ${tokens.err(i)}")
+                readComma()
+            }
+        }
+        val value = if (tokens.equals(i, "=")) {
+            i++ // skip =
+            readExpression()
+        } else throw IllegalStateException("Expected value for destructuring at ${tokens.err(i)}")
+        return DestructuringExpression(names, value, isVar, isLateinit)
+    }
+
     fun readDeclaration(isVar: Boolean, isLateinit: Boolean = false): Expression {
         i++ // skip var/val
 
         if (tokens.equals(i, TokenType.OPEN_CALL)) {
-            val names = ArrayList<String>()
-            pushCall {
-                while (i < tokens.size) {
-                    assert(tokens.equals(i, TokenType.NAME))
-                    names.add(tokens.toString(i++))
-                    if (tokens.equals(i, ":"))
-                        throw NotImplementedError("Read type in destructuring at ${tokens.err(i)}")
-                    readComma()
-                }
-            }
-            val value = if (tokens.equals(i, "=")) {
-                i++ // skip =
-                readExpression()
-            } else throw IllegalStateException("Expected value for destructuring at ${tokens.err(i)}")
-            return DestructuringExpression(names, value, isVar, isLateinit)
+            return readDestructuring(isVar, isLateinit)
         }
 
         assert(tokens.equals(i, TokenType.NAME))
-        val name = tokens.toString(i++)
+        val name = tokens.toString(i++) // todo name could be path...
+
+        if (tokens.equals(i, ".")) {
+            i++
+            TODO("read val Vector3d.v get() = x+y")
+        }
+
         println("reading var/val $name")
         val type = if (tokens.equals(i, ":")) {
             println("skipping : for type")
