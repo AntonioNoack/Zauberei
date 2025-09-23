@@ -30,7 +30,8 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         )
 
         private val paramLevelKeywords = listOf(
-            "private", "var", "val", "open", "override"
+            "private", "var", "val", "open", "override",
+            "crossinline"
         )
 
         private val supportedInfixFunctions = listOf(
@@ -959,8 +960,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 TokenType.SYMBOL, TokenType.KEYWORD -> tokens.toString(i)
                 TokenType.NAME -> {
                     isInfix = true
-                    supportedInfixFunctions.firstOrNull { infix -> tokens.equals(i, infix) }
-                        ?: break@loop
+                    val infix = supportedInfixFunctions.firstOrNull { infix -> tokens.equals(i, infix) }
+                    // infix must be on the same line
+                    if (infix == null || !tokens.isSameLine(i - 1, i)) break@loop
+                    infix
                 }
                 TokenType.APPEND_STRING -> "+"
                 else -> {
