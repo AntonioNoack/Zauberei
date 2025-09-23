@@ -110,14 +110,53 @@ class Tokenizer(val src: String, fileName: String) {
         return tokens
     }
 
+    private fun readInteger() {
+        while (i < n && (src[i] in '0'..'9' || src[i] == '_')) i++
+    }
+
+    private fun readExponent() {
+        if (i < n && src[i] in "eE") {
+            i++
+            if (src[i] in "+-") i++
+            readInteger()
+        }
+    }
+
+    private fun readCommaDigits() {
+        if (i + 1 < n && src[i] == '.' && src[i + 1] in '0'..'9') {
+            i += 2
+            readInteger()
+        }
+    }
+
     private fun readNumber() {
-        val start = i
-        i++
-        // todo support hH for half fp :)
-        while (i < n && (src[i].isDigit() || src[i] in ".eE+-lLuUfFdDhH_xabcdefABCDEF")) {
-            if (i + 1 < n && src[i] == '.' && src[i + 1] == '.') break // .. operator
+        val start = i++
+        var first = src[start]
+        if (first in "+-") {
+            first = src[i]
             i++
         }
+        @Suppress("IntroduceWhenSubject")
+        when {
+            first == '0' && i < n && src[i] in "xX" -> {
+                i++ // skip 0x
+                while (i < n && (src[i] in '0'..'9' || src[i] in "abcdefABCDEF_")) i++
+            }
+            first == '0' && i < n && src[i] in "bB" -> {
+                i++ // skip 0b
+                while (i < n && (src[i] in "01_")) i++
+            }
+            first == '.' -> {
+                readInteger()
+                readExponent()
+            }
+            else -> {
+                readInteger()
+                readCommaDigits()
+                readExponent()
+            }
+        }
+        if (i < n && src[i] in "lLuUfFdDhH") i++
         tokens.add(TokenType.NUMBER, start, i)
     }
 

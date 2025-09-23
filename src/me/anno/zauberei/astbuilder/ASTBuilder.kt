@@ -118,7 +118,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
     private fun readSuperCalls(clazz: Package) {
         if (tokens.equals(i, ":")) {
             i++ // skip :
-            var endIndex = tokens.findToken(i, TokenType.OPEN_BLOCK)
+            var endIndex = findEndOfSuperCalls(i)
             if (endIndex < 0) endIndex = tokens.size
             push(endIndex) {
                 while (i < tokens.size) {
@@ -128,6 +128,33 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             }
             i = endIndex // index of {
         }
+    }
+
+    private fun findEndOfSuperCalls(i0: Int): Int {
+        var depth = 0
+        for (i in i0 until tokens.size) {
+            if (depth == 0) {
+                if (tokens.equals(i, TokenType.OPEN_BLOCK) ||
+                    tokens.equals(i, TokenType.OPEN_ARRAY) ||
+                    tokens.equals(i, TokenType.KEYWORD) ||
+                    tokens.equals(i, "val") ||
+                    tokens.equals(i, "var") ||
+                    tokens.equals(i, "companion") ||
+                    tokens.equals(i, "fun")
+                ) {
+                    return i
+                }
+            }
+            when {
+                tokens.equals(i, TokenType.OPEN_BLOCK) ||
+                        tokens.equals(i, TokenType.OPEN_ARRAY) ||
+                        tokens.equals(i, TokenType.OPEN_CALL) -> depth++
+                tokens.equals(i, TokenType.CLOSE_BLOCK) ||
+                        tokens.equals(i, TokenType.CLOSE_ARRAY) ||
+                        tokens.equals(i, TokenType.CLOSE_CALL) -> depth--
+            }
+        }
+        return -1
     }
 
     private fun readClassBody(name: String, keywords: List<String>) {
@@ -504,6 +531,28 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
 
     fun readBodyOrLine(): Expression {
         return if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
+            // if just names and -> follow, read a single expression instead
+            // if a destructuring and -> follow, read a single expression instead
+            var j = i + 1
+            var depth = 0
+            arrowSearch@ while (j < tokens.size) {
+                when {
+                    tokens.equals(j, TokenType.OPEN_CALL) -> depth++
+                    tokens.equals(j, TokenType.CLOSE_CALL) -> depth--
+                    tokens.equals(j, "*") ||
+                            tokens.equals(j, "?") ||
+                            tokens.equals(j, ".") ||
+                            tokens.equals(j, TokenType.COMMA) ||
+                            tokens.equals(j, TokenType.NAME) -> {
+                    }
+                    tokens.equals(j, "->") -> {
+                        if (depth == 0) return readExpression()
+                    }
+                    else -> break@arrowSearch
+                }
+                j++
+            }
+
             pushBlock { readFunctionBody() }
         } else {
             readExpression()
@@ -601,7 +650,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
             tokens.equals(i, TokenType.NAME) -> {
                 val namePath = tokens.toString(i++)
                 val typeArgs = readTypeParams()
-                return if (tokens.equals(i, TokenType.OPEN_CALL)) {
+                return if (
+                    tokens.equals(i, TokenType.OPEN_CALL) &&
+                    tokens.isSameLine(i - 1, i)
+                ) {
                     // constructor or function call with type args
                     val start = i
                     val end = tokens.findBlockEnd(i, TokenType.OPEN_CALL, TokenType.CLOSE_CALL)
@@ -667,7 +719,7 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
         i++
         val condition = readExpressionCondition()
         val ifTrue = readBodyOrLine()
-        val ifFalse = if (tokens.equals(i, "else")) {
+        val ifFalse = if (tokens.equals(i, "else") && !tokens.equals(i + 1, "->")) {
             i++
             readBodyOrLine()
         } else ExpressionList.empty
@@ -846,8 +898,10 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                 tokens.equals(i, ">") -> depth--
                 tokens.equals(i, "?") ||
                         tokens.equals(i, "->") ||
+                        tokens.equals(i, ".") ||
                         tokens.equals(i, "*") -> {
-                } // ok
+                    // ok
+                }
                 tokens.equals(i, TokenType.OPEN_CALL) -> depth++
                 tokens.equals(i, TokenType.CLOSE_CALL) -> depth--
                 tokens.equals(i, TokenType.OPEN_BLOCK) ||
@@ -970,6 +1024,12 @@ class ASTBuilder(val tokens: TokenList, val root: Package) {
                     // postfix
                     expr = tryReadPostfix(expr) ?: break@loop
                     continue@loop
+                }
+            }
+            if (symbol == "in" || symbol == "!in") {
+                // these must be on the same line
+                if (!tokens.isSameLine(i - 1, i)) {
+                    break@loop
                 }
             }
 

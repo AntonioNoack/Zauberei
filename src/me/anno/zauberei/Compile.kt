@@ -42,6 +42,7 @@ fun main() {
     addSource(root)
     addSource(File(project, "src"))
 
+    // bonus: compile of Rem's Engine's core module (not working yet, but a few things get parsed)
     val remsEngine = File(project, "../RemsEngine")
     addSource(File(remsEngine, "src"))
 
