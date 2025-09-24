@@ -22,6 +22,7 @@ object StandardTypes {
         "Class" to "kotlin",
         "Enum" to "kotlin",
         "IntRange" to "kotlin",
+        "Lazy" to "kotlin",
 
         "Comparable" to "kotlin",
         "Comparator" to "kotlin",

@@ -90,13 +90,18 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val name = tokens.toString(i++)
         val clazz = currPackage.getOrPut(name)
         val keywords = packKeywords()
-        clazz.typeParams = readFunctionTypeParameters(clazz)
+        clazz.typeParams = readTypeParameterDeclarations(clazz)
 
         val privateConstructor = if (tokens.equals(i, "private")) i++ else -1
         readAnnotations()
+
         if (tokens.equals(i, "constructor")) i++
         val constructorParams = if (tokens.equals(i, TokenType.OPEN_CALL)) {
-            pushCall { readParamDeclarations() }
+            val parentPackage = currPackage
+            currPackage = clazz // ensure we have all types available when reading params
+            val params = pushCall { readParamDeclarations() }
+            currPackage = parentPackage
+            params
         } else null
 
         readSuperCalls(clazz)
@@ -112,7 +117,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val name = tokens.toString(i++)
         val clazz = currPackage.getOrPut(name)
         val keywords = packKeywords()
-        clazz.typeParams = readFunctionTypeParameters(clazz)
+        clazz.typeParams = readTypeParameterDeclarations(clazz)
 
         readSuperCalls(clazz)
         readClassBody(name, keywords)
@@ -273,7 +278,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
         // parse optional <T, U>
         val scope = skipTypeParametersToFindFunctionNameAndScope()
-        val typeParameters = readFunctionTypeParameters(scope)
+        val typeParameters = readTypeParameterDeclarations(scope)
 
         assert(tokens.equals(i, TokenType.NAME))
         val selfType = if (tokens.equals(i + 1, ".") ||
@@ -464,10 +469,14 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
     fun readTypeAlias() {
         assert(tokens.equals(i++, "typealias"))
-        val newName = readType()
+        assert(tokens.equals(i, TokenType.NAME))
+        val newName = tokens.toString(i++)
+        val pseudoScope = currPackage.getOrPut(newName)
+        pseudoScope.typeParams = readTypeParameterDeclarations(currPackage)
+
         assert(tokens.equals(i++, "="))
-        val oldName = readType()
-        currPackage.typeAliases.add(TypeAlias(newName, oldName))
+        val trueType = readType()
+        pseudoScope.typeAlias = trueType
     }
 
     fun readAnnotation(): Annotation {
@@ -580,7 +589,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         genericParams.removeLast()
     }
 
-    fun readFunctionTypeParameters(scope: Scope): List<Parameter> {
+    fun readTypeParameterDeclarations(scope: Scope): List<Parameter> {
         pushGenericParams()
         if (!tokens.equals(i, "<")) return emptyList()
         val params = ArrayList<Parameter>()
@@ -592,11 +601,15 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
                 assert(tokens.equals(i, TokenType.NAME)) { "Expected type parameter name" }
                 val name = tokens.toString(i++)
+
+                // name might be needed for the type, so register it already here
+                genericParams.last()[name] = GenericType(scope, name)
+
                 val type = if (tokens.equals(i, ":")) {
                     i++ // skip :
                     readType()
                 } else NullableAnyType
-                genericParams.last()[name] = GenericType(scope, name)
+
                 params.add(Parameter(false, true, name, type, null))
                 readComma()
             }

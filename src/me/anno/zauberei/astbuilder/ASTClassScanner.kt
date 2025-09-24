@@ -61,7 +61,6 @@ object ASTClassScanner {
                                     j += 2 // skip period and name
                                 }
                                 currPackage = path
-                                currPackage.fileName = tokens.fileName
                             }
 
                             tokens.equals(i, "import") && listening.size == 1 -> {
@@ -102,6 +101,7 @@ object ASTClassScanner {
 
                                 nextPackage = currPackage.getOrPut(tokens.toString(i))
                                 nextPackage.keywords.add(listenType)
+                                nextPackage.fileName = tokens.fileName
 
                                 println("discovered $nextPackage")
 
@@ -121,7 +121,7 @@ object ASTClassScanner {
                                     j++
                                     while (tokens.equals(j, TokenType.NAME)) {
                                         val name = tokens.toString(j++)
-                                        // println("discovered $nextPackage extends $name")
+                                         println("discovered $nextPackage extends $name")
                                         nextPackage.superCallNames.add(SuperCallName(name, imports))
                                         if (tokens.equals(j, "<")) {
                                             j = tokens.findBlockEnd(j, "<", ">") + 1
@@ -143,6 +143,6 @@ object ASTClassScanner {
         }
         assert(listen == -1) { "Listening for class/object/interface at ${tokens.err(listen)}" }
 
-        //if (debug) throw IllegalStateException()
+        //if (tokens.fileName.endsWith("TextDrawable.kt")) throw IllegalStateException()
     }
 }

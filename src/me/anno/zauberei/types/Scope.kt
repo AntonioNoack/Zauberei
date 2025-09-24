@@ -29,7 +29,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     val superCallNames = ArrayList<SuperCallName>()
 
     val enumValues = ArrayList<Expression>()
-    val typeAliases = ArrayList<TypeAlias>()
+    var typeAlias: Type? = null
 
     var typeParams: List<Parameter> = emptyList()
 
@@ -42,7 +42,10 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
             throw IllegalStateException("Asking for $name on a global level???")
 
         var child = children.firstOrNull { it.name == name }
-        if (child != null) return child
+        if (child != null) {
+            if (child.fileName == null) child.fileName = fileName
+            return child
+        }
 
         child = Scope(name, this)
         children.add(child)
@@ -76,7 +79,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         forEachSuperType { type ->
             val scope = extractScope(type)
             val bySuperCall = scope.resolveTypeInner(name)
-            println("rti[$name,$this] -> $scope -> $bySuperCall")
+            // println("rti[$name,$this] -> $type -> $scope -> $bySuperCall")
             if (bySuperCall != null) return bySuperCall
         }
 
@@ -94,7 +97,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
                     if (type != null) {
                         superCall.resolved = type
                         callback(type)
-                    } else println("Could not resolve ${superCall.name} inside $this!")
+                    } else throw IllegalStateException("Could not resolve ${superCall.name} inside $this!")
                 }
             }
         } else {
@@ -114,6 +117,10 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
 
     fun resolveTypeSameFolder(name: String): Scope? {
         var folderScope = this
+        if (fileName == null) {
+            throw IllegalStateException("No file assigned to $this?")
+            return null
+        }
         while (folderScope.fileName == fileName) {
             folderScope = folderScope.parent ?: return null
         }
@@ -145,7 +152,11 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         searchInside: Boolean
     ): Type? {
 
-        println("Resolving $name in $this")
+        println("Resolving $name in $this ($searchInside, $fileName, ${parent?.fileName})")
+
+        if (parent != null && parent.fileName == fileName &&
+            parent.name == name
+        ) return parent
 
         if (searchInside) {
             val insideThisFile = resolveTypeInner(name)
