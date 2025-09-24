@@ -1,3 +1,26 @@
 package me.anno.zauberei.astbuilder.expression
 
-abstract class Expression
+import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.UnresolvedType
+
+abstract class Expression {
+    var resolvedType: Type? = null
+
+    fun getOrFindType(findType: (Expression) -> Type): Type {
+        val resolvedType = resolvedType
+        if (resolvedType != null) {
+            if (resolvedType == InvalidType) throw IllegalStateException("Recursive dependency on $this")
+            return resolvedType
+        }
+        this.resolvedType = InvalidType
+        val found = findType(this)
+        this.resolvedType = found
+        return found
+    }
+
+    abstract fun forEachExpr(callback: (Expression) -> Unit)
+
+    companion object {
+        private val InvalidType = UnresolvedType("?", emptyList())
+    }
+}

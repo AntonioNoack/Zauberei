@@ -11,4 +11,16 @@ class Function(
     val returnType: Type?,
     val body: Expression?,
     val keywords: List<String>
-) : Expression()
+) : Expression() {
+    override fun forEachExpr(callback: (Expression) -> Unit) {
+        for (param in typeParameters) {
+            if (param.initialValue != null)
+                callback(param.initialValue)
+        }
+        for (param in parameters) {
+            if (param.initialValue != null)
+                callback(param.initialValue)
+        }
+        if (body != null) callback(body)
+    }
+}

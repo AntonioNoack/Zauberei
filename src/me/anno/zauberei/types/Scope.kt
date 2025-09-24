@@ -5,17 +5,19 @@ import me.anno.zauberei.astbuilder.Function
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.expression.Expression
 
-class Package(val name: String? = null, val parent: Package? = null) {
+/**
+ * Scope / Package / Class / Object / Interface ...
+ * keywords tell you what it is
+ * */
+class Scope(val name: String? = null, val parent: Scope? = null) {
 
     val keywords = ArrayList<String>()
+    val children = ArrayList<Scope>()
 
-    val children = ArrayList<Package>()
-
-    val functions = ArrayList<Function>()
     val constructors = ArrayList<Constructor>()
-    val fields = ArrayList<Field>()
-
     val initialization = ArrayList<Expression>()
+    val functions = ArrayList<Function>()
+    val fields = ArrayList<Field>()
 
     var primaryConstructorParams: List<Parameter>? = null
     val superCalls = ArrayList<Expression>()
@@ -24,11 +26,11 @@ class Package(val name: String? = null, val parent: Package? = null) {
 
     var typeParams: List<Parameter> = emptyList()
 
-    fun getOrPut(name: String): Package {
+    fun getOrPut(name: String): Scope {
         var child = children.firstOrNull { it.name == name }
         if (child != null) return child
 
-        child = Package(name, this)
+        child = Scope(name, this)
         children.add(child)
         return child
     }
@@ -47,9 +49,8 @@ class Package(val name: String? = null, val parent: Package? = null) {
 
     private var nextAnonymousName = 0
 
-    fun generateName(): String {
-        @Suppress("CanConvertToMultiDollarString") // what is that???
-        return "\$lambda${nextAnonymousName++}"
+    fun generateName(prefix: String): String {
+        return "$$prefix${nextAnonymousName++}"
     }
 
     override fun toString(): String {

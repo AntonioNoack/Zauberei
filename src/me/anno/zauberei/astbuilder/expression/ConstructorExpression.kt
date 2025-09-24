@@ -8,6 +8,12 @@ class ConstructorExpression(
     val params: List<Expression>
 ) : Expression() {
 
+    override fun forEachExpr(callback: (Expression) -> Unit) {
+        for (i in params.indices) {
+            callback(params[i])
+        }
+    }
+
     override fun toString(): String {
         return "new($className)($params)"
     }

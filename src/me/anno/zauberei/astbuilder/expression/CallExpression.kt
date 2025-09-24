@@ -9,6 +9,13 @@ class CallExpression(val base: Expression, val typeParams: List<Type>, val param
             throw IllegalArgumentException("Invalid call constructed")
     }
 
+    override fun forEachExpr(callback: (Expression) -> Unit) {
+        callback(base)
+        for (i in params.indices) {
+            callback(params[i])
+        }
+    }
+
     override fun toString(): String {
         return if (typeParams.isEmpty()) {
             "($base)($params)"
