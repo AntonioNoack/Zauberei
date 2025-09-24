@@ -24,6 +24,8 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     val fields = ArrayList<Field>()
 
     var primaryConstructorParams: List<Parameter>? = null
+    var privatePrimaryConstructor = false
+
     val superCalls = ArrayList<SuperCall>()
 
     val superCallNames = ArrayList<SuperCallName>()
@@ -40,6 +42,19 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
 
         if (name == "InnerZipFile" && parent == null)
             throw IllegalStateException("Asking for $name on a global level???")
+
+        var child = children.firstOrNull { it.name == name }
+        if (child != null) {
+            if (child.fileName == null) child.fileName = fileName
+            return child
+        }
+
+        child = Scope(name, this)
+        children.add(child)
+        return child
+    }
+
+    fun getOrPut(name: String, fileName: String): Scope {
 
         var child = children.firstOrNull { it.name == name }
         if (child != null) {
@@ -118,7 +133,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     fun resolveTypeSameFolder(name: String): Scope? {
         var folderScope = this
         if (fileName == null) {
-            throw IllegalStateException("No file assigned to $this?")
+            // throw IllegalStateException("No file assigned to $this?")
             return null
         }
         while (folderScope.fileName == fileName) {
@@ -184,6 +199,13 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         val standardType = StandardTypes.standardTypes[name]
         if (standardType != null) return standardType
 
+        // check siblings
+        if (parent != null) {
+            for (child in parent.children) {
+                if (child.name == name) return child
+            }
+        }
+
         // we must also check root for any valid paths...
         for (child in root.children) {
             if (child.name == name) {
@@ -196,7 +218,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
 
     fun resolveType(name: String, astBuilder: ASTBuilder): Type {
         return resolveTypeOrNull(name, astBuilder)
-            ?: throw IllegalStateException("Unresolved type '$name' in $this")
+            ?: throw IllegalStateException("Unresolved type '$name' in $this, children: ${children.map { it.name }}")
     }
 
     private var nextAnonymousName = 0

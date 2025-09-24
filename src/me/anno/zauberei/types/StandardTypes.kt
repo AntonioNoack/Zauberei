@@ -22,12 +22,16 @@ object StandardTypes {
         "Class" to "kotlin",
         "Enum" to "kotlin",
         "IntRange" to "kotlin",
+        "ClosedFloatingPointRange" to "kotlin",
         "Lazy" to "kotlin",
 
         "Comparable" to "kotlin",
         "Comparator" to "kotlin",
 
         "Iterator" to "kotlin",
+        "ListIterator" to "kotlin",
+        "MutableIterator" to "kotlin",
+        "MutableListIterator" to "kotlin",
         "Iterable" to "kotlin",
         "Collection" to "kotlin",
         "MutableCollection" to "kotlin",
@@ -61,6 +65,11 @@ object StandardTypes {
         "ClassCastException" to "kotlin",
         "Error" to "kotlin",
         "NoClassDefFoundError" to "kotlin",
+        "ClassNotFoundException" to "kotlin",
+        "NoSuchFieldException" to "kotlin",
+        "NoSuchMethodException" to "kotlin",
+        "OutOfMemoryError" to "kotlin",
+        "IndexOutOfBoundsException" to "kotlin",
 
         "Pair" to "kotlin",
         "Triple" to "kotlin",
@@ -69,7 +78,14 @@ object StandardTypes {
         // util²
         "JvmField" to "kotlin.jvm",
         "JvmStatic" to "kotlin.jvm",
+        "JvmOverloads" to "kotlin.jvm",
+        "Throws" to "kotlin.jvm",
         "Thread" to "java.lang",
+        "ThreadLocal" to "java.lang",
+        "Process" to "java.lang",
+        "ClassLoader" to "java.lang",
+        "AbstractList" to "java.util",
+        "RandomAccess" to "java.util",
 
         // natives
         "Boolean" to "kotlin",

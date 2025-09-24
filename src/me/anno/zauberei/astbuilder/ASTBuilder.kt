@@ -88,11 +88,13 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     private fun readClass() {
         assert(tokens.equals(++i, TokenType.NAME))
         val name = tokens.toString(i++)
-        val clazz = currPackage.getOrPut(name)
+        val clazz = currPackage.getOrPut(name, tokens.fileName)
         val keywords = packKeywords()
         clazz.typeParams = readTypeParameterDeclarations(clazz)
 
-        val privateConstructor = if (tokens.equals(i, "private")) i++ else -1
+        clazz.privatePrimaryConstructor = tokens.equals(i, "private")
+        if (clazz.privatePrimaryConstructor) i++
+
         readAnnotations()
 
         if (tokens.equals(i, "constructor")) i++
@@ -115,7 +117,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         keywords.add("interface")
         assert(tokens.equals(++i, TokenType.NAME))
         val name = tokens.toString(i++)
-        val clazz = currPackage.getOrPut(name)
+        val clazz = currPackage.getOrPut(name, tokens.fileName)
         val keywords = packKeywords()
         clazz.typeParams = readTypeParameterDeclarations(clazz)
 
@@ -139,7 +141,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         keywords.add("object")
         val keywords = packKeywords()
 
-        readSuperCalls(currPackage.getOrPut(name))
+        readSuperCalls(currPackage.getOrPut(name, tokens.fileName))
         readClassBody(name, keywords)
     }
 
@@ -181,7 +183,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     }
 
     private fun readClassBody(name: String, keywords: List<String>) {
-        currPackage.getOrPut(name).keywords.addAll(keywords)
+        currPackage.getOrPut(name, tokens.fileName).keywords.addAll(keywords)
         if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
             pushBlock("classBody", name) {
                 if ("enum" in keywords) {
@@ -268,7 +270,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         assert(tokens.equals(j, TokenType.NAME))
         val name = tokens.toString(j)
         val name1 = currPackage.generateName("f:$name")
-        return currPackage.getOrPut(name1)
+        return currPackage.getOrPut(name1, tokens.fileName)
     }
 
     private fun readFunction(): Function {
@@ -379,8 +381,6 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 tokens.equals(i, "package") -> {
                     i++ // skip 'package'
                     currPackage = readPath()
-                    currPackage.fileName = tokens.fileName
-                    println("curr package: $currPackage @ ${tokens.fileName}")
                 }
                 tokens.equals(i, "import") -> {
                     i++ // skip 'import'
@@ -471,7 +471,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         assert(tokens.equals(i++, "typealias"))
         assert(tokens.equals(i, TokenType.NAME))
         val newName = tokens.toString(i++)
-        val pseudoScope = currPackage.getOrPut(newName)
+        val pseudoScope = currPackage.getOrPut(newName, tokens.fileName)
         pseudoScope.typeParams = readTypeParameterDeclarations(currPackage)
 
         assert(tokens.equals(i++, "="))
@@ -784,7 +784,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         assert(tokens.equals(i, TokenType.OPEN_BLOCK))
 
         val name = currPackage.generateName("lambda")
-        val clazz = currPackage.getOrPut(name)
+        val clazz = currPackage.getOrPut(name, tokens.fileName)
 
         readClassBody(name, emptyList())
         return ConstructorExpression(clazz, emptyList(), emptyList())
@@ -795,7 +795,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         assert(tokens.equals(i++, ":"))
 
         val name = currPackage.generateName("inline")
-        val clazz = currPackage.getOrPut(name)
+        val clazz = currPackage.getOrPut(name, tokens.fileName)
 
         val bodyIndex = tokens.findToken(i, TokenType.OPEN_BLOCK)
         assert(bodyIndex > i)
@@ -1158,7 +1158,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     fun <R> pushBlock(scopeType: String, scopeName: String?, readImpl: () -> R): R {
         val parentPackage = currPackage
         val name = scopeName ?: parentPackage.generateName(scopeType)
-        val childPackage = parentPackage.getOrPut(name)
+        val childPackage = parentPackage.getOrPut(name, tokens.fileName)
         childPackage.keywords.add(scopeType)
         currPackage = childPackage
 
@@ -1208,7 +1208,9 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                             }
                             typeDepth == 0 && tokens.equals(i, TokenType.NAME) && listen >= 0 &&
                                     fileLevelKeywords.none { keyword -> tokens.equals(i, keyword) } -> {
-                                currPackage.getOrPut(tokens.toString(i)).keywords.add(listenType)
+                                currPackage
+                                    .getOrPut(tokens.toString(i), tokens.fileName)
+                                    .keywords.add(listenType)
                                 if (debug) println("found ${tokens.toString(i)} in $currPackage")
                                 listen = -1
                                 listenType = ""

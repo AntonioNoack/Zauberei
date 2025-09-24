@@ -43,12 +43,16 @@ object ASTClassScanner {
                 TokenType.OPEN_CALL, TokenType.OPEN_ARRAY -> depth++
                 TokenType.CLOSE_CALL, TokenType.CLOSE_ARRAY -> depth--
                 TokenType.CLOSE_BLOCK -> {
-                    depth--
                     if (listening.removeLast()) {
                         currPackage = currPackage.parent ?: root
                     } else depth--
                 }
-                else ->
+                else -> {
+
+                    /*if(tokens.equals(i,"Operator")) {
+                        println("Found Operator at ${tokens.err(i)}, $depth, $listen, $listenType")
+                    }*/
+
                     if (depth == 0) {
                         when {
 
@@ -95,6 +99,10 @@ object ASTClassScanner {
                                 listen = i
                                 listenType = "interface"
                             }
+                            tokens.equals(i, "typealias") && listening.last() -> {
+                                listen = i
+                                listenType = "typealias"
+                            }
 
                             listen >= 0 && tokens.equals(i, TokenType.NAME) &&
                                     fileLevelKeywords.none { keyword -> tokens.equals(i, keyword) } -> {
@@ -121,7 +129,7 @@ object ASTClassScanner {
                                     j++
                                     while (tokens.equals(j, TokenType.NAME)) {
                                         val name = tokens.toString(j++)
-                                         println("discovered $nextPackage extends $name")
+                                        println("discovered $nextPackage extends $name")
                                         nextPackage.superCallNames.add(SuperCallName(name, imports))
                                         if (tokens.equals(j, "<")) {
                                             j = tokens.findBlockEnd(j, "<", ">") + 1
@@ -139,10 +147,11 @@ object ASTClassScanner {
                             }
                         }
                     }
+                }
             }
         }
         assert(listen == -1) { "Listening for class/object/interface at ${tokens.err(listen)}" }
 
-        //if (tokens.fileName.endsWith("TextDrawable.kt")) throw IllegalStateException()
+        // if (tokens.fileName.endsWith("Operator.kt")) throw IllegalStateException()
     }
 }
