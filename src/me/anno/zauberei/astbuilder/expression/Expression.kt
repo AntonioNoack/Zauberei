@@ -1,7 +1,8 @@
 package me.anno.zauberei.astbuilder.expression
 
+import me.anno.zauberei.Compile.root
+import me.anno.zauberei.types.ClassType
 import me.anno.zauberei.types.Type
-import me.anno.zauberei.types.UnresolvedType
 
 abstract class Expression {
     var resolvedType: Type? = null
@@ -21,6 +22,6 @@ abstract class Expression {
     abstract fun forEachExpr(callback: (Expression) -> Unit)
 
     companion object {
-        private val InvalidType = UnresolvedType("?", emptyList())
+        private val InvalidType = ClassType(root, emptyList())
     }
 }

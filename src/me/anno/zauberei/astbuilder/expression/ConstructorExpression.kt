@@ -1,9 +1,10 @@
 package me.anno.zauberei.astbuilder.expression
 
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 class ConstructorExpression(
-    val className: String,
+    val clazz: Scope,
     val typeParams: List<Type>,
     val params: List<Expression>
 ) : Expression() {
@@ -15,6 +16,6 @@ class ConstructorExpression(
     }
 
     override fun toString(): String {
-        return "new($className)($params)"
+        return "new($clazz)($params)"
     }
 }
