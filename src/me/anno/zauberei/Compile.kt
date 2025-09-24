@@ -1,7 +1,7 @@
 package me.anno.zauberei
 
 import me.anno.zauberei.astbuilder.ASTBuilder
-import me.anno.zauberei.astbuilder.ASTClassScanner.discoverClasses
+import me.anno.zauberei.astbuilder.ASTClassScanner.findNamedClasses
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
 import me.anno.zauberei.types.Scope
@@ -68,10 +68,10 @@ object Compile {
         }
     }
 
-    fun collectTopLevelClassesForTypes() {
+    fun collectNamedClassesForTypeResolution() {
         for (i in sources.indices) {
             val source = sources[i]
-            discoverClasses(source)
+            findNamedClasses(source)
         }
     }
 
@@ -92,7 +92,7 @@ object Compile {
         val t1 = System.nanoTime()
         println("Took ${(t1 - t0) * 1e-6f} ms Reading & Tokenizing")
 
-        collectTopLevelClassesForTypes()
+        collectNamedClassesForTypeResolution()
         val t2 = System.nanoTime()
         println("Took ${(t2 - t1) * 1e-6f} ms Indexing Top-Level Classes")
 

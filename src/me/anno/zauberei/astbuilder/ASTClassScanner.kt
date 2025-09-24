@@ -1,33 +1,58 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.Compile.root
-import me.anno.zauberei.astbuilder.ASTBuilder.Companion.debug
 import me.anno.zauberei.astbuilder.ASTBuilder.Companion.fileLevelKeywords
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.TokenType
 
 object ASTClassScanner {
+
     /**
      * to make type-resolution immediately available/resolvable
      * */
-    fun discoverClasses(tokens: TokenList) {
+    fun findNamedClasses(tokens: TokenList) {
+
+        val debug = tokens.fileName.endsWith("BaseShader.kt")
+
         var depth = 0
         var listen = -1
         var listenType = ""
-        var typeDepth = 0
+        var genericsDepth = 0
+
         var currPackage = root
+        var nextPackage = root
+
+        val listening = ArrayList<Boolean>()
+        listening.add(true)
+
         for (i in 0 until tokens.size) {
             when (tokens.getType(i)) {
                 TokenType.OPEN_BLOCK -> {
-                    depth++
+
+                    if (listenType == "body?") {
+                        listening.add(true)
+                        currPackage = nextPackage
+                    } else {
+                        depth++
+                        listening.add(false)
+                    }
+
                     listen = -1
+                    listenType = ""
                 }
                 TokenType.OPEN_CALL, TokenType.OPEN_ARRAY -> depth++
-                TokenType.CLOSE_CALL, TokenType.CLOSE_BLOCK, TokenType.CLOSE_ARRAY -> depth--
-                else -> {
+                TokenType.CLOSE_CALL, TokenType.CLOSE_ARRAY -> depth--
+                TokenType.CLOSE_BLOCK -> {
+                    depth--
+                    if (listening.removeLast()) {
+                        currPackage = currPackage.parent ?: root
+                    } else depth--
+                }
+                else ->
                     if (depth == 0) {
                         when {
-                            tokens.equals(i, "package") -> {
+
+                            tokens.equals(i, "package") && listening.size == 1 -> {
                                 var j = i + 1
                                 assert(tokens.equals(j, TokenType.NAME))
                                 var path = root.getOrPut(tokens.toString(j++))
@@ -37,34 +62,44 @@ object ASTClassScanner {
                                 }
                                 currPackage = path
                             }
-                            tokens.equals(i, "<") -> if (listen >= 0) typeDepth++
-                            tokens.equals(i, ">") -> if (listen >= 0) typeDepth--
-                            // tokens.equals(i, "var") || tokens.equals(i, "val") ||
-                            // tokens.equals(i, "fun") ||
-                            tokens.equals(i, "class") && !tokens.equals(i - 1, "::") -> {
-                                listen = i
-                                listenType = "class"
-                            }
-                            tokens.equals(i, "object") -> {
-                                listen = i
-                                listenType = "object"
-                            }
-                            tokens.equals(i, "interface") -> {
-                                listen = i
-                                listenType = "interface"
-                            }
-                            typeDepth == 0 && tokens.equals(i, TokenType.NAME) && listen >= 0 &&
-                                    fileLevelKeywords.none { keyword -> tokens.equals(i, keyword) } -> {
-                                currPackage.getOrPut(tokens.toString(i)).keywords.add(listenType)
-                                if (debug) println("found ${tokens.toString(i)} in $currPackage")
+
+                            tokens.equals(i, "<") -> if (listen >= 0) genericsDepth++
+                            tokens.equals(i, ">") -> if (listen >= 0) genericsDepth--
+
+                            tokens.equals(i, "var") || tokens.equals(i, "val") || tokens.equals(i, "fun") -> {
                                 listen = -1
                                 listenType = ""
                             }
+
+                            tokens.equals(i, "class") && !tokens.equals(i - 1, "::") && listening.last() -> {
+                                listen = i
+                                listenType = "class"
+                            }
+                            tokens.equals(i, "object") && listening.last() -> {
+                                listen = i
+                                listenType = "object"
+                            }
+                            tokens.equals(i, "interface") && listening.last() -> {
+                                listen = i
+                                listenType = "interface"
+                            }
+
+                            listen >= 0 && genericsDepth == 0 && tokens.equals(i, TokenType.NAME) &&
+                                    fileLevelKeywords.none { keyword -> tokens.equals(i, keyword) } -> {
+
+                                nextPackage = currPackage.getOrPut(tokens.toString(i))
+                                nextPackage.keywords.add(listenType)
+
+                                if (debug) println("discovered $nextPackage")
+                                listen = -1
+                                listenType = "body?"
+                            }
                         }
                     }
-                }
             }
         }
         assert(listen == -1) { "Listening for class/object/interface at ${tokens.err(listen)}" }
+
+        //if (debug) throw IllegalStateException()
     }
 }

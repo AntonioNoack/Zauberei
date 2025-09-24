@@ -61,8 +61,28 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         for (child in children) {
             if (child.name == name) return child
         }
-        if (fileName != parent?.fileName) return null
-        return parent?.resolveTypeInner(name)
+
+        val parent = parent
+        if (parent != null && fileName == parent.fileName) {
+            val byParent = parent.resolveTypeInner(name)
+            if (byParent != null) return byParent
+        }
+
+        println("Super-Calls for $this: ${superCalls.map { it.type }}")
+        for (superCall in superCalls) {
+            val scope = extractScope(superCall.type)
+            val bySuperCall = scope.resolveTypeInner(name)
+            if (bySuperCall != null) return bySuperCall
+        }
+        return null
+    }
+
+    fun extractScope(type: Type): Scope {
+        return when (type) {
+            is ClassType -> type.clazz
+            is Scope -> type
+            else -> throw NotImplementedError("$type")
+        }
     }
 
     fun resolveTypeSameFolder(name: String): Scope? {
@@ -83,7 +103,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
                 return GenericType(this, name)
             }
         }
-        for(superCall in superCalls) {
+        for (superCall in superCalls) {
             val bySuper = superCall.type
         }
         // todo check this and any parent class for type parameters
@@ -91,6 +111,9 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     }
 
     fun resolveTypeOrNull(name: String, astBuilder: ASTBuilder): Type? {
+
+        println("Resolving $name in $this")
+
         val insideThisFile = resolveTypeInner(name)
         if (insideThisFile != null) return insideThisFile
 

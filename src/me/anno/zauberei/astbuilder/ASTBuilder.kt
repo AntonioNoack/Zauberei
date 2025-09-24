@@ -32,12 +32,12 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             "infix"
         )
 
-        private val paramLevelKeywords = listOf(
+        val paramLevelKeywords = listOf(
             "private", "protected", "var", "val", "open", "override",
             "crossinline", "vararg", "final"
         )
 
-        private val supportedInfixFunctions = listOf(
+        val supportedInfixFunctions = listOf(
             // these shall only be supported for legacy reasons: I dislike that their order of precedence isn't clear
             "shl", "shr", "ushr", "and", "or", "xor",
 
