@@ -19,23 +19,51 @@ object StandardTypes {
         "Array" to "kotlin",
 
         // util
+        "Class" to "kotlin",
+        "Enum" to "kotlin",
         "IntRange" to "kotlin",
-        "List" to "kotlin",
+
+        "Comparable" to "kotlin",
+        "Comparator" to "kotlin",
+
         "Iterator" to "kotlin",
         "Iterable" to "kotlin",
         "Collection" to "kotlin",
-        "Comparable" to "kotlin",
+        "MutableCollection" to "kotlin",
+
+        "List" to "kotlin",
         "ArrayList" to "kotlin",
+        "MutableList" to "kotlin",
+
         "IndexedValue" to "kotlin",
+
+        "Set" to "kotlin",
         "HashSet" to "kotlin",
+        "MutableSet" to "kotlin",
+
+        "Map" to "kotlin",
         "HashMap" to "kotlin",
+        "MutableMap" to "kotlin",
+
+        "Annotation" to "kotlin",
         "Suppress" to "kotlin",
         "Deprecated" to "kotlin",
+
+        "Throwable" to "kotlin",
         "Exception" to "kotlin",
         "RuntimeException" to "kotlin",
         "InterruptedException" to "kotlin",
+        "InstantiationException" to "kotlin",
+        "NoSuchMethodException" to "kotlin",
+        "IllegalArgumentException" to "kotlin",
+        "IllegalStateException" to "kotlin",
+        "ClassCastException" to "kotlin",
+        "Error" to "kotlin",
+        "NoClassDefFoundError" to "kotlin",
+
         "Pair" to "kotlin",
         "Triple" to "kotlin",
+        "Number" to "kotlin",
 
         // util²
         "JvmField" to "kotlin.jvm",

@@ -1185,7 +1185,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                                 listen = i
                                 listenType = "class"
                             }
-                            tokens.equals(i, "object") -> {
+                            tokens.equals(i, "object") && !tokens.equals(i + 1, ":") -> {
                                 listen = i
                                 listenType = "object"
                             }

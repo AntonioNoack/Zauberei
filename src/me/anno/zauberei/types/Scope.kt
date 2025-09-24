@@ -26,12 +26,17 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     var primaryConstructorParams: List<Parameter>? = null
     val superCalls = ArrayList<SuperCall>()
 
+    val superCallNames = ArrayList<SuperCallName>()
+
     val enumValues = ArrayList<Expression>()
     val typeAliases = ArrayList<TypeAlias>()
 
     var typeParams: List<Parameter> = emptyList()
 
     fun getOrPut(name: String): Scope {
+
+        if (this.name == "Companion" && name == "ECSMeshShader")
+            throw IllegalStateException("ECSMeshShader is not a part of a Companion")
 
         if (name == "InnerZipFile" && parent == null)
             throw IllegalStateException("Asking for $name on a global level???")
@@ -68,16 +73,38 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
             if (byParent != null) return byParent
         }
 
-        println("Super-Calls for $this: ${superCalls.map { it.type }}")
-        for (superCall in superCalls) {
-            val scope = extractScope(superCall.type)
+        forEachSuperType { type ->
+            val scope = extractScope(type)
             val bySuperCall = scope.resolveTypeInner(name)
+            println("rti[$name,$this] -> $scope -> $bySuperCall")
             if (bySuperCall != null) return bySuperCall
         }
+
         return null
     }
 
-    fun extractScope(type: Type): Scope {
+    private inline fun forEachSuperType(callback: (Type) -> Unit) {
+        if (superCalls.size < superCallNames.size) {
+            for (superCall in superCallNames) {
+                val resolved = superCall.resolved
+                if (resolved != null) {
+                    callback(resolved)
+                } else {
+                    val type = resolveTypeOrNull(superCall.name, superCall.imports, false)
+                    if (type != null) {
+                        superCall.resolved = type
+                        callback(type)
+                    } else println("Could not resolve ${superCall.name} inside $this!")
+                }
+            }
+        } else {
+            for (superCall in superCalls) {
+                callback(superCall.type)
+            }
+        }
+    }
+
+    private fun extractScope(type: Type): Scope {
         return when (type) {
             is ClassType -> type.clazz
             is Scope -> type
@@ -90,7 +117,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         while (folderScope.fileName == fileName) {
             folderScope = folderScope.parent ?: return null
         }
-        // println("rtsf[$name,$this] -> ${folderScope.children.map { it.name }}")
+        println("rtsf[$name,$this] -> $folderScope -> ${folderScope.children.map { it.name }}")
         for (child in folderScope.children) {
             if (child.name == name) return child
         }
@@ -110,17 +137,24 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         return null
     }
 
-    fun resolveTypeOrNull(name: String, astBuilder: ASTBuilder): Type? {
+    fun resolveTypeOrNull(name: String, astBuilder: ASTBuilder): Type? =
+        resolveTypeOrNull(name, astBuilder.imports, true)
+
+    fun resolveTypeOrNull(
+        name: String, imports: List<Import>,
+        searchInside: Boolean
+    ): Type? {
 
         println("Resolving $name in $this")
 
-        val insideThisFile = resolveTypeInner(name)
-        if (insideThisFile != null) return insideThisFile
+        if (searchInside) {
+            val insideThisFile = resolveTypeInner(name)
+            if (insideThisFile != null) return insideThisFile
+        }
 
         val genericType = resolveGenericType(name)
         if (genericType != null) return genericType
 
-        val imports = astBuilder.imports
         for (import in imports) {
             val path = import.path
             if (import.allChildren) {
