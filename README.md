@@ -5,6 +5,13 @@ This is a modern programming language with focus on usability, performance, and 
 This project is still in its infancy, but I really do want a language without compromises and
 constantly thinking about switching from Kotlin to Zig or Rust.
 
+Main motivation is
+- a) [CodeGeneration] being able to generate IO code automatically
+- b) [GC Overhead] not constantly having to think about Int?-Overhead and GC-lag
+- c) [GPU Debugging] being able to run and debug GLSL code on the CPU
+- d) [Native Performance], [JNI Overhead], [Vectorization] not being constantly reminded that my code could run twice as fast
+- e) [Libraries] lots of libraries are written in C/C++, but finding/creating bindings is always a pain
+
 ## Goals:
 - Kotlin-style
 - Native C++ performance
@@ -35,10 +42,11 @@ Total Progress: 0.5 %
 
 ```yaml
 - Kotlin-Style:
-  - Tokenizer: 70% of 1%
-  - AST: 40% of 3%
-  - Typealias: 0% of 0.2%
-  - Type/Dependency-Resolution: 0% of 7%
+  - Tokenizer: 80% of 1%
+  - AST: 60% of 3%
+  - Typealias: 30% of 0.2%
+  - Type-Resolution: 15% of 4%
+  - Dependency-Optimization: 0% of 4%
 - Rust-style Enums: 0% of 2%
 - Rust-style Macros: 0% of 3%
 - Compile to C++: 0% of 3%

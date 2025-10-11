@@ -273,17 +273,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return currPackage.getOrPut(name1, tokens.fileName)
     }
 
-    private fun readFunction(): Function {
-        i++ // skip 'fun'
-
-        val keywords = packKeywords()
-
-        // parse optional <T, U>
-        val scope = skipTypeParametersToFindFunctionNameAndScope()
-        val typeParameters = readTypeParameterDeclarations(scope)
-
-        assert(tokens.equals(i, TokenType.NAME))
-        val selfType = if (tokens.equals(i + 1, ".") ||
+    private fun readFunctionSelfType(): Type? {
+        return if (tokens.equals(i + 1, ".") ||
             tokens.equals(i + 1, "<") ||
             tokens.equals(i + 1, "?.")
         ) {
@@ -304,6 +295,48 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 type
             }
         } else null
+    }
+
+    private fun readWhereConditions(): List<TypeCondition> {
+        return if (tokens.equals(i, "where")) {
+            i++ // skip where
+            val conditions = ArrayList<TypeCondition>()
+            while (true) {
+
+                assert(tokens.equals(i, TokenType.NAME))
+                assert(tokens.equals(i + 1, ":"))
+
+                val name = tokens.toString(i++)
+                i++ // skip comma
+                val type = readType()
+
+                conditions.add(TypeCondition(name, type))
+
+                if (tokens.equals(i, ",") &&
+                    tokens.equals(i + 1, TokenType.NAME) &&
+                    tokens.equals(i + 2, ":")
+                ) {
+                    i++ // skip comma and continue reading conditions
+                } else {
+                    // done
+                    break
+                }
+            }
+            conditions
+        } else emptyList()
+    }
+
+    private fun readFunction(): Function {
+        i++ // skip 'fun'
+
+        val keywords = packKeywords()
+
+        // parse optional <T, U>
+        val scope = skipTypeParametersToFindFunctionNameAndScope()
+        val typeParameters = readTypeParameterDeclarations(scope)
+
+        assert(tokens.equals(i, TokenType.NAME))
+        val selfType = readFunctionSelfType()
 
         assert(tokens.equals(i, TokenType.NAME))
         val name = tokens.toString(i++)
@@ -316,9 +349,11 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
         // optional return type
         val returnType = if (tokens.equals(i, ":")) {
-            i++
+            i++ // skip :
             readType()
         } else null
+
+        val extraConditions = readWhereConditions()
 
         // body (or just = expression)
         val body = if (tokens.equals(i, "=")) {
@@ -332,7 +367,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
         val function = Function(
             selfType, name, typeParameters, parameters,
-            returnType, body, keywords
+            returnType, extraConditions, body, keywords
         )
         currPackage.functions.add(function)
         return function
@@ -513,14 +548,19 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             }
         }
 
-        throw IllegalStateException("Unknown keyword ${tokens.toString(i++)}")
+        throw IllegalStateException("Unknown keyword ${tokens.toString(i)} at ${tokens.err(i)}")
     }
 
     fun readParamExpressions(): ArrayList<Expression> {
         val params = ArrayList<Expression>()
         while (i < tokens.size) {
-            params.add(readExpression())
-            if (debug) println("read param: ${params.last()}")
+            val name = if (tokens.equals(i, TokenType.NAME) &&
+                tokens.equals(i + 1, "=")
+            ) tokens.toString(i).apply { i += 2 } else null
+            var param = readExpression()
+            if (name != null) param = NamedExpression(name, param)
+            params.add(param)
+            if (debug) println("read param: $param")
             readComma()
         }
         return params

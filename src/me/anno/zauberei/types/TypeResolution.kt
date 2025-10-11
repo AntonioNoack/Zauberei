@@ -4,10 +4,10 @@ package me.anno.zauberei.types
 //  all variables, all expressions, all method calls (because their return type is necessary to find the types)
 object TypeResolution {
 
-    fun resolveTypes(clazz: Scope) {
+    fun resolveTypesAndNames(clazz: Scope) {
         resolveTypesImpl(clazz)
         for (child in clazz.children) {
-            resolveTypes(child)
+            resolveTypesAndNames(child)
         }
     }
 

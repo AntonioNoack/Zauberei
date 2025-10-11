@@ -9,6 +9,7 @@ class Function(
     val typeParameters: List<Parameter>,
     val parameters: List<Parameter>,
     val returnType: Type?,
+    val extraConditions: List<TypeCondition>,
     val body: Expression?,
     val keywords: List<String>
 ) : Expression() {

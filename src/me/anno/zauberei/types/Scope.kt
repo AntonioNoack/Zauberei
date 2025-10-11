@@ -101,6 +101,10 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         return null
     }
 
+    fun isMutableVariable(name: String): Boolean? {
+        TODO()
+    }
+
     private inline fun forEachSuperType(callback: (Type) -> Unit) {
         if (superCalls.size < superCallNames.size) {
             for (superCall in superCallNames) {

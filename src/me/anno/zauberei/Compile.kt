@@ -5,13 +5,15 @@ import me.anno.zauberei.astbuilder.ASTClassScanner.findNamedClasses
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
 import me.anno.zauberei.types.Scope
-import me.anno.zauberei.types.TypeResolution.resolveTypes
+import me.anno.zauberei.types.TypeResolution.resolveTypesAndNames
 import java.io.File
 
 // todo expand macros:
 //   compile-time if
 //   compile-time loop (duplicating instructions)
 //   compile-time type replacements??? e.g. float -> double
+
+// todo like Zig, just import .h/.hpp files, and use their types and functions
 
 // todo expand hard generics
 // todo dependency & type analysis
@@ -102,7 +104,7 @@ object Compile {
 
         printPackages(root, 0)
 
-        resolveTypes(root)
+        resolveTypesAndNames(root)
         val t4 = System.nanoTime()
         println("Took ${(t4 - t3) * 1e-6f} ms Resolving Types")
     }

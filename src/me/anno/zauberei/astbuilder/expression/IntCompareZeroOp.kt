@@ -1,11 +1,11 @@
 package me.anno.zauberei.astbuilder.expression
 
-class ThrowIfNullExpression(val base: Expression) : Expression() {
+class IntCompareZeroOp(val value: Expression, val type: CompareType) : Expression() {
     override fun forEachExpr(callback: (Expression) -> Unit) {
-        callback(base)
+        callback(value)
     }
 
     override fun toString(): String {
-        return "($base)!!"
+        return "($value) $type 0"
     }
 }
