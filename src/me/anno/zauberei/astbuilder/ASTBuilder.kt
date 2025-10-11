@@ -9,6 +9,7 @@ import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.TokenType
 import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.NullableAnyType
+import me.anno.zauberei.types.Types.UnitType
 import kotlin.math.max
 import kotlin.math.min
 
@@ -350,7 +351,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val parameters = pushCall { readParamDeclarations() }
 
         // optional return type
-        val returnType = if (tokens.equals(i, ":")) {
+        var returnType = if (tokens.equals(i, ":")) {
             i++ // skip :
             readType()
         } else null
@@ -362,8 +363,12 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             i++ // skip =
             readExpression()
         } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
+            if (returnType == null) returnType = UnitType
             pushBlock("function", scope.name) { readFunctionBody() }
-        } else null
+        } else {
+            if (returnType == null) returnType = UnitType
+            null
+        }
 
         popGenericParams()
 

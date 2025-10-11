@@ -2,28 +2,33 @@ package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.types.Scope
 
-// todo resolve all unclear types:
-//  all variables, all expressions, all method calls (because their return type is necessary to find the types)
 object TypeResolution {
 
-    fun resolveTypesAndNames(clazz: Scope) {
-        resolveTypesImpl(clazz)
-        for (child in clazz.children) {
-            resolveTypesAndNames(child)
-        }
+    fun resolveTypesAndNames(root: Scope) {
+        forEachScope(root, ::collectConstrains)
     }
 
-    private fun resolveTypesImpl(clazz: Scope) {
-        for (field in clazz.fields) {
+    // todo resolve all unclear types:
+    //  all variables, all expressions, all method calls (because their return type is necessary to find the types)
+
+    fun collectConstrains(scope: Scope) {
+        for (field in scope.fields) {
             // todo field itself
             // todo getter
             // todo setter
         }
-        for (init in clazz.initialization) {
+        for (init in scope.initialization) {
 
         }
-        for (function in clazz.functions) {
+        for (function in scope.functions) {
 
+        }
+    }
+
+    fun forEachScope(scope: Scope, callback: (Scope) -> Unit) {
+        callback(scope)
+        for (child in scope.children) {
+            forEachScope(child, callback)
         }
     }
 }

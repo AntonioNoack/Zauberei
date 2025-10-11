@@ -4,8 +4,8 @@ import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.ASTClassScanner.findNamedClasses
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
-import me.anno.zauberei.types.Scope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveTypesAndNames
+import me.anno.zauberei.types.Scope
 import java.io.File
 
 // todo expand macros:
@@ -102,7 +102,7 @@ object Compile {
         val t3 = System.nanoTime()
         println("Took ${(t3 - t2) * 1e-6f} ms Parsing AST")
 
-        printPackages(root, 0)
+        if (false) printPackages(root, 0)
 
         resolveTypesAndNames(root)
         val t4 = System.nanoTime()
