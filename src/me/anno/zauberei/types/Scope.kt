@@ -33,7 +33,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     val enumValues = ArrayList<Expression>()
     var typeAlias: Type? = null
 
-    var typeParams: List<Parameter> = emptyList()
+    var typeParameters: List<Parameter> = emptyList()
 
     fun getOrPut(name: String): Scope {
 
@@ -151,7 +151,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     }
 
     fun resolveGenericType(name: String): Type? {
-        for (param in typeParams) {
+        for (param in typeParameters) {
             if (param.name == name) {
                 return GenericType(this, name)
             }

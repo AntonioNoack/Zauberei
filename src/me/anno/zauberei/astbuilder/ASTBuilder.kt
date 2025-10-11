@@ -92,7 +92,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val name = tokens.toString(i++)
         val clazz = currPackage.getOrPut(name, tokens.fileName)
         val keywords = packKeywords()
-        clazz.typeParams = readTypeParameterDeclarations(clazz)
+        clazz.typeParameters = readTypeParameterDeclarations(clazz)
 
         clazz.privatePrimaryConstructor = tokens.equals(i, "private")
         if (clazz.privatePrimaryConstructor) i++
@@ -121,7 +121,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val name = tokens.toString(i++)
         val clazz = currPackage.getOrPut(name, tokens.fileName)
         val keywords = packKeywords()
-        clazz.typeParams = readTypeParameterDeclarations(clazz)
+        clazz.typeParameters = readTypeParameterDeclarations(clazz)
 
         readSuperCalls(clazz)
         readClassBody(name, keywords)
@@ -516,7 +516,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         assert(tokens.equals(i, TokenType.NAME))
         val newName = tokens.toString(i++)
         val pseudoScope = currPackage.getOrPut(newName, tokens.fileName)
-        pseudoScope.typeParams = readTypeParameterDeclarations(currPackage)
+        pseudoScope.typeParameters = readTypeParameterDeclarations(currPackage)
 
         assert(tokens.equals(i++, "="))
         val trueType = readType()
@@ -870,7 +870,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val ifFalse = if (tokens.equals(i, "else") && !tokens.equals(i + 1, "->")) {
             i++
             readBodyOrLine()
-        } else ExpressionList.empty
+        } else null
         return IfElseBranch(condition, ifTrue, ifFalse)
     }
 
@@ -1145,7 +1145,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val isNullable = consumeNullable()
         val baseType =
             if (path is Scope) ClassType(path, typeArgs, subType)
-            else if (typeArgs.isEmpty() && subType == null) path
+            else if (typeArgs == null && subType == null) path
             else throw IllegalStateException("Cannot combine $path with $typeArgs and $subType")
         return if (isNullable) NullableType(baseType) else baseType
     }
@@ -1156,30 +1156,34 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return isNullable
     }
 
-    fun readTypeParams(): List<Type> {
+    fun readTypeParams(): List<Type>? {
         if (i < tokens.size) {
             if (debug) println("checking for type-args, ${tokens.err(i)}, ${isTypeArgsStartingHere(i)}")
         }
-        if (isTypeArgsStartingHere(i)) {
-            i++ // consume '<'
+        // having type arguments means they no longer need to be resolved
+        // todo any method call without them must resolve which ones and how many there are, e.g. mapOf, listOf, ...
+        if (!isTypeArgsStartingHere(i)) {
+            return null
+        }
 
-            val args = ArrayList<Type>()
-            while (true) {
-                // todo store these (?)
-                if (tokens.equals(i, "in")) i++
-                if (tokens.equals(i, "out")) i++
-                args.add(readType()) // recursive type
-                when {
-                    tokens.equals(i, TokenType.COMMA) -> i++
-                    tokens.equals(i, ">") -> {
-                        i++ // consume '>'
-                        break
-                    }
-                    else -> throw IllegalStateException("Expected , or > in type arguments, got ${tokens.err(i)}")
+        i++ // consume '<'
+
+        val args = ArrayList<Type>()
+        while (true) {
+            // todo store these (?)
+            if (tokens.equals(i, "in")) i++
+            if (tokens.equals(i, "out")) i++
+            args.add(readType()) // recursive type
+            when {
+                tokens.equals(i, TokenType.COMMA) -> i++
+                tokens.equals(i, ">") -> {
+                    i++ // consume '>'
+                    break
                 }
+                else -> throw IllegalStateException("Expected , or > in type arguments, got ${tokens.err(i)}")
             }
-            return args
-        } else return emptyList()
+        }
+        return args
     }
 
     fun <R> pushCall(readImpl: () -> R): R {
@@ -1353,9 +1357,9 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 val lambda = pushBlock("inlineLambda", null) { readLambda() }
                 CallExpression(expr, emptyList(), listOf(lambda), origin)
             }
-            tokens.equals(i, "++") -> PostfixExpression(expr, "++", origin(i++))
-            tokens.equals(i, "--") -> PostfixExpression(expr, "--", origin(i++))
-            tokens.equals(i, "!!") -> PostfixExpression(expr, "!!", origin(i++))
+            tokens.equals(i, "++") -> PostfixExpression(expr, PostfixMode.INCREMENT, origin(i++))
+            tokens.equals(i, "--") -> PostfixExpression(expr, PostfixMode.DECREMENT, origin(i++))
+            tokens.equals(i, "!!") -> PostfixExpression(expr, PostfixMode.ASSERT_NON_NULL, origin(i++))
             else -> null
         }
     }

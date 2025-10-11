@@ -2,8 +2,12 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.types.Type
 
-class NamedCallExpression(val base: Expression, val name: String, val typeParams: List<Type>, val params: List<Expression>) :
-    Expression(base.origin) {
+class NamedCallExpression(
+    val base: Expression,
+    val name: String,
+    val typeParams: List<Type>?,
+    val params: List<Expression>
+) : Expression(base.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)
@@ -13,7 +17,7 @@ class NamedCallExpression(val base: Expression, val name: String, val typeParams
     }
 
     override fun toString(): String {
-        return if (typeParams.isEmpty()) {
+        return if (typeParams == null) {
             "($base).$name($params)"
         } else {
             "($base).$name<${typeParams.joinToString()}>($params)"

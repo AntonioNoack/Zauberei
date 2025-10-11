@@ -4,4 +4,8 @@ class GetPropertyExpression(val base: Expression, val name: String) : Expression
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)
     }
+
+    override fun toString(): String {
+        return "($base).$name"
+    }
 }

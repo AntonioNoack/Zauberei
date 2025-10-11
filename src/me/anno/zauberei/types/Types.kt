@@ -28,4 +28,6 @@ object Types {
     val ULongType = getType("ULong")
     val HalfType = getType("Half")
     val StringType = getType("String")
+    val TypelessType = getType("Typeless")
+    val ThrowableType = getType("Throwable")
 }

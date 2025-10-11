@@ -1,12 +1,12 @@
 package me.anno.zauberei.astbuilder.expression
 
-class PostfixExpression(val base: Expression, val symbol: String, origin: Int) : Expression(origin) {
+class PostfixExpression(val variable: Expression, val type: PostfixMode, origin: Int) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
-        callback(base)
+        callback(variable)
     }
 
     override fun toString(): String {
-        return "$base$symbol"
+        return "$variable${type.symbol}"
     }
 }

@@ -1,6 +1,8 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.typeresolution.KnownType
+import me.anno.zauberei.typeresolution.ResolvingType
 import me.anno.zauberei.types.Type
 
 class Parameter(
@@ -10,6 +12,9 @@ class Parameter(
     val type: Type,
     val initialValue: Expression?
 ) {
+
+    lateinit var typeI: KnownType
+
     override fun toString(): String {
         return "${if (isVar) "var " else ""}${if (isVal) "val " else ""}$name: $type${if(initialValue != null) " = $initialValue" else ""}"
     }

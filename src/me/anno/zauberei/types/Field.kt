@@ -1,6 +1,7 @@
 package me.anno.zauberei.types
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.typeresolution.ResolvingType
 
 class Field(
     val isVar: Boolean,
@@ -11,6 +12,8 @@ class Field(
     val initialValue: Expression?,
     val keywords: List<String>
 ) {
+
+    lateinit var valueType1: ResolvingType
 
     var privateGet = false
     var privateSet = false

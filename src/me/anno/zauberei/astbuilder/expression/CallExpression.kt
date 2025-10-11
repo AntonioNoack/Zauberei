@@ -3,22 +3,22 @@ package me.anno.zauberei.astbuilder.expression
 import me.anno.zauberei.types.Type
 
 class CallExpression(
-    val base: Expression, val typeParams: List<Type>, val params: List<Expression>,
+    val base: Expression, val typeParameters: List<Type>?, val valueParameters: List<Expression>,
     origin: Int
 ) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)
-        for (i in params.indices) {
-            callback(params[i])
+        for (i in valueParameters.indices) {
+            callback(valueParameters[i])
         }
     }
 
     override fun toString(): String {
-        return if (typeParams.isEmpty()) {
-            "($base)($params)"
+        return if (typeParameters == null) {
+            "($base)($valueParameters)"
         } else {
-            "($base)<${typeParams.joinToString()}>($params)"
+            "($base)<${typeParameters.joinToString()}>($valueParameters)"
         }
     }
 }

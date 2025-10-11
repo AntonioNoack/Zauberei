@@ -10,6 +10,6 @@ data class NameResolve(
     val scope: Scope, // starting scope
     val name: String,
     val kind: NameKind, // TYPE | FUNCTION | FIELD (or ANY)
-    val result: ResolvedType?,
+    val result: ResolvingType?,
     val origin: Expression?
 ) : Constraint()
