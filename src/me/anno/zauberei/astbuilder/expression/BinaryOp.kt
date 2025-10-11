@@ -5,7 +5,7 @@ import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
 import me.anno.zauberei.types.Scope
 
 private fun compareTo(left: Expression, right: Expression) =
-    NamedCallExpression(left, "compareTo", emptyList(), listOf(right))
+    NamedCallExpression(left, "compareTo", emptyList(), listOf(right), right.origin)
 
 @Suppress("IntroduceWhenSubject") // this feature is experimental, why is it recommended???
 fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: Expression): Expression {
@@ -45,6 +45,7 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
                 else -> throw NotImplementedError("WhichType? $left::$right")
             }
         }
+        "=" -> AssignmentExpression(left, right)
         else -> {
             if (symbol.endsWith('=')) {
                 // todo oh no, to know whether this is mutable or not,
@@ -53,11 +54,11 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
                 return AssignIfMutableExpr(left, symbol, right)
             } else if (symbol.startsWith("!")) {
                 val methodName = lookupBinaryOp(symbol.substring(1))
-                val base = NamedCallExpression(left, methodName, emptyList(), listOf(right))
+                val base = NamedCallExpression(left, methodName, emptyList(), listOf(right), right.origin)
                 return PrefixExpression("!", base)
             } else {
                 val methodName = lookupBinaryOp(symbol)
-                return NamedCallExpression(left, methodName, emptyList(), listOf(right))
+                return NamedCallExpression(left, methodName, emptyList(), listOf(right), right.origin)
             }
         }
     }

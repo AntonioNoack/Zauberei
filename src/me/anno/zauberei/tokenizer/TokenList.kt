@@ -170,6 +170,10 @@ class TokenList(val src: String, val fileName: String) {
         return src.substring(getI0(i), getI1(i))
     }
 
+    fun endsWith(i: Int, ch: Char): Boolean {
+        return src[getI1(i) - 1] == ch
+    }
+
     fun toString(i0: Int, i1: Int): String {
         return (i0 until i1).joinToString(", ") { i ->
             "${getType(i)},'${toString(i)}'"

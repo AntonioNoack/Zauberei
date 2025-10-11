@@ -1350,7 +1350,23 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             tokens.equals(i, TokenType.OPEN_ARRAY) -> {
                 val origin = origin(i)
                 val params = pushArray { readParamExpressions() }
-                ArrayExpression(expr, params, origin)
+                if (tokens.equals(i, "=")) {
+                    i++ // skip =
+                    val value = readExpression()
+                    NamedCallExpression(expr, "set", emptyList(), params + value, origin)
+                } else if (tokens.equals(i, TokenType.SYMBOL) && tokens.endsWith(i, '=')) {
+                    val symbol = tokens.toString(i++)
+                    val value = readExpression()
+                    val tmpVariable = TmpVariableExpr(origin)
+                    val getter = NamedCallExpression(expr, "get", emptyList(), params, origin)
+                    val block = listOf(
+                        DeclarationExpression(tmpVariable.name, null, getter, false, false, origin),
+                        AssignIfMutableExpr(tmpVariable, symbol, value)
+                    )
+                    ExpressionList(block, origin)
+                } else {
+                    NamedCallExpression(expr, "get", emptyList(), params, origin)
+                }
             }
             tokens.equals(i, TokenType.OPEN_BLOCK) -> {
                 val origin = origin(i)

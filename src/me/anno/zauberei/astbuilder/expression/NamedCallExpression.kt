@@ -6,8 +6,9 @@ class NamedCallExpression(
     val base: Expression,
     val name: String,
     val typeParams: List<Type>?,
-    val params: List<Expression>
-) : Expression(base.origin) {
+    val params: List<Expression>,
+    origin: Int
+) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)
