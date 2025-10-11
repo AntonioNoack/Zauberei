@@ -111,7 +111,7 @@ object ASTClassScanner {
                                 nextPackage.keywords.add(listenType)
                                 nextPackage.fileName = tokens.fileName
 
-                                println("discovered $nextPackage")
+                                // println("discovered $nextPackage")
 
                                 var j = i + 1 // after name
                                 if (tokens.equals(j, "<")) {
@@ -129,7 +129,7 @@ object ASTClassScanner {
                                     j++
                                     while (tokens.equals(j, TokenType.NAME)) {
                                         val name = tokens.toString(j++)
-                                        println("discovered $nextPackage extends $name")
+                                        // println("discovered $nextPackage extends $name")
                                         nextPackage.superCallNames.add(SuperCallName(name, imports))
                                         if (tokens.equals(j, "<")) {
                                             j = tokens.findBlockEnd(j, "<", ">") + 1

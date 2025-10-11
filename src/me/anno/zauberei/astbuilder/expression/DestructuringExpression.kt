@@ -3,7 +3,7 @@ package me.anno.zauberei.astbuilder.expression
 class DestructuringExpression(
     val names: List<String>, val initialValue: Expression,
     val isVar: Boolean, val isLateinit: Boolean
-) : Expression() {
+) : Expression(initialValue.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(initialValue)

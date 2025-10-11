@@ -5,7 +5,7 @@ import me.anno.zauberei.astbuilder.ASTClassScanner.findNamedClasses
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
 import me.anno.zauberei.types.Scope
-import me.anno.zauberei.types.TypeResolution.resolveTypesAndNames
+import me.anno.zauberei.typeresolution.TypeResolution.resolveTypesAndNames
 import java.io.File
 
 // todo expand macros:

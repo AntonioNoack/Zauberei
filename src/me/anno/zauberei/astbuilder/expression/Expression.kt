@@ -4,7 +4,7 @@ import me.anno.zauberei.Compile.root
 import me.anno.zauberei.types.ClassType
 import me.anno.zauberei.types.Type
 
-abstract class Expression {
+abstract class Expression(val origin: Int) {
     var resolvedType: Type? = null
 
     fun getOrFindType(findType: (Expression) -> Type): Type {

@@ -143,7 +143,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         while (folderScope.fileName == fileName) {
             folderScope = folderScope.parent ?: return null
         }
-        println("rtsf[$name,$this] -> $folderScope -> ${folderScope.children.map { it.name }}")
+        // println("rtsf[$name,$this] -> $folderScope -> ${folderScope.children.map { it.name }}")
         for (child in folderScope.children) {
             if (child.name == name) return child
         }
@@ -171,7 +171,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         searchInside: Boolean
     ): Type? {
 
-        println("Resolving $name in $this ($searchInside, $fileName, ${parent?.fileName})")
+        // println("Resolving $name in $this ($searchInside, $fileName, ${parent?.fileName})")
 
         if (parent != null && parent.fileName == fileName &&
             parent.name == name

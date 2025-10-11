@@ -1,12 +1,13 @@
 package me.anno.zauberei.astbuilder.expression
 
-class NamedExpression(val name: String, val base: Expression) : Expression(base.origin) {
+import me.anno.zauberei.types.Scope
+
+class GetClassFromTypeExpression(val base: Scope, origin: Int) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
-        callback(base)
     }
 
     override fun toString(): String {
-        return "$name=$base"
+        return "$base::class"
     }
 }

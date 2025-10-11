@@ -2,7 +2,7 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.Annotation
 
-class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Expression() {
+class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Expression(base.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)

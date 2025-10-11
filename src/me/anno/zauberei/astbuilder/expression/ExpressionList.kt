@@ -1,8 +1,8 @@
 package me.anno.zauberei.astbuilder.expression
 
-class ExpressionList(val members: List<Expression>) : Expression() {
+class ExpressionList(val members: List<Expression>, origin: Int) : Expression(origin) {
     companion object {
-        val empty = ExpressionList(emptyList())
+        val empty = ExpressionList(emptyList(),-1)
     }
 
     override fun forEachExpr(callback: (Expression) -> Unit) {

@@ -4,8 +4,9 @@ import me.anno.zauberei.types.Type
 
 class DeclarationExpression(
     val name: String, val type: Type?, val initialValue: Expression?,
-    val isVar: Boolean, val isLateinit: Boolean
-) : Expression() {
+    val isVar: Boolean, val isLateinit: Boolean,
+    origin: Int
+) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         if (initialValue != null) callback(initialValue)

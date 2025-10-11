@@ -2,7 +2,9 @@ package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.astbuilder.expression.Expression
 
-class WhenSubjectExpression(val subject: Expression, val cases: List<SubjectWhenCase>) : Expression() {
+class WhenSubjectExpression(val subject: Expression, val cases: List<SubjectWhenCase>) :
+    Expression(subject.origin) {
+
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(subject)
         for (case in cases) {

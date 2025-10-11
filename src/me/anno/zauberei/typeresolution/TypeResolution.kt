@@ -1,4 +1,6 @@
-package me.anno.zauberei.types
+package me.anno.zauberei.typeresolution
+
+import me.anno.zauberei.types.Scope
 
 // todo resolve all unclear types:
 //  all variables, all expressions, all method calls (because their return type is necessary to find the types)

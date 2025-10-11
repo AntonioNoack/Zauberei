@@ -1,11 +1,14 @@
 package me.anno.zauberei.astbuilder.expression
 
-import com.sun.org.apache.xalan.internal.xsltc.compiler.sym
+import me.anno.zauberei.astbuilder.ASTBuilder
+import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
+import me.anno.zauberei.types.Scope
 
 private fun compareTo(left: Expression, right: Expression) =
     NamedCallExpression(left, "compareTo", emptyList(), listOf(right))
 
-fun BinaryOp(left: Expression, symbol: String, right: Expression): Expression {
+@Suppress("IntroduceWhenSubject") // this feature is experimental, why is it recommended???
+fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: Expression): Expression {
     return when (symbol) {
         "<=" -> IntCompareZeroOp(compareTo(left, right), CompareType.LESS_EQUALS)
         "<" -> IntCompareZeroOp(compareTo(left, right), CompareType.LESS)
@@ -15,6 +18,33 @@ fun BinaryOp(left: Expression, symbol: String, right: Expression): Expression {
         "!=" -> CheckEqualsOp(left, right, byPointer = false, negated = true)
         "===" -> CheckEqualsOp(left, right, byPointer = true, negated = false)
         "!==" -> CheckEqualsOp(left, right, byPointer = true, negated = true)
+        "::" -> {
+            fun getBase(): Scope = when {
+                left is VariableExpression -> {
+                    scope.resolveType(left.name, this) as Scope
+                }
+                left is ConstantExpression && left.value == ConstantExpression.Constant.THIS -> scope
+                else -> throw NotImplementedError("GetBase($left::$right at ${tokens.err(i)})")
+            }
+
+            val leftIsType = left is VariableExpression && left.name[0].isUpperCase() ||
+                    left is ConstantExpression && left.value == ConstantExpression.Constant.THIS
+            when {
+                leftIsType && right is ConstantExpression && right.value == ConstantExpression.Constant.CLASS -> {
+                    GetClassFromTypeExpression(getBase(), left.origin)
+                }
+                right is ConstantExpression && right.value == ConstantExpression.Constant.CLASS -> {
+                    GetClassFromValueExpression(left, right.origin)
+                }
+                leftIsType && right is VariableExpression -> {
+                    GetMethodFromTypeExpression(getBase(), right.name, right.origin)
+                }
+                right is VariableExpression -> {
+                    GetMethodFromValueExpression(left, right.name, right.origin)
+                }
+                else -> throw NotImplementedError("WhichType? $left::$right")
+            }
+        }
         else -> {
             if (symbol.endsWith('=')) {
                 // todo oh no, to know whether this is mutable or not,
@@ -43,6 +73,9 @@ fun lookupBinaryOp(symbol: String): String {
         ".." -> "rangeTo"
         "..<" -> "rangeUntil"
         "in" -> "contains"
+        "&&" -> "shortcutAnd"
+        "||" -> "shortcutOr"
+        ".", ".?", "?:" -> symbol
         else -> {
             println("unknown binary op: $symbol")
             symbol

@@ -1,6 +1,9 @@
 package me.anno.zauberei.astbuilder.expression
 
-class ArrayExpression(val base: Expression, val indices: List<Expression>) : Expression() {
+class ArrayExpression(
+    val base: Expression, val indices: List<Expression>,
+    origin: Int
+) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)

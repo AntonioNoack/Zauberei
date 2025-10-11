@@ -1,14 +1,14 @@
 package me.anno.zauberei.astbuilder.expression
 
-import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.Scope
 
 /**
- * is, !is, as, ?as
+ * ::callMeNow
  * */
-class BinaryTypeOp(val left: Expression, val symbol: String, val right: Type, origin: Int) : Expression(origin) {
+class DoubleColonPrefix(val left: Scope, val symbol: String, val right: Expression) : Expression(right.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
-        callback(left)
+        callback(right)
     }
 
     override fun toString(): String {

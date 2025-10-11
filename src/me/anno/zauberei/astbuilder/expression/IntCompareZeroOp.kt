@@ -1,6 +1,6 @@
 package me.anno.zauberei.astbuilder.expression
 
-class IntCompareZeroOp(val value: Expression, val type: CompareType) : Expression() {
+class IntCompareZeroOp(val value: Expression, val type: CompareType) : Expression(value.origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(value)
     }

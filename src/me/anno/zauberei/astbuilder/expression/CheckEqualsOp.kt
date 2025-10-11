@@ -3,7 +3,7 @@ package me.anno.zauberei.astbuilder.expression
 class CheckEqualsOp(
     val left: Expression, val right: Expression,
     val byPointer: Boolean, val negated: Boolean
-) : Expression() {
+) : Expression(left.origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(left)
         callback(right)

@@ -2,8 +2,8 @@ package me.anno.zauberei.astbuilder.expression
 
 class LambdaExpression(
     val variables: List<LambdaVariable>,
-    val body: Expression
-) : Expression() {
+    val body: Expression,
+) : Expression(body.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(body)

@@ -1,6 +1,9 @@
 package me.anno.zauberei.astbuilder.expression
 
-class AssignIfMutableExpr(val left: Expression, val symbol: String, val right: Expression): Expression() {
+/**
+ * this.name [+=, *=, /=, ...] right
+ * */
+class AssignIfMutableExpr(val left: Expression, val symbol: String, val right: Expression): Expression(right.origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(left)
         callback(right)

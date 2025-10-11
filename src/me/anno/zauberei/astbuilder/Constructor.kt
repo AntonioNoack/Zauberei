@@ -6,8 +6,9 @@ class Constructor(
     val parameters: List<Parameter>,
     val superCall: Expression?,
     val body: Expression?,
-    val keywords: List<String>
-) : Expression() {
+    val keywords: List<String>,
+    origin: Int
+) : Expression(origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {
 
         for (param in parameters) {

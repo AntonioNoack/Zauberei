@@ -6,9 +6,11 @@ import kotlin.math.max
 class TokenList(val src: String, val fileName: String) {
 
     var size = 0
+    var tliIndex = -1
 
     private var tokenTypes = ByteArray(16)
     private var offsets = IntArray(32)
+    val totalSize get() = tokenTypes.size
 
     inline fun <R> push(
         i: Int, open: TokenType, close: TokenType,
