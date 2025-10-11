@@ -913,16 +913,21 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         } else {
             lateinit var name: String
             lateinit var iterable: Expression
+            var variableType: Type? = null
             pushCall {
                 assert(tokens.equals(i, TokenType.NAME))
                 name = tokens.toString(i++)
+                variableType = if (tokens.equals(i, ":")) {
+                    i++ // skip :
+                    readType()
+                } else null
                 // to do type?
                 assert(tokens.equals(i++, "in"))
                 iterable = readExpression()
                 assert(i == tokens.size)
             }
             val body = readBodyOrLine()
-            return ForLoop(name, iterable, body, label)
+            return ForLoop(name, variableType, iterable, body, label)
         }
     }
 
@@ -1315,14 +1320,44 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 val origin = origin(i)
                 i++ // consume operator
 
-                when (symbol) {
+                fun readRHS(): Expression =
+                    readExpression(if (op.assoc == Assoc.LEFT) op.precedence + 1 else op.precedence)
+
+                expr = when (symbol) {
                     "as", "as?", "is", "!is" -> {
                         val rhs = readType()
-                        expr = BinaryTypeOp(expr, op.symbol, rhs, origin)
+                        BinaryTypeOp(expr, op.symbol, rhs, origin)
+                    }
+                    "." -> {
+                        if (tokens.equals(i, TokenType.NAME) &&
+                            tokens.equals(i + 1, TokenType.SYMBOL) &&
+                            tokens.endsWith(i + 1, '=')
+                        ) {
+                            val name = tokens.toString(i++)
+                            if (tokens.equals(i, "=")) {
+                                val originI = origin(i++) // skip =
+                                val value = readExpression()
+                                val nameTitlecase = name[0].uppercaseChar() + name.substring(1)
+                                val setterName = "set$nameTitlecase"
+                                NamedCallExpression(expr, setterName, null, listOf(value), originI)
+                            } else {
+                                val originI = origin(i)
+                                val symbol = tokens.toString(i++)
+                                val left = NamedCallExpression(
+                                    expr, ".", null,
+                                    listOf(VariableExpression(name, originI)), originI
+                                )
+                                val right = readExpression()
+                                AssignIfMutableExpr(left, symbol, right)
+                            }
+                        } else {
+                            val rhs = readRHS()
+                            binaryOp(currPackage, expr, op.symbol, rhs)
+                        }
                     }
                     else -> {
-                        val rhs = readExpression(if (op.assoc == Assoc.LEFT) op.precedence + 1 else op.precedence)
-                        expr = if (isInfix) {
+                        val rhs = readRHS()
+                        if (isInfix) {
                             val self = GetPropertyExpression(expr, op.symbol)
                             CallExpression(self, emptyList(), listOf(rhs), origin)
                         } else {
@@ -1357,13 +1392,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 } else if (tokens.equals(i, TokenType.SYMBOL) && tokens.endsWith(i, '=')) {
                     val symbol = tokens.toString(i++)
                     val value = readExpression()
-                    val tmpVariable = TmpVariableExpr(origin)
-                    val getter = NamedCallExpression(expr, "get", emptyList(), params, origin)
-                    val block = listOf(
-                        DeclarationExpression(tmpVariable.name, null, getter, false, false, origin),
-                        AssignIfMutableExpr(tmpVariable, symbol, value)
-                    )
-                    ExpressionList(block, origin)
+                    val call = NamedCallExpression(expr, "get/set", emptyList(), params, origin)
+                    AssignIfMutableExpr(call, symbol, value)
                 } else {
                     NamedCallExpression(expr, "get", emptyList(), params, origin)
                 }

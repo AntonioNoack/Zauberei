@@ -30,4 +30,8 @@ object Types {
     val StringType = getType("String")
     val TypelessType = getType("Typeless")
     val ThrowableType = getType("Throwable")
+    val NothingType = getType("Nothing")
+
+    // todo yes, it is Iterable<*>, but * = Nothing still feels wrong :/
+    val AnyIterableType = ClassType(getScope("Iterable"), listOf(NothingType))
 }

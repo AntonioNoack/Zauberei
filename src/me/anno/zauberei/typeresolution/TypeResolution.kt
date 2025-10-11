@@ -3,6 +3,7 @@ package me.anno.zauberei.typeresolution
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
 import me.anno.zauberei.astbuilder.expression.constants.StringExpression
+import me.anno.zauberei.astbuilder.flow.ForLoop
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.ReturnExpression
 import me.anno.zauberei.astbuilder.flow.ThrowExpression
@@ -10,6 +11,7 @@ import me.anno.zauberei.types.Field
 import me.anno.zauberei.types.NullableType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.Types.AnyIterableType
 import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.Types.ThrowableType
 import me.anno.zauberei.types.Types.TypelessType
@@ -21,6 +23,7 @@ object TypeResolution {
     val knownAnyNullableType = KnownType(NullableAnyType)
     val typeless = KnownType(TypelessType)
     val throwableType = KnownType(ThrowableType)
+    val anyIterableType = KnownType(AnyIterableType)
 
     fun resolveTypesAndNames(root: Scope) {
         forEachScope(root, ::collectConstraints)
@@ -68,6 +71,7 @@ object TypeResolution {
     fun collectExprConstraints(expr: Expression?, targetType: ResolvingType, functionReturnType: ResolvingType?) {
         expr ?: return
 
+        // todo skip this, if the expression is typeless, anyway
         val givenType = expr.resolvedTypeI ?: nextUnknownType()
         expr.resolvedTypeI = givenType
         setSubType(targetType, givenType)
@@ -133,12 +137,23 @@ object TypeResolution {
                     expr.resolvedTypeI = typeless
                 }
             }
+            is ForLoop -> {
+                // todo if variableType is defined, use that for the generics
+                collectExprConstraints(expr.iterable, anyIterableType, functionReturnType)
+                collectExprConstraints(expr.body, typeless, functionReturnType)
+                expr.resolvedTypeI = typeless
+            }
             is ReturnExpression -> {
                 collectExprConstraints(expr.value, functionReturnType!!, functionReturnType)
                 expr.resolvedTypeI = typeless
             }
             is ThrowExpression -> {
                 collectExprConstraints(expr.thrown, throwableType, functionReturnType)
+                expr.resolvedTypeI = typeless
+            }
+            is AssignmentExpression -> {
+                // todo actually, it is the type of expr.variableName... (might be a getter-chain though)
+                collectExprConstraints(expr.newValue, knownAnyNullableType, functionReturnType)
                 expr.resolvedTypeI = typeless
             }
             else -> {
