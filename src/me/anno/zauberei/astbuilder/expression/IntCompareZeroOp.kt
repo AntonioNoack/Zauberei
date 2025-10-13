@@ -6,6 +6,6 @@ class IntCompareZeroOp(val value: Expression, val type: CompareType) : Expressio
     }
 
     override fun toString(): String {
-        return "($value) $type 0"
+        return "($value) ${type.symbol} 0"
     }
 }
