@@ -20,9 +20,7 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
         "!==" -> CheckEqualsOp(left, right, byPointer = true, negated = true)
         "::" -> {
             fun getBase(): Scope = when {
-                left is VariableExpression -> {
-                    scope.resolveType(left.name, this) as Scope
-                }
+                left is VariableExpression -> scope.resolveType(left.name, this) as Scope
                 left is ConstantExpression && left.value == ConstantExpression.Constant.THIS -> scope
                 else -> throw NotImplementedError("GetBase($left::$right at ${tokens.err(i)})")
             }
@@ -55,7 +53,7 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
             } else if (symbol.startsWith("!")) {
                 val methodName = lookupBinaryOp(symbol.substring(1))
                 val base = NamedCallExpression(left, methodName, emptyList(), listOf(right), right.origin)
-                return PrefixExpression("!", base)
+                return PrefixExpression(PrefixType.NOT, right.origin, base)
             } else {
                 val methodName = lookupBinaryOp(symbol)
                 return NamedCallExpression(left, methodName, emptyList(), listOf(right), right.origin)

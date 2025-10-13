@@ -1,20 +1,19 @@
 package me.anno.zauberei.astbuilder.expression
 
+import me.anno.zauberei.types.Field
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
-class DeclarationExpression(
-    val name: String, val type: Type?, val initialValue: Expression?,
-    val isVar: Boolean, val isLateinit: Boolean,
+@Suppress("FunctionName")
+fun DeclarationExpression(
+    scope: Scope,
+    name: String, type: Type?, initialValue: Expression?,
+    isVar: Boolean, isLateinit: Boolean,
     origin: Int
-) : Expression(origin) {
-
-    override fun forEachExpr(callback: (Expression) -> Unit) {
-        if (initialValue != null) callback(initialValue)
-    }
-
-    override fun toString(): String {
-        return (if (isVar) if (isLateinit) "lateinit var" else "var " else "val ") +
-                "$name: $type${if (initialValue != null) " = $initialValue" else ""}"
-
-    }
+): Expression {
+    val field = Field(isVar, !isVar, scope, name, type, initialValue, emptyList())
+    scope.fields.add(field)
+    return if (initialValue != null) {
+        AssignmentExpression(VariableExpression(name, scope, field, origin), initialValue)
+    } else ExpressionList(emptyList(), origin)
 }

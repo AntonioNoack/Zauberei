@@ -1,12 +1,12 @@
 package me.anno.zauberei.astbuilder.expression
 
-class PrefixExpression(val symbol: String, val base: Expression): Expression(base.origin) {
+class PrefixExpression(val type: PrefixType, origin: Int, val base: Expression) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)
     }
 
     override fun toString(): String {
-        return "$symbol$base"
+        return "${type.symbol}$base"
     }
 }

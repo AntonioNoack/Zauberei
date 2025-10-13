@@ -59,9 +59,9 @@ object ASTClassScanner {
                             tokens.equals(i, "package") && listening.size == 1 -> {
                                 var j = i + 1
                                 assert(tokens.equals(j, TokenType.NAME))
-                                var path = root.getOrPut(tokens.toString(j++))
+                                var path = root.getOrPut(tokens.toString(j++), null)
                                 while (tokens.equals(j, ".") && tokens.equals(j + 1, TokenType.NAME)) {
-                                    path = path.getOrPut(tokens.toString(j + 1))
+                                    path = path.getOrPut(tokens.toString(j + 1), null)
                                     j += 2 // skip period and name
                                 }
                                 currPackage = path
@@ -70,9 +70,9 @@ object ASTClassScanner {
                             tokens.equals(i, "import") && listening.size == 1 -> {
                                 var j = i + 1
                                 assert(tokens.equals(j, TokenType.NAME))
-                                var path = root.getOrPut(tokens.toString(j++))
+                                var path = root.getOrPut(tokens.toString(j++), null)
                                 while (tokens.equals(j, ".") && tokens.equals(j + 1, TokenType.NAME)) {
-                                    path = path.getOrPut(tokens.toString(j + 1))
+                                    path = path.getOrPut(tokens.toString(j + 1), null)
                                     j += 2 // skip period and name
                                 }
                                 val allChildren = tokens.equals(j, ".*")
@@ -107,7 +107,7 @@ object ASTClassScanner {
                             listen >= 0 && tokens.equals(i, TokenType.NAME) &&
                                     fileLevelKeywords.none { keyword -> tokens.equals(i, keyword) } -> {
 
-                                nextPackage = currPackage.getOrPut(tokens.toString(i))
+                                nextPackage = currPackage.getOrPut(tokens.toString(i), null)
                                 nextPackage.keywords.add(listenType)
                                 nextPackage.fileName = tokens.fileName
 

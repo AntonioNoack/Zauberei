@@ -4,7 +4,7 @@ import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolvingType
 import me.anno.zauberei.types.Type
 
-class Function(
+class Method(
     val selfType: Type?,
     var name: String?,
     val typeParameters: List<Parameter>,

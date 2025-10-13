@@ -110,8 +110,8 @@ object StandardTypes {
         val parts = packageName.split('.')
         var currPackage = root
         for (i in parts.indices) {
-            currPackage = currPackage.getOrPut(parts[i])
+            currPackage = currPackage.getOrPut(parts[i], null)
         }
-        currPackage.getOrPut(name)
+        currPackage.getOrPut(name, null)
     }
 }

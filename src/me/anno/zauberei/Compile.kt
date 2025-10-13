@@ -2,8 +2,10 @@ package me.anno.zauberei
 
 import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.ASTClassScanner.findNamedClasses
+import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
+import me.anno.zauberei.typeresolution.TypeResolution.forEachScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveTypesAndNames
 import me.anno.zauberei.types.Scope
 import java.io.File
@@ -34,7 +36,7 @@ object Compile {
         if (file.isDirectory) {
             val scope =
                 if (file.absolutePath.length < rootLen) packageScope
-                else packageScope.getOrPut(file.name)
+                else packageScope.getOrPut(file.name, null)
             for (child in file.listFiles()!!) {
                 addSource(child, rootLen, scope)
             }
@@ -103,6 +105,8 @@ object Compile {
         println("Took ${(t3 - t2) * 1e-6f} ms Parsing AST")
 
         if (false) printPackages(root, 0)
+
+        // 658k expressions 😲 (1µs/element at the moment)
 
         resolveTypesAndNames(root)
         val t4 = System.nanoTime()

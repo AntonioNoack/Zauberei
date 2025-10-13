@@ -5,11 +5,11 @@ import me.anno.zauberei.Compile.root
 object Types {
 
     fun getScope(i: String): Scope {
-        if ('.' !in i) return root.getOrPut(i)
+        if ('.' !in i) return root.getOrPut(i, null)
         val parts = i.split('.')
         var scope = root
         for (part in parts) {
-            scope = scope.getOrPut(part)
+            scope = scope.getOrPut(part, null)
         }
         return scope
     }

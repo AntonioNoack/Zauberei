@@ -1,16 +1,25 @@
 package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.astbuilder.expression.ExpressionList
 
-class WhenBranchExpression(val cases: List<WhenCase>, origin: Int) : Expression(origin) {
-    override fun forEachExpr(callback: (Expression) -> Unit) {
-        for (case in cases) {
-            if (case.condition != null) callback(case.condition)
-            callback(case.body)
+class WhenCase(val condition: Expression?, val body: Expression) {
+    override fun toString(): String {
+        return "${condition ?: "else"} -> { $body }"
+    }
+}
+
+@Suppress("FunctionName")
+fun WhenBranchExpression(cases: List<WhenCase>, origin: Int): Expression {
+    var chain: Expression? = null
+    for (i in cases.indices.reversed()) {
+        val caseI = cases[i]
+        chain = if (caseI.condition != null) {
+            IfElseBranch(caseI.condition, caseI.body, chain)
+        } else {
+            if (chain != null) throw IllegalStateException("Else must be the last case")
+            caseI.body
         }
     }
-
-    override fun toString(): String {
-        return "when { ${cases.joinToString("; ")} }"
-    }
+    return chain ?: ExpressionList(emptyList(), origin)
 }

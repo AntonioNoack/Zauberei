@@ -5,13 +5,9 @@ import me.anno.zauberei.types.Scope
 /**
  * ::callMeNow
  * */
-class DoubleColonPrefix(val left: Scope, val symbol: String, val right: Expression) : Expression(right.origin) {
-
-    override fun forEachExpr(callback: (Expression) -> Unit) {
-        callback(right)
-    }
-
+class DoubleColonPrefix(val left: Scope, val methodName: String, origin: Int) : Expression(origin) {
+    override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String {
-        return "($left)$symbol($right)"
+        return "($left)::$methodName"
     }
 }

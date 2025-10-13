@@ -2,15 +2,17 @@ package me.anno.zauberei.types
 
 import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.*
-import me.anno.zauberei.astbuilder.Function
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.tokenizer.TokenList
+import me.anno.zauberei.typeresolution.ResolvingType
 
 /**
  * Scope / Package / Class / Object / Interface ...
  * keywords tell you what it is
  * */
 class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
+
+    var scopeType: ScopeType? = null
 
     var fileName: String? = parent?.fileName
 
@@ -20,22 +22,23 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
 
     val constructors = ArrayList<Constructor>()
     val initialization = ArrayList<Expression>()
-    val functions = ArrayList<Function>()
+    val methods = ArrayList<Method>()
     val fields = ArrayList<Field>()
 
     var primaryConstructorParams: List<Parameter>? = null
     var privatePrimaryConstructor = false
 
     val superCalls = ArrayList<SuperCall>()
-
     val superCallNames = ArrayList<SuperCallName>()
 
     val enumValues = ArrayList<Expression>()
     var typeAlias: Type? = null
 
+    var functionReturnType: ResolvingType? = null
+
     var typeParameters: List<Parameter> = emptyList()
 
-    fun getOrPut(name: String): Scope {
+    fun getOrPut(name: String, scopeType: ScopeType?): Scope {
 
         if (this.name == "Companion" && name == "ECSMeshShader")
             throw IllegalStateException("ECSMeshShader is not a part of a Companion")
@@ -46,24 +49,22 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         var child = children.firstOrNull { it.name == name }
         if (child != null) {
             if (child.fileName == null) child.fileName = fileName
+            if (scopeType != null) {
+                if (child.scopeType == null || child.scopeType == scopeType) child.scopeType = scopeType
+                else throw IllegalStateException("ScopeType conflict! ${child.scopeType} vs $scopeType")
+            }
             return child
         }
 
         child = Scope(name, this)
+        child.scopeType = scopeType
         children.add(child)
         return child
     }
 
-    fun getOrPut(name: String, fileName: String): Scope {
-
-        var child = children.firstOrNull { it.name == name }
-        if (child != null) {
-            if (child.fileName == null) child.fileName = fileName
-            return child
-        }
-
-        child = Scope(name, this)
-        children.add(child)
+    fun getOrPut(name: String, fileName: String, scopeType: ScopeType?): Scope {
+        val child = getOrPut(name, scopeType)
+        if (child.fileName == null) child.fileName = fileName
         return child
     }
 
@@ -99,10 +100,6 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         }
 
         return null
-    }
-
-    fun isMutableVariable(name: String): Boolean? {
-        TODO()
     }
 
     private inline fun forEachSuperType(callback: (Type) -> Unit) {

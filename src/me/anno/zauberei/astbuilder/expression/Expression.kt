@@ -24,7 +24,12 @@ abstract class Expression(val origin: Int) {
 
     abstract fun forEachExpr(callback: (Expression) -> Unit)
 
+    init {
+        counter++
+    }
+
     companion object {
+        var counter = 0
         private val InvalidType = ClassType(root, emptyList())
     }
 }

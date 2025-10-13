@@ -1,6 +1,6 @@
 package me.anno.zauberei.astbuilder.expression
 
-class PostfixExpression(val variable: Expression, val type: PostfixMode, origin: Int) : Expression(origin) {
+class PostfixExpression(val variable: Expression, val type: PostfixType, origin: Int) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(variable)

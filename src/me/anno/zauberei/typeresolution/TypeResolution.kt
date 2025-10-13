@@ -7,10 +7,7 @@ import me.anno.zauberei.astbuilder.flow.ForLoop
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.ReturnExpression
 import me.anno.zauberei.astbuilder.flow.ThrowExpression
-import me.anno.zauberei.types.Field
-import me.anno.zauberei.types.NullableType
-import me.anno.zauberei.types.Scope
-import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.AnyIterableType
 import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.Types.ThrowableType
@@ -103,7 +100,7 @@ object TypeResolution {
                 expr.variable.resolvedTypeI
                 expr.resolvedTypeI
                 when (expr.type) {
-                    PostfixMode.INCREMENT, PostfixMode.DECREMENT -> {
+                    PostfixType.INCREMENT, PostfixType.DECREMENT -> {
                         // post-fix and contained variable will have the same type
                         if (expr.variable.resolvedTypeI == null) {
                             expr.variable.resolvedTypeI = expr.resolvedTypeI
@@ -113,7 +110,7 @@ object TypeResolution {
                             setSameType(expr.resolvedTypeI!!, expr.variable.resolvedTypeI!!)
                         }
                     }
-                    PostfixMode.ASSERT_NON_NULL -> {
+                    PostfixType.ASSERT_NON_NULL -> {
                         // is this good enough???
                         collectExprConstraints(expr.variable, tryGetNonNullType(targetType), functionReturnType)
                         setNonNull(expr.variable.resolvedTypeI!!, expr.resolvedTypeI!!)
@@ -163,15 +160,24 @@ object TypeResolution {
         }
     }
 
-    fun collectFieldConstrains(field: Field) {
+    fun collectFieldConstrains(scope: Scope, field: Field) {
         // field itself
         val valueType = nextType(field.valueType ?: field.initialValue?.resolvedType)
         field.valueType1 = valueType
 
+        val func = findFunction(scope)
         collectExprConstraints(
             field.initialValue, valueType,
-            null /* null, because return cannot be used in val x = 5 */
+            func?.functionReturnType /* null, because return cannot be used in val x = 5 */
         )
+    }
+
+    fun findFunction(scope: Scope): Scope? {
+        var scope = scope
+        while (true) {
+            if (scope.scopeType == ScopeType.FUNCTION) return scope
+            scope = scope.parent ?: return null
+        }
     }
 
     fun collectConstraints(scope: Scope) {
@@ -180,7 +186,7 @@ object TypeResolution {
         //  should be all resolved already by name
 
         for (field in scope.fields) {
-            collectFieldConstrains(field)
+            collectFieldConstrains(scope, field)
             collectExprConstraints(field.getterExpr, field.valueType1, field.valueType1)
             // todo constraints for setter variable...
             collectExprConstraints(field.setterExpr, knownUnitType, knownUnitType)
@@ -190,7 +196,7 @@ object TypeResolution {
             init.resolvedTypeI = knownUnitType
             collectExprConstraints(init, knownUnitType, knownUnitType)
         }
-        for (function in scope.functions) {
+        for (function in scope.methods) {
             function.resolvedType = UnitType
             function.resolvedTypeI = knownUnitType
 
