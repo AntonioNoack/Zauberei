@@ -10,10 +10,10 @@ private fun compareTo(left: Expression, right: Expression) =
 @Suppress("IntroduceWhenSubject") // this feature is experimental, why is it recommended???
 fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: Expression): Expression {
     return when (symbol) {
-        "<=" -> IntCompareZeroOp(compareTo(left, right), CompareType.LESS_EQUALS)
-        "<" -> IntCompareZeroOp(compareTo(left, right), CompareType.LESS)
-        ">=" -> IntCompareZeroOp(compareTo(left, right), CompareType.GREATER_EQUALS)
-        ">" -> IntCompareZeroOp(compareTo(left, right), CompareType.GREATER)
+        "<=" -> CompareOp(compareTo(left, right), CompareType.LESS_EQUALS)
+        "<" -> CompareOp(compareTo(left, right), CompareType.LESS)
+        ">=" -> CompareOp(compareTo(left, right), CompareType.GREATER_EQUALS)
+        ">" -> CompareOp(compareTo(left, right), CompareType.GREATER)
         "==" -> CheckEqualsOp(left, right, byPointer = false, negated = false)
         "!=" -> CheckEqualsOp(left, right, byPointer = false, negated = true)
         "===" -> CheckEqualsOp(left, right, byPointer = true, negated = false)

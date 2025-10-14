@@ -10,6 +10,20 @@ import me.anno.zauberei.typeresolution.TypeResolution.resolveTypesAndNames
 import me.anno.zauberei.types.Scope
 import java.io.File
 
+// todo we need type resolution, but it is really hard
+//  can we outsource the problem?
+//  should we try to solve easy problems, first?
+//  should we implement an easier language compiler like Java first?
+//  can we put all work on the C++/Zig compiler???
+//  should we try to create a Kotlin-preprocessor instead?
+
+// todo if-conditions help us find what type something is...
+//  but we need to understand what's possible and how the code flows...
+
+// todo most type resolution probably is easy,
+//  e.g. function names usually differ from field names,
+//  so once we know all function names known to a scope (or everything), we can already decide many cases
+
 // todo expand macros:
 //   compile-time if
 //   compile-time loop (duplicating instructions)

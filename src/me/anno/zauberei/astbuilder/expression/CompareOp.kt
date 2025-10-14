@@ -1,6 +1,13 @@
 package me.anno.zauberei.astbuilder.expression
 
-class IntCompareZeroOp(val value: Expression, val type: CompareType) : Expression(value.origin) {
+enum class CompareType(val symbol: String) {
+    LESS("<"),
+    GREATER(">"),
+    LESS_EQUALS("<="),
+    GREATER_EQUALS(">="),
+}
+
+class CompareOp(val value: Expression, val type: CompareType) : Expression(value.origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(value)
     }
