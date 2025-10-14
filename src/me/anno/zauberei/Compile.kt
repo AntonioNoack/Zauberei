@@ -57,7 +57,7 @@ object Compile {
         addSource(samples)
         addSource(File(project, "src"))
 
-        if (true) {
+        if (false) {
             // bonus: compile Rem's Engine
             val remsEngine = File(project, "../RemsEngine")
             addSource(File(remsEngine, "src"))

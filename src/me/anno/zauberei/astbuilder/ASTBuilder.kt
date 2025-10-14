@@ -1390,14 +1390,14 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 if (tokens.equals(i, "=")) {
                     i++ // skip =
                     val value = readExpression()
-                    NamedCallExpression(expr, "set", emptyList(), params + value, origin)
+                    NamedCallExpression(expr, "set", null, params + value, origin)
                 } else if (tokens.equals(i, TokenType.SYMBOL) && tokens.endsWith(i, '=')) {
                     val symbol = tokens.toString(i++)
                     val value = readExpression()
-                    val call = NamedCallExpression(expr, "get/set", emptyList(), params, origin)
+                    val call = NamedCallExpression(expr, "get/set", null, params, origin)
                     AssignIfMutableExpr(call, symbol, value)
                 } else {
-                    NamedCallExpression(expr, "get", emptyList(), params, origin)
+                    NamedCallExpression(expr, "get", null, params, origin)
                 }
             }
             tokens.equals(i, TokenType.OPEN_BLOCK) -> {

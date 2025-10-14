@@ -14,6 +14,10 @@ import me.anno.zauberei.types.Types.ThrowableType
 import me.anno.zauberei.types.Types.TypelessType
 import me.anno.zauberei.types.Types.UnitType
 
+// todo for generic (all) functions,
+//  we could pre-determine from the type how many valid options there are,
+//  e.g. most functions won't have generic types
+
 object TypeResolution {
 
     val knownUnitType = KnownType(UnitType)
@@ -24,6 +28,13 @@ object TypeResolution {
 
     fun resolveTypesAndNames(root: Scope) {
         forEachScope(root, ::collectConstraints)
+    }
+
+    fun forEachScope(scope: Scope, callback: (Scope) -> Unit) {
+        callback(scope)
+        for (child in scope.children) {
+            forEachScope(child, callback)
+        }
     }
 
     val subTypeConstrains = ArrayList<SubtypeConstraint>()
@@ -217,13 +228,6 @@ object TypeResolution {
             val returnType = nextType(function.returnType ?: function.body?.resolvedType)
             function.returnTypeI = returnType
             collectExprConstraints(function.body, returnType, returnType)
-        }
-    }
-
-    fun forEachScope(scope: Scope, callback: (Scope) -> Unit) {
-        callback(scope)
-        for (child in scope.children) {
-            forEachScope(child, callback)
         }
     }
 }
