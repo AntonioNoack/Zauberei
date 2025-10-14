@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.ASTBuilder
+import me.anno.zauberei.astbuilder.expression.constants.Constant
 import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
 import me.anno.zauberei.types.Scope
 
@@ -21,17 +22,17 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
         "::" -> {
             fun getBase(): Scope = when {
                 left is VariableExpression -> scope.resolveType(left.name, this) as Scope
-                left is ConstantExpression && left.value == ConstantExpression.Constant.THIS -> scope
+                left is ConstantExpression && left.value == Constant.THIS -> scope
                 else -> throw NotImplementedError("GetBase($left::$right at ${tokens.err(i)})")
             }
 
             val leftIsType = left is VariableExpression && left.name[0].isUpperCase() ||
-                    left is ConstantExpression && left.value == ConstantExpression.Constant.THIS
+                    left is ConstantExpression && left.value == Constant.THIS
             when {
-                leftIsType && right is ConstantExpression && right.value == ConstantExpression.Constant.CLASS -> {
+                leftIsType && right is ConstantExpression && right.value == Constant.CLASS -> {
                     GetClassFromTypeExpression(getBase(), left.origin)
                 }
-                right is ConstantExpression && right.value == ConstantExpression.Constant.CLASS -> {
+                right is ConstantExpression && right.value == Constant.CLASS -> {
                     GetClassFromValueExpression(left, right.origin)
                 }
                 leftIsType && right is VariableExpression -> {

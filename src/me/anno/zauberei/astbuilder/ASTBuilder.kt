@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.*
+import me.anno.zauberei.astbuilder.expression.constants.Constant
 import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
 import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
 import me.anno.zauberei.astbuilder.expression.constants.StringExpression
@@ -727,13 +728,13 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 val annotation = readAnnotation()
                 return AnnotatedExpression(annotation, readPrefix())
             }
-            tokens.equals(i, "null") -> ConstantExpression(ConstantExpression.Constant.NULL, origin(i++))
-            tokens.equals(i, "true") -> ConstantExpression(ConstantExpression.Constant.TRUE, origin(i++))
-            tokens.equals(i, "false") -> ConstantExpression(ConstantExpression.Constant.FALSE, origin(i++))
-            tokens.equals(i, "this") -> ConstantExpression(ConstantExpression.Constant.THIS, origin(i++))
-            tokens.equals(i, "super") -> ConstantExpression(ConstantExpression.Constant.SUPER, origin(i++))
+            tokens.equals(i, "null") -> ConstantExpression(Constant.NULL, origin(i++))
+            tokens.equals(i, "true") -> ConstantExpression(Constant.TRUE, origin(i++))
+            tokens.equals(i, "false") -> ConstantExpression(Constant.FALSE, origin(i++))
+            tokens.equals(i, "this") -> ConstantExpression(Constant.THIS, origin(i++))
+            tokens.equals(i, "super") -> ConstantExpression(Constant.SUPER, origin(i++))
             tokens.equals(i - 1, "::") && tokens.equals(i, "class") -> {
-                return ConstantExpression(ConstantExpression.Constant.CLASS, origin(i++))
+                return ConstantExpression(Constant.CLASS, origin(i++))
             }
             tokens.equals(i, TokenType.NUMBER) -> NumberExpression(tokens.toString(i), origin(i++))
             tokens.equals(i, TokenType.STRING) -> StringExpression(tokens.toString(i), origin(i++))
@@ -1360,8 +1361,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     else -> {
                         val rhs = readRHS()
                         if (isInfix) {
-                            val self = GetPropertyExpression(expr, op.symbol)
-                            CallExpression(self, emptyList(), listOf(rhs), origin)
+                            NamedCallExpression(expr, op.symbol, null, listOf(rhs), origin)
                         } else {
                             binaryOp(currPackage, expr, op.symbol, rhs)
                         }

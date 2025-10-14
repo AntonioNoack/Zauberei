@@ -1,14 +1,17 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.astbuilder.expression.*
+import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
 import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
 import me.anno.zauberei.astbuilder.expression.constants.StringExpression
-import me.anno.zauberei.astbuilder.flow.ForLoop
-import me.anno.zauberei.astbuilder.flow.IfElseBranch
-import me.anno.zauberei.astbuilder.flow.ReturnExpression
-import me.anno.zauberei.astbuilder.flow.ThrowExpression
+import me.anno.zauberei.astbuilder.flow.*
 import me.anno.zauberei.types.*
+import me.anno.zauberei.types.Types.AnyClassType
 import me.anno.zauberei.types.Types.AnyIterableType
+import me.anno.zauberei.types.Types.AnyType
+import me.anno.zauberei.types.Types.BooleanType
+import me.anno.zauberei.types.Types.IntType
+import me.anno.zauberei.types.Types.NothingType
 import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.Types.ThrowableType
 import me.anno.zauberei.types.Types.TypelessType
@@ -22,9 +25,14 @@ object TypeResolution {
 
     val knownUnitType = KnownType(UnitType)
     val knownAnyNullableType = KnownType(NullableAnyType)
+    val knownAnyType = KnownType(AnyType)
     val typeless = KnownType(TypelessType)
     val throwableType = KnownType(ThrowableType)
     val anyIterableType = KnownType(AnyIterableType)
+    val booleanType = KnownType(BooleanType)
+    val intType = KnownType(IntType)
+    val anyClassType = KnownType(AnyClassType)
+    val nothingType = KnownType(NothingType)
 
     fun resolveTypesAndNames(root: Scope) {
         forEachScope(root, ::collectConstraints)
@@ -133,6 +141,7 @@ object TypeResolution {
 
                     collectExprConstraints(expr.ifTrue, knownAnyNullableType, functionReturnType)
                     collectExprConstraints(expr.ifFalse, knownAnyNullableType, functionReturnType)
+                    collectExprConstraints(expr.condition, booleanType, functionReturnType)
 
                     val type = nextUnknownType()
                     expr.resolvedTypeI = type
@@ -151,18 +160,66 @@ object TypeResolution {
                 collectExprConstraints(expr.body, typeless, functionReturnType)
                 expr.resolvedTypeI = typeless
             }
+            is NamedCallExpression -> {
+                collectExprConstraints(expr.base, knownAnyType, functionReturnType)
+                // todo add constraints for type parameters
+                // todo add constraints for finding a valid method or field for calling
+            }
             is ReturnExpression -> {
                 collectExprConstraints(expr.value, functionReturnType!!, functionReturnType)
-                expr.resolvedTypeI = typeless
+                expr.resolvedTypeI = nothingType
             }
             is ThrowExpression -> {
                 collectExprConstraints(expr.thrown, throwableType, functionReturnType)
-                expr.resolvedTypeI = typeless
+                expr.resolvedTypeI = nothingType
             }
             is AssignmentExpression -> {
                 // todo actually, it is the type of expr.variableName... (might be a getter-chain though)
                 collectExprConstraints(expr.newValue, knownAnyNullableType, functionReturnType)
                 expr.resolvedTypeI = typeless
+            }
+            is VariableExpression -> {
+                // todo conditions...
+            }
+            is BinaryTypeOp -> {
+                // todo conditions...
+            }
+            is ConstantExpression -> {
+                // todo conditions...
+            }
+            is WhileLoop -> {
+                collectExprConstraints(expr.condition, booleanType, functionReturnType)
+                collectExprConstraints(expr.body, typeless, functionReturnType)
+            }
+            is CompareOp -> {
+                collectExprConstraints(expr.value, intType, functionReturnType)
+            }
+            is AssignIfMutableExpr -> {
+                // todo this is complicated...
+            }
+            is LambdaExpression -> {
+                // todo this is really complicated, too...
+            }
+            is PrefixExpression -> {
+                // todo this is like AssignIfMutableExpr - really complicated...
+            }
+            is GetClassFromTypeExpression -> {
+                setSubType(givenType, anyClassType)
+            }
+            is CheckEqualsOp -> {
+                // left and right may be of the same type, but we have no hard constraints...
+                collectExprConstraints(expr.left, knownAnyNullableType, functionReturnType)
+                collectExprConstraints(expr.right, knownAnyNullableType, functionReturnType)
+                // return type will be Boolean
+                setSubType(givenType, booleanType)
+            }
+            is DoubleColonPrefix -> {
+                // todo type is some lambda/callable, but we don't know more than that...
+                // todo body must be analysed, and it might return something, too,
+                //  but we don't know what...
+            }
+            is BreakExpression, is ContinueExpression -> {
+                expr.resolvedTypeI = nothingType
             }
             else -> {
                 IllegalStateException("Create constraints for ${expr.javaClass} == $targetType ($expr)")
