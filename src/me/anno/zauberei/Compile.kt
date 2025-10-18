@@ -2,11 +2,10 @@ package me.anno.zauberei
 
 import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.ASTClassScanner.findNamedClasses
-import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
-import me.anno.zauberei.typeresolution.TypeResolution.forEachScope
-import me.anno.zauberei.typeresolution.TypeResolution.resolveTypesAndNames
+import me.anno.zauberei.typeresolution.complex.TypeResolution
+import me.anno.zauberei.typeresolution.simple.SimpleTypeResolution
 import me.anno.zauberei.types.Scope
 import java.io.File
 
@@ -122,7 +121,12 @@ object Compile {
 
         // 658k expressions 😲 (1µs/element at the moment)
 
-        resolveTypesAndNames(root)
+        if(true){
+            SimpleTypeResolution.resolveTypesAndNames(root)
+        } else {
+            TypeResolution.resolveTypesAndNames(root)
+        }
+
         val t4 = System.nanoTime()
         println("Took ${(t4 - t3) * 1e-6f} ms Resolving Types")
     }

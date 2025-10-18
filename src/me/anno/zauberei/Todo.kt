@@ -41,4 +41,6 @@ package me.anno.zauberei
 //  - intermediate language -> C++
 //  - intermediate language -> GLSL
 
+// todo somehow ensure left-to-right execution...
+
 // todo compile-time executions, calculations, and tests

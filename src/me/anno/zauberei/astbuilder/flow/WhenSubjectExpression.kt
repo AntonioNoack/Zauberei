@@ -2,6 +2,7 @@ package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.ASTBuilder
+import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.types.*
 
@@ -36,12 +37,14 @@ fun buildIsExpr(expr: SubjectCondition, subject: Expression): NamedCallExpressio
     return when (expr.type) {
         is ClassType -> {
             val typeExpr = GetClassFromTypeExpression(expr.type.clazz, 0)
-            NamedCallExpression(typeExpr, "isInstance", emptyList(), listOf(subject), subject.origin)
+            val param = NamedParameter(null, subject)
+            NamedCallExpression(typeExpr, "isInstance", emptyList(), listOf(param), subject.origin)
         }
         is LambdaType -> {
             val type = lambdaTypeToClassType(expr.type)
             val typeExpr = GetClassFromTypeExpression(type.clazz, 0)
-            NamedCallExpression(typeExpr, "isInstance", emptyList(), listOf(subject), subject.origin)
+            val param = NamedParameter(null, subject)
+            NamedCallExpression(typeExpr, "isInstance", emptyList(), listOf(param), subject.origin)
         }
         else -> throw NotImplementedError("Handle is ${expr.type?.javaClass}")
     }
@@ -56,11 +59,10 @@ fun lambdaTypeToClassType(lambdaType: LambdaType): ClassType {
 fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: List<SubjectWhenCase>): Expression {
     val origin = subject.origin
     val subjectName = scope.generateName("subject")
-    val subjectField = Field(
-        false, true, scope, subjectName,
-        null, subject, emptyList()
+    Field(
+        scope,false, true, scope, subjectName,
+        null, subject, emptyList(), origin
     )
-    scope.fields.add(subjectField)
     val subjectV = VariableExpression(subjectName, origin)
     val assignment = AssignmentExpression(subjectV, subject)
     return ExpressionList(

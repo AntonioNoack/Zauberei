@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.tokenizer.TokenList
+import kotlin.math.max
 
 object TokenListIndex {
 
@@ -8,14 +9,15 @@ object TokenListIndex {
     private var indices = IntArray(64)
     private var totalSize = 0
 
-    private fun clamp(x: Int, min: Int, max: Int): Int {
-        return if (x < min) min else if (x < max) x else max
+    private fun clamp(x: Int, tokenList: TokenList): Int {
+        val size = tokenList.totalSize
+        return if (x < 0) 0 else if (x >= size) size - 1 else x
     }
 
     fun getIndex(tokenList: TokenList, i: Int): Int {
-        if (tokenList.tliIndex >= 0) return tokenList.tliIndex + clamp(i, 0, tokenList.totalSize - 1)
+        if (tokenList.tliIndex >= 0) return tokenList.tliIndex + clamp(i, tokenList)
         synchronized(this) {
-            if (tokenList.tliIndex >= 0) return tokenList.tliIndex + clamp(i, 0, tokenList.totalSize - 1)
+            if (tokenList.tliIndex >= 0) return tokenList.tliIndex + clamp(i, tokenList)
 
             val tli = totalSize
             tokenList.tliIndex = tli
@@ -24,13 +26,17 @@ object TokenListIndex {
             if (indices.size == idx) indices = indices.copyOf(idx * 2)
             indices[idx] = tli
             totalSize += tokenList.totalSize
-            return tli + clamp(i, 0, tokenList.totalSize - 1)
+            return tli + clamp(i, tokenList)
         }
     }
 
     fun findTokenList(i: Int): TokenList {
         var idx = indices.binarySearch(i, 0, tokenLists.size)
-        if (idx < 0) idx = -idx - 1
+        if (idx < 0) idx = max(-idx - 2, 0)
+        if (idx !in tokenLists.indices) {
+            throw IllegalStateException("Failed token search of $i in ${indices.toList()}")
+        }
+        // println("$i${indices.copyOf(tokenLists.size).toList()}->$idx -> ${tokenLists[idx].fileName}")
         return tokenLists[idx]
     }
 

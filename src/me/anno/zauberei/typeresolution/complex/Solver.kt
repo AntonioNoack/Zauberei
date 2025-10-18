@@ -1,6 +1,4 @@
-package me.anno.zauberei.typeresolution
-
-import me.anno.zauberei.types.Type
+package me.anno.zauberei.typeresolution.complex
 
 class Solver {
    /* var nextVarId = 0

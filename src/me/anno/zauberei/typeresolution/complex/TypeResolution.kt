@@ -1,4 +1,4 @@
-package me.anno.zauberei.typeresolution
+package me.anno.zauberei.typeresolution.complex
 
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
@@ -102,7 +102,7 @@ object TypeResolution {
                 // todo we must have candidates...
                 //  we can use them to restrict the type
                 for (param in expr.valueParameters) {
-                    collectExprConstraints(param, knownAnyNullableType, functionReturnType)
+                    collectExprConstraints(param.value, knownAnyNullableType, functionReturnType)
                 }
             }
             is StringExpression, is NumberExpression -> {}
@@ -259,7 +259,7 @@ object TypeResolution {
             // todo constraints for setter variable...
             collectExprConstraints(field.setterExpr, knownUnitType, knownUnitType)
         }
-        for (init in scope.initialization) {
+        for (init in scope.code) {
             init.resolvedType = UnitType
             init.resolvedTypeI = knownUnitType
             collectExprConstraints(init, knownUnitType, knownUnitType)

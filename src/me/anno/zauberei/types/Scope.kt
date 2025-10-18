@@ -4,7 +4,7 @@ import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.*
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.tokenizer.TokenList
-import me.anno.zauberei.typeresolution.ResolvingType
+import me.anno.zauberei.typeresolution.complex.ResolvingType
 
 /**
  * Scope / Package / Class / Object / Interface ...
@@ -21,9 +21,12 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     val sources = ArrayList<TokenList>()
 
     val constructors = ArrayList<Constructor>()
-    val initialization = ArrayList<Expression>()
+    val code = ArrayList<Expression>()
+
     val methods = ArrayList<Method>()
     val fields = ArrayList<Field>()
+
+    var primaryConstructorScope: Scope? = null
 
     var primaryConstructorParams: List<Parameter>? = null
     var privatePrimaryConstructor = false
@@ -37,6 +40,25 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     var functionReturnType: ResolvingType? = null
 
     var typeParameters: List<Parameter> = emptyList()
+
+    fun getOrCreatePrimConstrScope(): Scope {
+        return primaryConstructorScope ?: run {
+            val scope = getOrPut("prim", ScopeType.PRIMARY_CONSTRUCTOR)
+            primaryConstructorScope = scope
+            scope
+        }
+    }
+
+    fun addField(field: Field) {
+        if (fields.any { it.name == field.name }) {
+            val other = fields.first { it.name == field.name }
+            throw IllegalStateException(
+                "Each field must only be declared once per scope, " +
+                        "${field.name} at ${TokenListIndex.resolve(field.origin)} vs ${TokenListIndex.resolve(other.origin)}"
+            )
+        }
+        fields.add(field)
+    }
 
     fun getOrPut(name: String, scopeType: ScopeType?): Scope {
 

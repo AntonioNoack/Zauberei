@@ -1,4 +1,4 @@
-package me.anno.zauberei.typeresolution
+package me.anno.zauberei.typeresolution.complex
 
 /**
  * a instanceof b (subtyping)

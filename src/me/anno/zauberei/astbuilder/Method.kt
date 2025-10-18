@@ -1,7 +1,8 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.typeresolution.ResolvingType
+import me.anno.zauberei.typeresolution.complex.ResolvingType
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 class Method(
@@ -9,7 +10,9 @@ class Method(
     var name: String?,
     val typeParameters: List<Parameter>,
     val valueParameters: List<Parameter>,
-    val returnType: Type?,
+    // todo defined constructors need this extra scope, too
+    val innerScope: Scope,
+    var returnType: Type?,
     val extraConditions: List<TypeCondition>,
     val body: Expression?,
     val keywords: List<String>,

@@ -1,16 +1,18 @@
 package me.anno.zauberei.types
 
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.typeresolution.ResolvingType
+import me.anno.zauberei.typeresolution.complex.ResolvingType
 
 class Field(
+    val declaredScope: Scope,
     val isVar: Boolean,
     val isVal: Boolean,
-    val ownerType: Type,
+    val selfType: Type?, // may be null inside methods, owner is stack, kind of
     val name: String,
     var valueType: Type?,
     val initialValue: Expression?,
-    val keywords: List<String>
+    val keywords: List<String>,
+    val origin: Int
 ) {
 
     lateinit var valueType1: ResolvingType
@@ -22,5 +24,9 @@ class Field(
 
     var setterFieldName: String = "value"
     var setterExpr: Expression? = null
+
+    init {
+        declaredScope.addField(this)
+    }
 
 }

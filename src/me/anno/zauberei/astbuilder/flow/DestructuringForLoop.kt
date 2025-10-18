@@ -10,14 +10,12 @@ fun DestructuringForLoop(
     variableNames: List<String>, iterable: Expression,
     body: Expression, label: String?
 ): Expression {
-    val fullName = scope.generateName("full")
-    val fullField = Field(false, true, scope, fullName, null, null, emptyList())
-    scope.fields.add(fullField)
-    for (varName in variableNames) {
-        val varField = Field(false, true, scope, varName, null, null, emptyList())
-        scope.fields.add(varField)
-    }
     val origin = iterable.origin
+    val fullName = scope.generateName("full")
+    Field(scope, false, true, scope, fullName, null, null, emptyList(), origin)
+    for (varName in variableNames) {
+        Field(scope, false, true, scope, varName, null, null, emptyList(), origin)
+    }
     val fullExpr = VariableExpression(fullName, origin)
     val newBody = ExpressionList(
         variableNames

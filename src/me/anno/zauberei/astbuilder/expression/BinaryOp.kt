@@ -1,12 +1,16 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.ASTBuilder
+import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.expression.constants.Constant
 import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
 import me.anno.zauberei.types.Scope
 
 private fun compareTo(left: Expression, right: Expression) =
-    NamedCallExpression(left, "compareTo", emptyList(), listOf(right), right.origin)
+    NamedCallExpression(
+        left, "compareTo", emptyList(),
+        listOf(NamedParameter(null, right)), right.origin
+    )
 
 @Suppress("IntroduceWhenSubject") // this feature is experimental, why is it recommended???
 fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: Expression): Expression {
@@ -53,11 +57,13 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
                 return AssignIfMutableExpr(left, symbol, right)
             } else if (symbol.startsWith("!")) {
                 val methodName = lookupBinaryOp(symbol.substring(1))
-                val base = NamedCallExpression(left, methodName, emptyList(), listOf(right), right.origin)
+                val param = NamedParameter(null, right)
+                val base = NamedCallExpression(left, methodName, emptyList(), listOf(param), right.origin)
                 return PrefixExpression(PrefixType.NOT, right.origin, base)
             } else {
                 val methodName = lookupBinaryOp(symbol)
-                return NamedCallExpression(left, methodName, emptyList(), listOf(right), right.origin)
+                val param = NamedParameter(null, right)
+                return NamedCallExpression(left, methodName, emptyList(), listOf(param), right.origin)
             }
         }
     }

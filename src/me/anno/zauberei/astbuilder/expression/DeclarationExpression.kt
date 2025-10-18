@@ -2,18 +2,16 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.types.Field
 import me.anno.zauberei.types.Scope
-import me.anno.zauberei.types.Type
 
 @Suppress("FunctionName")
 fun DeclarationExpression(
-    scope: Scope,
-    name: String, type: Type?, initialValue: Expression?,
-    isVar: Boolean, isLateinit: Boolean,
-    origin: Int
+    scope: Scope, name: String, initialValue: Expression?,
+    field: Field
 ): Expression {
-    val field = Field(isVar, !isVar, scope, name, type, initialValue, emptyList())
-    scope.fields.add(field)
+    val origin = field.origin
     return if (initialValue != null) {
         AssignmentExpression(VariableExpression(name, scope, field, origin), initialValue)
-    } else ExpressionList(emptyList(), origin)
+    } else {
+        ExpressionList(emptyList(), origin)
+    }
 }

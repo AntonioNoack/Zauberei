@@ -1,6 +1,6 @@
 package me.anno.zauberei.astbuilder.expression
 
-import me.anno.zauberei.typeresolution.ResolvingType
+import me.anno.zauberei.typeresolution.complex.ResolvingType
 import me.anno.zauberei.types.Type
 
 abstract class Expression(val origin: Int) {

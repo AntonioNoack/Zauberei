@@ -1,4 +1,4 @@
-package me.anno.zauberei.typeresolution
+package me.anno.zauberei.typeresolution.complex
 
 /**
  * Marker for a type which may be unknown (TypeVar) or concrete

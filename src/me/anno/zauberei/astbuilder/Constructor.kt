@@ -1,9 +1,12 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.types.Scope
 
 class Constructor(
-    val parameters: List<Parameter>,
+    val typeParameters: List<Parameter>,
+    val valueParameters: List<Parameter>,
+    val parameterScope: Scope,
     val superCall: Expression?,
     val body: Expression?,
     val keywords: List<String>,
@@ -11,7 +14,7 @@ class Constructor(
 ) : Expression(origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {
 
-        for (param in parameters) {
+        for (param in valueParameters) {
             if (param.initialValue != null)
                 callback(param.initialValue)
         }
