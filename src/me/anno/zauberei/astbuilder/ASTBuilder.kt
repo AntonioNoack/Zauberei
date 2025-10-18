@@ -93,10 +93,11 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val name = tokens.toString(i++)
         val clazz = currPackage.getOrPut(name, tokens.fileName, null)
         val keywords = packKeywords()
-        clazz.typeParameters = readTypeParameterDeclarations(clazz)
+        val typeParameters = readTypeParameterDeclarations(clazz)
+        clazz.typeParameters = typeParameters
 
-        clazz.privatePrimaryConstructor = tokens.equals(i, "private")
-        if (clazz.privatePrimaryConstructor) i++
+        val privatePrimaryConstructor = tokens.equals(i, "private")
+        if (privatePrimaryConstructor) i++
 
         readAnnotations()
 
@@ -105,8 +106,9 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             else ScopeType.NORMAL_CLASS
 
         if (tokens.equals(i, "constructor")) i++
+        val constructorOrigin = origin(i)
         val constructorParams = if (tokens.equals(i, TokenType.OPEN_CALL)) {
-            pushScope(clazz.getOrCreatePrimConstrScope()) {
+            pushScope(clazz.getOrCreatePrimConstructorScope()) {
                 val selfType = ClassType(clazz, null)
                 pushCall { readParamDeclarations(selfType) }
             }
@@ -114,7 +116,15 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
         readSuperCalls(clazz)
 
-        clazz.primaryConstructorParams = constructorParams
+        clazz.constructors.add(
+            Constructor(
+                clazz, emptyList(), constructorParams ?: emptyList(),
+                clazz.getOrCreatePrimConstructorScope(), null, null,
+                if (privatePrimaryConstructor) listOf("private") else emptyList(),
+                constructorOrigin
+            )
+        )
+
         readClassBody(name, keywords, scopeType)
         popGenericParams()
     }
@@ -426,7 +436,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         assert(tokens.equals(i, TokenType.OPEN_CALL))
         lateinit var parameters: List<Parameter>
         val clazz = currPackage
-        val scope = pushScope("constructor", ScopeType.CONSTRUCTOR_PARAMS) { scope ->
+        val innerScope = pushScope("constructor", ScopeType.CONSTRUCTOR_PARAMS) { scope ->
             val selfType = ClassType(clazz, null)
             parameters = pushCall { readParamDeclarations(selfType) }
             scope
@@ -446,7 +456,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         } else null
 
         // body (or just = expression)
-        val body = pushScope(scope) {
+        val body = pushScope(innerScope) {
             if (tokens.equals(i, "=")) {
                 i++ // skip =
                 readExpression()
@@ -456,7 +466,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         }
 
         val constructor = Constructor(
-            emptyList(), parameters, scope,
+            clazz, emptyList(), parameters, innerScope,
             superCall, body, keywords, origin
         )
         currPackage.constructors.add(constructor)
@@ -494,7 +504,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 tokens.equals(i, "val") -> readVarValInClass(false)
                 tokens.equals(i, "init") -> {
                     assert(tokens.equals(++i, TokenType.OPEN_BLOCK))
-                    pushBlock(currPackage.getOrCreatePrimConstrScope()) {
+                    pushBlock(currPackage.getOrCreatePrimConstructorScope()) {
                         readFunctionBody()
                     }
                 }

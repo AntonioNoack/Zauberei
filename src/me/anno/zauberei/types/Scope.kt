@@ -26,11 +26,6 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     val methods = ArrayList<Method>()
     val fields = ArrayList<Field>()
 
-    var primaryConstructorScope: Scope? = null
-
-    var primaryConstructorParams: List<Parameter>? = null
-    var privatePrimaryConstructor = false
-
     val superCalls = ArrayList<SuperCall>()
     val superCallNames = ArrayList<SuperCallName>()
 
@@ -41,7 +36,8 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
 
     var typeParameters: List<Parameter> = emptyList()
 
-    fun getOrCreatePrimConstrScope(): Scope {
+    var primaryConstructorScope: Scope? = null
+    fun getOrCreatePrimConstructorScope(): Scope {
         return primaryConstructorScope ?: run {
             val scope = getOrPut("prim", ScopeType.PRIMARY_CONSTRUCTOR)
             primaryConstructorScope = scope

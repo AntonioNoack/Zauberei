@@ -137,20 +137,20 @@ object TypeResolution {
                 }
             }
             is IfElseBranch -> {
-                if (expr.ifFalse != null) {
+                if (expr.elseBranch != null) {
 
-                    collectExprConstraints(expr.ifTrue, knownAnyNullableType, functionReturnType)
-                    collectExprConstraints(expr.ifFalse, knownAnyNullableType, functionReturnType)
+                    collectExprConstraints(expr.ifBranch, knownAnyNullableType, functionReturnType)
+                    collectExprConstraints(expr.elseBranch, knownAnyNullableType, functionReturnType)
                     collectExprConstraints(expr.condition, booleanType, functionReturnType)
 
                     val type = nextUnknownType()
                     expr.resolvedTypeI = type
 
-                    setSubType(type, expr.ifTrue.resolvedTypeI!!)
-                    setSubType(type, expr.ifFalse.resolvedTypeI!!)
+                    setSubType(type, expr.ifBranch.resolvedTypeI!!)
+                    setSubType(type, expr.elseBranch.resolvedTypeI!!)
                 } else {
                     // todo (type -> typeless) = type is just discarded... typeless is kind of like Any?
-                    collectExprConstraints(expr.ifTrue, typeless, functionReturnType)
+                    collectExprConstraints(expr.ifBranch, typeless, functionReturnType)
                     expr.resolvedTypeI = typeless
                 }
             }

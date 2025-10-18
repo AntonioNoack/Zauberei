@@ -4,9 +4,10 @@ import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.types.Scope
 
 class Constructor(
+    val clazz: Scope,
     val typeParameters: List<Parameter>,
     val valueParameters: List<Parameter>,
-    val parameterScope: Scope,
+    val innerScope: Scope,
     val superCall: Expression?,
     val body: Expression?,
     val keywords: List<String>,
