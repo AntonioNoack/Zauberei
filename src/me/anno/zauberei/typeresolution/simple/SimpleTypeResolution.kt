@@ -153,16 +153,21 @@ object SimpleTypeResolution {
     fun findMethod(
         scope: Scope?, recursive: Boolean, name: String,
         typeParameters: List<Type>?, valueParameters: List<ValueParameter>
-    ): Method? {
+    ): Pair<Method, List<Type>>? {
         var scope = scope
         while (scope != null) {
-            val match = scope.methods.firstOrNull {
-                it.name == name && matchesMethod(
-                    it.typeParameters,
-                    it.valueParameters,
-                    typeParameters,
-                    valueParameters
-                )
+            val match = scope.methods.firstNotNullOfOrNull { method ->
+                if (method.name == name) {
+                    val matchingGenerics = findGenericsForMatch(
+                        method.typeParameters,
+                        method.valueParameters,
+                        typeParameters,
+                        valueParameters
+                    )
+                    if (matchingGenerics != null) {
+                        method to matchingGenerics
+                    } else null
+                } else null
             }
             if (match != null) return match
             scope = if (recursive && scope.parent?.fileName == scope.fileName) {
@@ -175,16 +180,19 @@ object SimpleTypeResolution {
     fun findConstructor(
         scope: Scope?, recursive: Boolean, name: String,
         typeParameters: List<Type>?, valueParameters: List<ValueParameter>
-    ): Constructor? {
+    ): Pair<Constructor, List<Type>>? {
         var scope = scope
         while (scope != null) {
             if (scope.name == name) {
-                val match = scope.constructors.firstOrNull {
-                    matchesMethod(
-                        it.typeParameters,
-                        it.valueParameters,
+                val match = scope.constructors.firstNotNullOfOrNull { constructor ->
+                    val generics = findGenericsForMatch(
+                        constructor.typeParameters,
+                        constructor.valueParameters,
                         typeParameters, valueParameters
                     )
+                    if (generics != null) {
+                        constructor to generics
+                    } else null
                 }
                 if (match != null) return match
             }
@@ -195,16 +203,24 @@ object SimpleTypeResolution {
         return null
     }
 
-    fun matchesMethod(
+    fun findGenericsForMatch(
         methodTypeParameters: List<Parameter>,
         methodValueParameters: List<Parameter>,
         typeParameters: List<Type>?,
         valueParameters: List<ValueParameter>
-    ): Boolean {
-        // todo match names, where necessary...
-        // todo fill in varargs, where necessary...
-        // todo implement this...
-        return false
+    ): List<Type>? { // found generic values for a match
+
+        // todo first match everything by name
+        for (param in valueParameters) {
+            if (param.name == null) continue
+            val methodParam = methodValueParameters.firstOrNull { it.name == param.name }
+                ?: return null
+            // todo check that the types are compatible; if they are generics, reduce their type appropriately
+        }
+
+        // todo handle all remaining parameters by index, last one may be varargs
+
+        return null
     }
 
     // todo resolve types step by step,
