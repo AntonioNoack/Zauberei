@@ -1,7 +1,7 @@
 package me.anno.zauberei.types
 
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.typeresolution.complex.ResolvingType
+import me.anno.zauberei.typeresolution.graph.ResolvingType
 
 class Field(
     val declaredScope: Scope,

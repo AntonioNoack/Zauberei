@@ -1,6 +1,18 @@
 package me.anno.zauberei
 
+// todo out main problem is that Kotlin is beautiful,
+//  but when we use it beautifully, it's hogged down by GC,
+//  and that it inherited the bad generics/type-system from Java,
+//  and that we cannot stack-allocate anything but numbers
+
 // todo getting started with compiling a compiler is just insane, instead, compile our sample code
+// todo we can relatively easily enforce that every function and variable needs to specify its type
+// todo we could also disable fun-interfaces for now -> makes type resolution much easier
+// todo and I also dislike += being dependent on whether the variable is mutable
+
+// todo recursive functions should get markers on which variables are needed for recursion...
+//  this would allow them to switch to a heap-allocated stack, and therefore make it predictable and safe, and not store too much data
+
 
 // todo two main variable types: stack | list | tree (graph?) ?
 //  would solve memory management without GC just like Rust
@@ -11,7 +23,10 @@ package me.anno.zauberei
 
 // todo limited numbers, e.g. FiniteFloat, Int[0,100], Int[even], exiting the type throws...
 //  no throws... always handle the case immediately there...?
-
+//  typealias FiniteFloat = Float[it.isFinite()],
+//  typealias EvenInt = Int[it.and(1) == 0]
+//  typealias Percent = Int[it in 0 .. 100]
+//  typealias PercentF32 = Float[it in 0f .. 100f]
 
 
 // todo Kotlin-syntax like language

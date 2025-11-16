@@ -1,4 +1,4 @@
-package me.anno.zauberei.typeresolution.simple
+package me.anno.zauberei.typeresolution.linear
 
 class Lazy2<V>(val generator: () -> V) {
 

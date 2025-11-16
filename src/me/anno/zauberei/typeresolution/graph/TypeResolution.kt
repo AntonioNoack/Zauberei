@@ -1,4 +1,4 @@
-package me.anno.zauberei.typeresolution.complex
+package me.anno.zauberei.typeresolution.graph
 
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression

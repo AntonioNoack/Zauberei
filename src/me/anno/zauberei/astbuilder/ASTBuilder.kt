@@ -32,7 +32,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             "companion", "object", "constructor", "inline",
             "override", "abstract", "open", "final", "operator",
             "const", "lateinit", "annotation", "internal", "inner", "sealed",
-            "infix"
+            "infix", "external"
         )
 
         val paramLevelKeywords = listOf(

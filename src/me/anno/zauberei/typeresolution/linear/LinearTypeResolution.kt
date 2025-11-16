@@ -1,4 +1,4 @@
-package me.anno.zauberei.typeresolution.simple
+package me.anno.zauberei.typeresolution.linear
 
 import me.anno.zauberei.astbuilder.Constructor
 import me.anno.zauberei.astbuilder.Method
@@ -10,16 +10,16 @@ import me.anno.zauberei.astbuilder.expression.NamedCallExpression
 import me.anno.zauberei.astbuilder.expression.VariableExpression
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.WhileLoop
-import me.anno.zauberei.typeresolution.complex.TypeResolution.forEachScope
+import me.anno.zauberei.typeresolution.graph.TypeResolution.forEachScope
 import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.UnitType
 
-object SimpleTypeResolution {
+/**
+ * Resolve types step by step.
+ * */
+object LinearTypeResolution {
 
     class ValueParameter(val name: String?, val type: Type)
-
-    // done param-scope should be parent of body-scope & define params as fields
-    // todo primary constructor should be its own space for primary-constructor-parameters
 
     fun resolveTypesAndNames(root: Scope) {
         forEachScope(root, ::resolveTypesAndNamesImpl)

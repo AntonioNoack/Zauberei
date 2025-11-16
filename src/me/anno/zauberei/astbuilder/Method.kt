@@ -1,7 +1,7 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.typeresolution.complex.ResolvingType
+import me.anno.zauberei.typeresolution.graph.ResolvingType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 

@@ -14,6 +14,11 @@ class Int: Number {
     operator fun times(other: Int): Int = native("this * other")
     operator fun div(other: Int): Int = native("this / other")
     operator fun rem(other: Int): Int = native("this % other")
+
+    fun toInt(): Int = this
+    fun toLong(): Long = native("s64(this)")
+    fun toFloat(): Float = native("f32(this)")
+    fun toDouble(): Double = native("f64(this)")
 }
 
 class Long: Number {
@@ -22,6 +27,11 @@ class Long: Number {
     operator fun times(other: Long): Long = native("this * other")
     operator fun div(other: Long): Long = native("this / other")
     operator fun rem(other: Long): Long = native("this % other")
+
+    fun toInt(): Int = native("s32(this)")
+    fun toLong(): Long = this
+    fun toFloat(): Float = native("f32(this)")
+    fun toDouble(): Double = native("f64(this)")
 }
 
 class Float: Number {
@@ -30,6 +40,11 @@ class Float: Number {
     operator fun times(other: Float): Float = native("this * other")
     operator fun div(other: Float): Float = native("this / other")
     operator fun rem(other: Float): Float = native("this % other")
+
+    fun toInt(): Int = native("s32(this)")
+    fun toLong(): Long = native("s64(this)")
+    fun toFloat(): Float = this
+    fun toDouble(): Double = native("f64(this)")
 }
 
 class Double: Number {
@@ -38,4 +53,9 @@ class Double: Number {
     operator fun times(other: Double): Double = native("this * other")
     operator fun div(other: Double): Double = native("this / other")
     operator fun rem(other: Double): Double = native("this % other")
+
+    fun toInt(): Int = native("s32(this)")
+    fun toLong(): Long = native("s64(this)")
+    fun toFloat(): Float = native("f32(this)")
+    fun toDouble(): Double = this
 }

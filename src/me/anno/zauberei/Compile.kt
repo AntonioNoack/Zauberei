@@ -4,8 +4,8 @@ import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.ASTClassScanner.findNamedClasses
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
-import me.anno.zauberei.typeresolution.complex.TypeResolution
-import me.anno.zauberei.typeresolution.simple.SimpleTypeResolution
+import me.anno.zauberei.typeresolution.graph.TypeResolution
+import me.anno.zauberei.typeresolution.linear.LinearTypeResolution
 import me.anno.zauberei.types.Scope
 import java.io.File
 
@@ -122,7 +122,7 @@ object Compile {
         // 658k expressions 😲 (1µs/element at the moment)
 
         if(true){
-            SimpleTypeResolution.resolveTypesAndNames(root)
+            LinearTypeResolution.resolveTypesAndNames(root)
         } else {
             TypeResolution.resolveTypesAndNames(root)
         }
