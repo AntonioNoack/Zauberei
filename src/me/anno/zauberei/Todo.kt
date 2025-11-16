@@ -1,11 +1,25 @@
 package me.anno.zauberei
 
+// todo getting started with compiling a compiler is just insane, instead, compile our sample code
+
+// todo two main variable types: stack | list | tree (graph?) ?
+//  would solve memory management without GC just like Rust
+//  the compiler needs to keep track of what type a variable is...
+
+// todo for our sample of KMapGen2, we kind of need a multi-list...
+//  solve different types of memory management by making every class an interface? :D (absurd, but possible)
+
+// todo limited numbers, e.g. FiniteFloat, Int[0,100], Int[even], exiting the type throws...
+//  no throws... always handle the case immediately there...?
+
+
+
 // todo Kotlin-syntax like language
 //  - compiles to C/C++ and to GLSL
-//  - UTF-8 by default
+//  - UTF-8 by default -> modern Java already stores byte[] in String where valid :)
 //  - annotation to run things on the GPU @ComputeShader
 //  - nice debugging on the GPU
-//  - Rust-style enums
+//  - Rust-style enums -> TypeA|TypeB|TypeC + specifier
 //  - use stack-allocated structs where possible
 //  - support data-types as copy-by-value objects
 //  - arrays of data-types are structs of arrays
@@ -26,6 +40,8 @@ package me.anno.zauberei
 //  - easy C interop!!! (we compile to C++, so should be easy)
 //  - soft and hard generics: when generics are used, the user shall decide to create a specialized implementation,
 //     and within generics, the type shall always be available (if so desired)
+
+// todo Kotlin has a library/module problem... make them usable, understandable, ...
 
 // todo custom fixed point types, vector types, matrix types, fp16, fp80, ...
 

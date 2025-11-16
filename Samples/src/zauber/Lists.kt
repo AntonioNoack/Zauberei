@@ -1,6 +1,6 @@
 package zauber
 
-fun <V> emptyList(): List<V> = ArrayList(0)
+fun <V> emptyList(): List<V> = Array(0)
 
 interface List<V> {
     operator fun get(index: Int): V

@@ -1,13 +1,8 @@
 package zauber
 
 class Array<V>(override val size: Int) : List<V> {
-    override operator fun get(index: Int): V {
-        TODO()
-    }
-
-    operator fun set(index: Int, value: V) {
-        TODO()
-    }
+    external override operator fun get(index: Int): V
+    external operator fun set(index: Int, value: V)
 }
 
 typealias IntArray = Array<Int>

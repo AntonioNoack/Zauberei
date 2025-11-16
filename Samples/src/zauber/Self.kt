@@ -1,0 +1,4 @@
+package zauber
+
+interface Self {
+}

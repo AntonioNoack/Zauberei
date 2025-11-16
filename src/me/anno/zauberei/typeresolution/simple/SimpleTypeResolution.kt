@@ -210,7 +210,7 @@ object SimpleTypeResolution {
         valueParameters: List<ValueParameter>
     ): List<Type>? { // found generic values for a match
 
-        // todo first match everything by name
+        // first match everything by name
         for (param in valueParameters) {
             if (param.name == null) continue
             val methodParam = methodValueParameters.firstOrNull { it.name == param.name }
