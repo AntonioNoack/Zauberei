@@ -1,4 +1,6 @@
-package zauber
+package zauberKt
+
+import zauberKt.types.Self
 
 interface Number {
     operator fun plus(other: Self): Self

@@ -1,11 +1,12 @@
 package me.anno.zauberei.types
 
 import me.anno.zauberei.Compile.root
+import me.anno.zauberei.typeresolution.linear.LinearTypeResolution.langScope
 
 object Types {
 
     fun getScope(i: String): Scope {
-        if ('.' !in i) return root.getOrPut(i, null)
+        if ('.' !in i) return langScope.getOrPut(i, null)
         val parts = i.split('.')
         var scope = root
         for (part in parts) {
@@ -14,7 +15,7 @@ object Types {
         return scope
     }
 
-    fun getType(i: String) = ClassType(getScope(i), emptyList())
+    fun getType(i: String): ClassType = ClassType(getScope(i), emptyList())
 
     val AnyType = getType("Any")
     val NullableAnyType = NullableType(AnyType)
@@ -32,6 +33,7 @@ object Types {
     val ThrowableType = getType("Throwable")
     val NothingType = getType("Nothing")
     val BooleanType = getType("Boolean")
+    val ArrayType = getType("Array")
 
     // todo yes, it is Iterable<*>, but * = Nothing still feels wrong :/
     val AnyIterableType = ClassType(getScope("Iterable"), listOf(NothingType))

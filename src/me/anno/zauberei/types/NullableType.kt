@@ -1,7 +1,15 @@
 package me.anno.zauberei.types
 
-class NullableType(val base: Type) : Type() {
-    override fun toString(): String {
-        return "$base?"
+fun NullableType(base: Type): Type {
+    return when (base) {
+        is UnionType if base.types.contains(NullType) -> {
+            base
+        }
+        is UnionType -> {
+            UnionType(base.types + NullType)
+        }
+        else -> {
+            UnionType(listOf(base, NullType))
+        }
     }
 }

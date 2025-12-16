@@ -1,0 +1,3 @@
+package zauberei
+
+class OutOfMemory : Error

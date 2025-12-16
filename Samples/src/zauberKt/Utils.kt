@@ -1,4 +1,4 @@
-package zauber
+package zauberKt
 
 fun <V : Comparable<V>> V.clamp(min: V, max: V): V {
     return if (this < min) min else if (this < max) this else max
@@ -16,7 +16,7 @@ fun <V : Number> V.sq(): V {
     return this * this
 }
 
-fun <V : Number> V.pow(power: Int): V {
+fun <N : Number> N.pow(power: Int): N {
     // todo handle Int.MIN
     if (power < 0) return 1 / pow(-power)
     var result = 1
@@ -31,7 +31,7 @@ fun <V : Number> V.pow(power: Int): V {
     return result
 }
 
-fun <V : Or<Int,Long>> V.pow(power: Int): V {
+fun <N : Or4<Byte, Short, Int, Long>> N.pow(power: Int): N {
     require(power >= 0)
     var result = 1
     var multiplier = power
@@ -45,10 +45,10 @@ fun <V : Or<Int,Long>> V.pow(power: Int): V {
     return result
 }
 
-fun <V : Or<Float, Double>> atan(y: V, x: V): V {
+fun <N : Or<Float, Double>> atan(y: N, x: N): N {
     return native("atan2(y,x)")
 }
 
-fun <V : Or<Float, Double>> V.reciprocal(): V {
+fun <N : Or<Float, Double>> N.reciprocal(): N {
     return 1f / this
 }

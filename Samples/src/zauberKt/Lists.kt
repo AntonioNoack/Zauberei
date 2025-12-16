@@ -1,4 +1,4 @@
-package zauber
+package zauberKt
 
 fun <V> emptyList(): List<V> = Array(0)
 
@@ -15,7 +15,7 @@ class ArrayList<V>(capacity: Int) : MutableList<V> {
 
     val content = Array<V>(capacity)
 
-    override var size = 0
+    override var size: Int = 0
         private set
 
     override fun get(index: Int): V = content[index]

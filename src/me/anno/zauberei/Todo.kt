@@ -4,6 +4,46 @@ package me.anno.zauberei
 //  but when we use it beautifully, it's hogged down by GC,
 //  and that it inherited the bad generics/type-system from Java,
 //  and that we cannot stack-allocate anything but numbers
+//  and ideally, we'd like comp-time execution + comp-time(-only?) reflection
+
+// todo use struct only, and anything else needs to be marked as such
+// todo someone needs to be the owner...
+// todo structs cannot be modified, only cloned?? -> eliminates non-obvious side-effects, but we need life-times
+// todo Ref<Type> <- non-owning reference; struct must live shorter than owner; owner must be struct or struct-property,
+// todo GC<Type> <- gc-managed reference; can live as long as you want; should not be stacked much
+// todo RefCtr<Type> <- ref-counted reference
+// todo no stdlib auto-imports, because they are annoying; imports are aliases
+// todo Array<X> is array of structs?, MultiArray<X>=ShallowMultiArray<X> is struct of arrays?, DeepMultiArray<X> a deep version of that?
+// todo define aliases anywhere... ->
+//  and by using that, we can enforce declaring types anywhere
+// todo a type is just a way to get access to member fields and methods -> inline types, and generic functions just define their own types,
+//  casting them is done in-place
+// todo -> like in Zig, types become comptime only? we could easily support runtime types where needed...
+
+/**
+ * <> is optional, deducible;
+ * () is mandatory... -> default values??...
+ * class MyClass<comptime Type T>(T x, T y, T z) {
+ *
+ *  init {
+ *      require(...)
+ *  }
+ *
+ *  constructor() : this(0,0,0)
+ *
+ *  MyClass<u16> produce() {
+ *      T x = 0
+ *      T y = 16
+ *
+ *      return MyClass(x,y,z = x+y)
+ *      todo mandatory parameter names when it doesn't match the variable???
+ *      todo and we could make function signatures actually include the parameter name :3
+ *      todo interfaces get assigned automatically; when you want type-enhancements/compiler help, add it explicitly
+ *  }
+ * }
+ *
+ *
+ * */
 
 // todo getting started with compiling a compiler is just insane, instead, compile our sample code
 // todo we can relatively easily enforce that every function and variable needs to specify its type

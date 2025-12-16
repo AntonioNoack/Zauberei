@@ -32,4 +32,24 @@ class Method(
         }
         if (body != null) callback(body)
     }
+
+    override fun toString(): String {
+        val builder = StringBuilder()
+        builder.append("fun ")
+        if (typeParameters.isNotEmpty()) {
+            builder.append('<')
+            builder.append(typeParameters.joinToString(", ") {
+                "${it.name}: ${it.type}"
+            })
+            builder.append("> ")
+        }
+        if (selfType != null) {
+            builder.append(selfType.toString()).append('.')
+        }
+        builder.append(name)
+        builder.append('(')
+        builder.append(valueParameters.joinToString(", "))
+        builder.append(')')
+        return builder.toString()
+    }
 }

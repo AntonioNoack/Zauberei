@@ -22,14 +22,21 @@ class Tokenizer(val src: String, fileName: String) {
     val tokens = TokenList(src, fileName)
 
     fun skipSingleLineComment() {
+        check(src.startsWith("//", i))
+        val start = i
         i += 2
         while (i < n && src[i] != '\n') i++
+        if (false) tokens.add(TokenType.COMMENT, start, i)
     }
 
     fun skipBlockComment() {
+        // todo block-comments inside block-comments!
+        check(src.startsWith("/*", i))
+        val start = i
         i += 2
         while (i + 1 < n && !(src[i] == '*' && src[i + 1] == '/')) i++
         i += 2
+        if (false) tokens.add(TokenType.COMMENT, start, i)
     }
 
     fun tokenize(): TokenList {

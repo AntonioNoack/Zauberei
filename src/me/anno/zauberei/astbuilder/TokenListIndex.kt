@@ -40,7 +40,7 @@ object TokenListIndex {
         return tokenLists[idx]
     }
 
-    fun resolve(i: Int): String {
+    fun resolveOrigin(i: Int): String {
         val tl = findTokenList(i)
         return tl.err(i - tl.tliIndex)
     }

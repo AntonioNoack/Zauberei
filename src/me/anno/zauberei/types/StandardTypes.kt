@@ -1,6 +1,7 @@
 package me.anno.zauberei.types
 
 import me.anno.zauberei.Compile.root
+import me.anno.zauberei.Compile.stdlib
 
 /**
  * types, that are automatically imported into every file
@@ -8,72 +9,72 @@ import me.anno.zauberei.Compile.root
 object StandardTypes {
     val standardTypes = mapOf(
         // strings
-        "String" to "kotlin",
-        "StringBuilder" to "kotlin",
-        "CharSequence" to "kotlin",
+        "String" to stdlib,
+        "StringBuilder" to stdlib,
+        "CharSequence" to stdlib,
 
         // special types
-        "Any" to "kotlin",
-        "Nothing" to "kotlin",
-        "Unit" to "kotlin",
-        "Array" to "kotlin",
+        "Any" to stdlib,
+        "Nothing" to stdlib,
+        "Unit" to stdlib,
+        "Array" to stdlib,
 
         // util
-        "Class" to "kotlin",
-        "Enum" to "kotlin",
-        "IntRange" to "kotlin",
-        "ClosedFloatingPointRange" to "kotlin",
-        "Lazy" to "kotlin",
+        "Class" to stdlib,
+        "Enum" to stdlib,
+        "IntRange" to stdlib,
+        "ClosedFloatingPointRange" to stdlib,
+        "Lazy" to stdlib,
 
-        "Comparable" to "kotlin",
-        "Comparator" to "kotlin",
+        "Comparable" to stdlib,
+        "Comparator" to stdlib,
 
-        "Iterator" to "kotlin",
-        "ListIterator" to "kotlin",
-        "MutableIterator" to "kotlin",
-        "MutableListIterator" to "kotlin",
-        "Iterable" to "kotlin",
-        "Collection" to "kotlin",
-        "MutableCollection" to "kotlin",
+        "Iterator" to stdlib,
+        "ListIterator" to stdlib,
+        "MutableIterator" to stdlib,
+        "MutableListIterator" to stdlib,
+        "Iterable" to stdlib,
+        "Collection" to stdlib,
+        "MutableCollection" to stdlib,
 
-        "List" to "kotlin",
-        "ArrayList" to "kotlin",
-        "MutableList" to "kotlin",
+        "List" to stdlib,
+        "ArrayList" to stdlib,
+        "MutableList" to stdlib,
 
-        "IndexedValue" to "kotlin",
+        "IndexedValue" to stdlib,
 
-        "Set" to "kotlin",
-        "HashSet" to "kotlin",
-        "MutableSet" to "kotlin",
+        "Set" to stdlib,
+        "HashSet" to stdlib,
+        "MutableSet" to stdlib,
 
-        "Map" to "kotlin",
-        "HashMap" to "kotlin",
-        "MutableMap" to "kotlin",
+        "Map" to stdlib,
+        "HashMap" to stdlib,
+        "MutableMap" to stdlib,
 
-        "Annotation" to "kotlin",
-        "Suppress" to "kotlin",
-        "Deprecated" to "kotlin",
+        "Annotation" to stdlib,
+        "Suppress" to stdlib,
+        "Deprecated" to stdlib,
 
-        "Throwable" to "kotlin",
-        "Exception" to "kotlin",
-        "RuntimeException" to "kotlin",
-        "InterruptedException" to "kotlin",
-        "InstantiationException" to "kotlin",
-        "NoSuchMethodException" to "kotlin",
-        "IllegalArgumentException" to "kotlin",
-        "IllegalStateException" to "kotlin",
-        "ClassCastException" to "kotlin",
-        "Error" to "kotlin",
-        "NoClassDefFoundError" to "kotlin",
-        "ClassNotFoundException" to "kotlin",
-        "NoSuchFieldException" to "kotlin",
-        "NoSuchMethodException" to "kotlin",
-        "OutOfMemoryError" to "kotlin",
-        "IndexOutOfBoundsException" to "kotlin",
+        "Throwable" to stdlib,
+        "Exception" to stdlib,
+        "RuntimeException" to stdlib,
+        "InterruptedException" to stdlib,
+        "InstantiationException" to stdlib,
+        "NoSuchMethodException" to stdlib,
+        "IllegalArgumentException" to stdlib,
+        "IllegalStateException" to stdlib,
+        "ClassCastException" to stdlib,
+        "Error" to stdlib,
+        "NoClassDefFoundError" to stdlib,
+        "ClassNotFoundException" to stdlib,
+        "NoSuchFieldException" to stdlib,
+        "NoSuchMethodException" to stdlib,
+        "OutOfMemoryError" to stdlib,
+        "IndexOutOfBoundsException" to stdlib,
 
-        "Pair" to "kotlin",
-        "Triple" to "kotlin",
-        "Number" to "kotlin",
+        "Pair" to stdlib,
+        "Triple" to stdlib,
+        "Number" to stdlib,
 
         // util²
         "JvmField" to "kotlin.jvm",
@@ -88,24 +89,24 @@ object StandardTypes {
         "RandomAccess" to "java.util",
 
         // natives
-        "Boolean" to "kotlin",
-        "Byte" to "kotlin",
-        "Short" to "kotlin",
-        "Char" to "kotlin",
-        "Int" to "kotlin",
-        "Long" to "kotlin",
-        "Float" to "kotlin",
-        "Double" to "kotlin",
+        "Boolean" to stdlib,
+        "Byte" to stdlib,
+        "Short" to stdlib,
+        "Char" to stdlib,
+        "Int" to stdlib,
+        "Long" to stdlib,
+        "Float" to stdlib,
+        "Double" to stdlib,
 
         // native arrays
-        "BooleanArray" to "kotlin",
-        "ByteArray" to "kotlin",
-        "ShortArray" to "kotlin",
-        "CharArray" to "kotlin",
-        "IntArray" to "kotlin",
-        "LongArray" to "kotlin",
-        "FloatArray" to "kotlin",
-        "DoubleArray" to "kotlin",
+        "BooleanArray" to stdlib,
+        "ByteArray" to stdlib,
+        "ShortArray" to stdlib,
+        "CharArray" to stdlib,
+        "IntArray" to stdlib,
+        "LongArray" to stdlib,
+        "FloatArray" to stdlib,
+        "DoubleArray" to stdlib,
     ).mapValues { (name, packageName) ->
         val parts = packageName.split('.')
         var currPackage = root

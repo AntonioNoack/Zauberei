@@ -10,7 +10,7 @@ import me.anno.zauberei.typeresolution.graph.ResolvingType
  * Scope / Package / Class / Object / Interface ...
  * keywords tell you what it is
  * */
-class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
+class Scope(val name: String? = null, val parent: Scope? = null): Type() {
 
     var scopeType: ScopeType? = null
 
@@ -50,7 +50,11 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
             val other = fields.first { it.name == field.name }
             throw IllegalStateException(
                 "Each field must only be declared once per scope, " +
-                        "${field.name} at ${TokenListIndex.resolve(field.origin)} vs ${TokenListIndex.resolve(other.origin)}"
+                        "${field.name} at ${TokenListIndex.resolveOrigin(field.origin)} vs ${
+                            TokenListIndex.resolveOrigin(
+                                other.origin
+                            )
+                        }"
             )
         }
         fields.add(field)
@@ -97,6 +101,9 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
             path.reverse()
             return path
         }
+
+    val pathStr: String
+        get() = path.joinToString(".")
 
     fun resolveTypeInner(name: String): Scope? {
         if (name == this.name) return this
@@ -205,9 +212,11 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
             if (import.allChildren) {
                 // scan all of that scope
                 for (child in path.children) {
-                    if (child.name == name) return child
+                    if (child.name == name) {
+                        return child
+                    }
                 }
-            } else if (path.name == name) {
+            } else if (import.name == name) {
                 return path
             }
         }
@@ -235,6 +244,15 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
         return null
     }
 
+    fun resolveType(
+        name: String, typeParameters: List<Parameter>,
+        functionScope: Scope, astBuilder: ASTBuilder,
+    ): Type {
+        val typeParam = typeParameters.firstOrNull { it.name == name }
+        if (typeParam != null) return GenericType(functionScope, typeParam.name)
+        return resolveType(name, astBuilder)
+    }
+
     fun resolveType(name: String, astBuilder: ASTBuilder): Type {
         return resolveTypeOrNull(name, astBuilder)
             ?: throw IllegalStateException("Unresolved type '$name' in $this, children: ${children.map { it.name }}")
@@ -247,7 +265,7 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     }
 
     override fun toString(): String {
-        return "Package[${path.joinToString(".")}]"
+        return "Scope($pathStr)"
     }
 
 }

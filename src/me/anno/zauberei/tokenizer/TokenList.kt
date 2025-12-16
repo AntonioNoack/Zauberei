@@ -31,7 +31,7 @@ class TokenList(val src: String, val fileName: String) {
     ): R = push(findBlockEnd(i, openStr, closeStr), readImpl)
 
     fun findBlockEnd(i: Int, open: TokenType, close: TokenType): Int {
-        assert(equals(i, open))
+       check(equals(i, open))
         var depth = 1
         var j = i + 1
         while (depth > 0) {
@@ -69,7 +69,7 @@ class TokenList(val src: String, val fileName: String) {
     }
 
     fun findBlockEnd(i: Int, open: String, close: String): Int {
-        assert(equals(i, open))
+        check(equals(i, open))
         var depth = 1
         var j = i + 1
         while (depth > 0) {
@@ -227,14 +227,5 @@ class TokenList(val src: String, val fileName: String) {
             }
         }
         return -1
-    }
-
-    // I hate Java-asserts...
-    fun assert(c: Boolean) {
-        if (!c) throw IllegalStateException()
-    }
-
-    inline fun assert(c: Boolean, msg: () -> String) {
-        if (!c) throw IllegalStateException(msg())
     }
 }

@@ -77,11 +77,9 @@ object TypeResolution {
     }
 
     fun tryGetNonNullType(type: ResolvingType): ResolvingType {
-        return if (type is KnownType && type.type is NullableType) {
-            KnownType(type.type.base)
-        } else {
-            type
-        }
+        return if (type is KnownType && type.type is UnionType && NullType in type.type.types) {
+            KnownType(UnionType(type.type.types - NullType))
+        } else type
     }
 
     fun collectExprConstraints(expr: Expression?, targetType: ResolvingType, functionReturnType: ResolvingType?) {

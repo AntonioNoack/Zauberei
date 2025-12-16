@@ -24,6 +24,8 @@ enum class TokenType {
     CLOSE_BLOCK,
     CLOSE_ARRAY,
 
+    COMMENT
+
 
     ;
 

@@ -1,0 +1,9 @@
+package zauberei
+
+import zauberei.NativePtr
+
+object Native {
+    native fun calloc(Int64 size): NativePtr? {
+
+    }
+}

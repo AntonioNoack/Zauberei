@@ -246,7 +246,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     readClassBody(name, emptyList(), ScopeType.ENUM_ENTRY_CLASS)
                 }
 
-                val call = CallExpression(VariableExpression(name, origin), typeParams, params, origin + 1)
+                val base = VariableExpression(name, origin, this)
+                val call = CallExpression(base, typeParams, params, origin + 1)
                 currPackage.enumValues.add(call)
                 readComma()
             }
@@ -310,7 +311,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return currPackage.getOrPut(name1, tokens.fileName, ScopeType.FUNCTION)
     }
 
-    private fun readFunctionSelfType(): Type? {
+    private fun readFunctionSelfType(typeParameters: List<Parameter>, functionScope: Scope): Type? {
         return if (tokens.equals(i + 1, ".") ||
             tokens.equals(i + 1, "<") ||
             tokens.equals(i + 1, "?.")
@@ -318,7 +319,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             if (tokens.equals(i + 1, ".")) {
                 // avoid packing both type and function name into one
                 val name = tokens.toString(i++)
-                val type = currPackage.resolveType(name, this)
+                val type = currPackage.resolveType(
+                    name, typeParameters,
+                    functionScope, this,
+                )
                 assert(tokens.equals(i++, "."))
                 type
             } else {
@@ -374,7 +378,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val typeParameters = readTypeParameterDeclarations(scope)
 
         assert(tokens.equals(i, TokenType.NAME))
-        val selfType = readFunctionSelfType()
+        val selfType = readFunctionSelfType(typeParameters, scope)
 
         assert(tokens.equals(i, TokenType.NAME))
         val name = tokens.toString(i++)
@@ -452,7 +456,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
                 pushCall { readParamExpressions() }
             } else emptyList()
-            CallExpression(VariableExpression(name, origin), typeParams, params, origin + 1)
+            val base = VariableExpression(name, origin, this)
+            CallExpression(base, typeParams, params, origin + 1)
         } else null
 
         // body (or just = expression)
@@ -486,7 +491,11 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     val path = readPath()
                     val allChildren = tokens.equals(i, ".*")
                     if (allChildren) i++ // skip .* symbol
-                    imports.add(Import(path, allChildren))
+                    val name = if (!allChildren && tokens.equals(i, "as") && tokens.equals(i + 1, TokenType.NAME)) {
+                        i++
+                        tokens.toString(i++)
+                    } else path.name!!
+                    imports.add(Import(path, allChildren, name))
                 }
 
                 tokens.equals(i, "class") -> readClass()
@@ -650,6 +659,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
                     val isVar = keywords.remove("var")
                     val isVal = keywords.remove("val")
+                    val isVararg = keywords.remove("vararg")
                     assert(tokens.equals(i++, ":")) { "Expected colon in var/val at ${tokens.err(i - 1)}" }
 
                     val type = readType() // <-- handles generics now
@@ -660,7 +670,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     } else null
 
                     val keywords = packKeywords()
-                    result.add(Parameter(isVar, isVal, name, type, initialValue))
+                    result.add(Parameter(isVar, isVal, isVararg, name, type, initialValue))
                     Field(currPackage, isVar, isVal, selfType, name, type, initialValue, keywords, origin)
 
                     readComma()
@@ -718,11 +728,12 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     readType()
                 } else NullableAnyType
 
-                params.add(Parameter(false, true, name, type, null))
+                params.add(Parameter(false, true, false, name, type, null))
                 readComma()
             }
         }
         assert(tokens.equals(i++, ">")) // skip >
+        scope.typeParameters += params
         return params
     }
 
@@ -845,8 +856,11 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                         }"
                     )
                     val args = pushCall { readParamExpressions() }
-                    CallExpression(VariableExpression(namePath, origin), typeArgs, args, origin + 1)
-                } else VariableExpression(namePath, origin)
+                    val base = VariableExpression(namePath, origin, this)
+                    CallExpression(base, typeArgs, args, origin + 1)
+                } else {
+                    VariableExpression(namePath, origin, this)
+                }
             }
             tokens.equals(i, TokenType.OPEN_CALL) -> {
                 // just something in brackets
@@ -1004,16 +1018,28 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                             tokens.equals(i, "in") || tokens.equals(i, "!in") -> {
                                 val keyword = tokens.toString(i++)
                                 val value = readExpression()
-                                conditions.add(SubjectCondition(value, null, keyword))
+                                val extra = if (tokens.equals(i, "if")) {
+                                    i++
+                                    readExpression()
+                                } else null
+                                conditions.add(SubjectCondition(value, null, keyword, extra))
                             }
                             tokens.equals(i, "is") || tokens.equals(i, "!is") -> {
                                 val keyword = tokens.toString(i++)
                                 val type = readType()
-                                conditions.add(SubjectCondition(null, type, keyword))
+                                val extra = if (tokens.equals(i, "if")) {
+                                    i++
+                                    readExpression()
+                                } else null
+                                conditions.add(SubjectCondition(null, type, keyword, extra))
                             }
                             else -> {
                                 val value = readExpression()
-                                conditions.add(SubjectCondition(value, null, null))
+                                val extra = if (tokens.equals(i, "if")) {
+                                    i++
+                                    readExpression()
+                                } else null
+                                conditions.add(SubjectCondition(value, null, null, extra))
                             }
                         }
                         if (debug) println("  read condition '${conditions.last()}'")
@@ -1405,7 +1431,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                                 // +=, -=, *=, /=, ...
                                 val originI = origin(i)
                                 val symbol = tokens.toString(i++)
-                                val expr1 = VariableExpression(name, originI)
+                                val expr1 = VariableExpression(name, originI, this)
                                 val param1 = NamedParameter(null, expr1)
                                 val left = NamedCallExpression(
                                     expr, ".", null,

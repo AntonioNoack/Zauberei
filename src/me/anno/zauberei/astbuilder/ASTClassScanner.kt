@@ -76,7 +76,14 @@ object ASTClassScanner {
                                     j += 2 // skip period and name
                                 }
                                 val allChildren = tokens.equals(j, ".*")
-                                imports.add(Import(path, allChildren))
+                                val name = if (!allChildren &&
+                                    tokens.equals(j, "as") &&
+                                    tokens.equals(j + 1, TokenType.NAME)
+                                ) {
+                                    j++
+                                    tokens.toString(j++)
+                                } else path.name!!
+                                imports.add(Import(path, allChildren, name))
                             }
 
                             // tokens.equals(i, "<") -> if (listen >= 0) genericsDepth++

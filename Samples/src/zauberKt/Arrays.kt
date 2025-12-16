@@ -1,4 +1,4 @@
-package zauber
+package zauberKt
 
 class Array<V>(override val size: Int) : List<V> {
     external override operator fun get(index: Int): V

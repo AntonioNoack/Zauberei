@@ -6,7 +6,10 @@ import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.types.*
 
-class SubjectCondition(val value: Expression?, val type: Type?, val keyword: String? /* is, !is, in, !in */) {
+class SubjectCondition(
+    val value: Expression?, val type: Type?, val keyword: String? /* is, !is, in, !in */,
+    val extraCondition: Expression?
+) {
     override fun toString(): String {
         return "${if (keyword != null) "$keyword " else ""}${value ?: type}"
     }
@@ -60,10 +63,10 @@ fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: L
     val origin = subject.origin
     val subjectName = scope.generateName("subject")
     Field(
-        scope,false, true, scope, subjectName,
+        scope, false, true, scope, subjectName,
         null, subject, emptyList(), origin
     )
-    val subjectV = VariableExpression(subjectName, origin)
+    val subjectV = VariableExpression(subjectName, origin, this)
     val assignment = AssignmentExpression(subjectV, subject)
     return ExpressionList(
         listOf(

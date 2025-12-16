@@ -1,0 +1,34 @@
+package zauberei
+
+import zauberei.Native
+
+class Array<comptime Type T>(Int32 size) throws OutOfMemory {
+
+ init {
+     require(size >= 0)
+ }
+
+  NativePtr stored = size > 0 ? Native.calloc(alignOf(T) * size) : nullptr;
+
+  operator T get(Int32 index) {
+      require(index >= 0)
+      require(index < size)
+      return Native.unsafeRead(T, stored + alignOf(T) * index);
+  }
+
+  operator fun set(Int32 index, T value) {
+      require(index >= 0)
+      require(index < size)
+      Native.unsafeWrite(T, stored + alignOf(T) * index);
+  }
+  
+  replace fun resized(newSize: T): Array<T> throws OutOfMemory {
+    require(newSize >= 0);
+    NativePtr newMemory = realloc(oldPointer = stored, newSize = newSize * alignOf(T));
+    return Array<T>(size = newSize, stored = newMemory);
+  }
+
+  deconstructor() {
+      Native.free(stored);
+  }
+ }
