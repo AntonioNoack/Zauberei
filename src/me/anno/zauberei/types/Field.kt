@@ -29,4 +29,7 @@ class Field(
         declaredScope.addField(this)
     }
 
+    override fun toString(): String {
+        return "Field($selfType.$name=$initialValue)"
+    }
 }

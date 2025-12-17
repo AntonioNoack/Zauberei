@@ -68,18 +68,11 @@ fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: L
     )
     val subjectV = VariableExpression(subjectName, origin, this)
     val assignment = AssignmentExpression(subjectV, subject)
-    return ExpressionList(
-        listOf(
-            assignment,
-            WhenBranchExpression(
-                cases.map { case ->
-                    val condition =
-                        if (null !in case.conditions) case.toCondition(this, subjectV)
-                        else null
-                    WhenCase(condition, case.body)
-                },
-                origin
-            )
-        ), origin
-    )
+    val cases = cases.map { case ->
+        val condition =
+            if (null !in case.conditions) case.toCondition(this, subjectV)
+            else null
+        WhenCase(condition, case.body)
+    }
+    return ExpressionList(listOf(assignment, WhenBranchExpression(cases, origin)), origin)
 }

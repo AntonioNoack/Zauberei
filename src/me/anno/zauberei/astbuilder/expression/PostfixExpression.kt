@@ -6,13 +6,13 @@ enum class PostfixType(val symbol: String) {
     ASSERT_NON_NULL("!!")
 }
 
-class PostfixExpression(val variable: Expression, val type: PostfixType, origin: Int) : Expression(origin) {
+class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
-        callback(variable)
+        callback(base)
     }
 
     override fun toString(): String {
-        return "$variable${type.symbol}"
+        return "$base${type.symbol}"
     }
 }

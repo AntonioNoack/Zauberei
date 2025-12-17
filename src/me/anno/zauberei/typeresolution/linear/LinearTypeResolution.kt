@@ -39,10 +39,11 @@ object LinearTypeResolution {
             resolveMethodReturnType(method)
         }
         for (field in scope.fields) {
-            if (field.valueType == null) {
+            if (field.valueType == null && field.initialValue != null) {
+                println("Resolving field $field in scope ${scope.pathStr}")
                 field.valueType = resolveType(
-                    scope, field.selfType, null,
-                    field.initialValue!!, false
+                    field.declaredScope, field.selfType, null,
+                    field.initialValue, false
                 )
             }
         }
@@ -77,7 +78,7 @@ object LinearTypeResolution {
      * an expression can be
      * */
     fun resolveType(
-        scope: Scope, // 3rd
+        codeScope: Scope, // 3rd
         selfType: Type?, // 2nd
         selfScope: Scope?,
         expr: Expression,
@@ -89,7 +90,7 @@ object LinearTypeResolution {
             return alreadyResolved
         } else {
             println("Resolving type of $expr")
-            val type = resolveTypeImpl(scope, selfType, selfScope, expr, allowTypeless)
+            val type = resolveTypeImpl(codeScope, selfType, selfScope, expr, allowTypeless)
             println("Resolved type of $expr to $type")
             expr.resolvedType = type
             return type
@@ -117,12 +118,11 @@ object LinearTypeResolution {
                 println("Resolving call: ${expr.base}<${typeParameters ?: "?"}>($valueParameters)")
                 // todo base can be a constructor, field or a method
                 // todo find the best matching candidate...
-                val base = expr.base
-                when {
-                    base is NamedCallExpression && base.name == "." -> {
+                when (val base = expr.base) {
+                    is NamedCallExpression if base.name == "." -> {
                         TODO("Find method/field ${expr.base}($valueParameters)")
                     }
-                    base is VariableExpression -> {
+                    is VariableExpression -> {
                         val name = base.name
                         // findConstructor(selfScope, false, name, typeParameters, valueParameters)
                         val constructor =
@@ -172,14 +172,32 @@ object LinearTypeResolution {
             }
             is NamedCallExpression -> {
                 val baseType = resolveType(codeScope, selfType, selfScope, expr.base, allowTypeless)
-                if (expr.name == "." &&
-                    expr.valueParameters.size == 1 &&
-                    expr.valueParameters[0].value is VariableExpression
-                ) {
-                    val fieldWrapper = expr.valueParameters[0].value as VariableExpression
-                    val fieldName = fieldWrapper.name
-                    return findFieldType(baseType, fieldName)
-                        ?: throw IllegalStateException("Missing $baseType.$fieldName")
+                if (expr.name == ".") {
+                    check(expr.valueParameters.size == 1)
+                    val parameter0 = expr.valueParameters[0]
+                    check(parameter0.name == null)
+                    when (val parameter = parameter0.value) {
+                        is VariableExpression -> {
+                            val fieldName = parameter.name
+                            return findFieldType(baseType, fieldName)
+                                ?: throw IllegalStateException("Missing $baseType.$fieldName")
+                        }
+                        is CallExpression -> {
+                            val baseName = parameter.base as VariableExpression
+                            val constructor = null
+                            val baseScope = typeToScope(baseType)
+                            val valueParameters = parameter.valueParameters.map {
+                                val type = resolveType(codeScope, selfType, selfScope, it.value, allowTypeless)
+                                ValueParameter(it.name, type)
+                            }
+                            return resolveCallType(
+                                codeScope, baseType, baseScope,
+                                expr, baseName.name, constructor,
+                                parameter.typeParameters, valueParameters
+                            )
+                        }
+                        else -> TODO("dot-operator with $parameter")
+                    }
                 } else {
 
                     val calleeType = resolveType(codeScope, selfType, selfScope, expr.base, allowTypeless)
@@ -205,8 +223,21 @@ object LinearTypeResolution {
             }
             is AssignIfMutableExpr -> return UnitType
             is CheckEqualsOp -> return BooleanType
+            is PostfixExpression -> when (expr.type) {
+                PostfixType.ASSERT_NON_NULL -> {
+                    val type = resolveType(codeScope, selfType, selfScope, expr.base, allowTypeless)
+                    return removeNullFromType(type)
+                }
+                else -> TODO("Resolve type for PostfixExpression.${expr.type} in $codeScope,$selfType")
+            }
             else -> TODO("Resolve type for ${expr.javaClass} in $codeScope,$selfType")
         }
+    }
+
+    fun removeNullFromType(type: Type): Type {
+        return if (type is UnionType && NullType in type.types) {
+            UnionType(type.types - NullType)
+        } else type
     }
 
     private fun resolveCallType(
@@ -249,11 +280,21 @@ object LinearTypeResolution {
         }
         if (base is ClassType) {
             val fields = base.clazz.fields
-            val match = fields.firstOrNull {
-                it.name == name && (it.selfType == null || it.selfType == base)
+            val field = fields.firstOrNull {
+                it.name == name /*&& (it.selfType == null ||
+                        it.selfType == base ||
+                        it.selfType == base.clazz)*/
             }
-            if (match != null) {
-                return match.valueType
+            if (field != null) {
+                if (field.valueType == null) {
+                    field.valueType = resolveType(
+                        field.declaredScope,
+                        base, base.clazz,
+                        field.initialValue!!,
+                        false
+                    )
+                }
+                return field.valueType
             }
             if (base0 is NamedType && base.clazz.scopeType == ScopeType.ENUM_CLASS) {
                 val enumValues = base.clazz.enumValues
@@ -358,8 +399,8 @@ object LinearTypeResolution {
         scope: Scope?, recursive: Boolean, name: String,
         typeParameters: List<Type>?, valueParameters: List<ValueParameter>
     ): ResolvedMethod? {
-        var scope = scope
-        while (scope != null) {
+        var scope = scope ?: return null
+        while (true) {
             for (method in scope.methods) {
                 if (method.name != name) continue
                 val generics = findGenericsForMatch(
@@ -370,11 +411,14 @@ object LinearTypeResolution {
                 ) ?: continue
                 return ResolvedMethod(method, generics)
             }
-            scope = if (recursive && scope.parent?.fileName == scope.fileName) {
+            val newScope = if (recursive &&
+                scope.scopeType != ScopeType.PACKAGE &&
+                scope.scopeType != null
+            ) {
                 scope.parent
             } else null
+            scope = newScope ?: return null
         }
-        return null
     }
 
     fun findConstructor(
@@ -401,8 +445,6 @@ object LinearTypeResolution {
                     }
                 }
             }
-            // todo keep going as long as the folder is the same...
-            //  -> we should mark folders as such...
             val newScope = if (recursive &&
                 scope.scopeType != ScopeType.PACKAGE &&
                 scope.scopeType != null

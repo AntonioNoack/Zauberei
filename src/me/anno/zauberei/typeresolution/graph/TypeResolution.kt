@@ -113,24 +113,24 @@ object TypeResolution {
                 collectExprConstraints(lastExpr, targetType, functionReturnType)
             }
             is PostfixExpression -> {
-                expr.variable
-                expr.variable.resolvedTypeI
+                expr.base
+                expr.base.resolvedTypeI
                 expr.resolvedTypeI
                 when (expr.type) {
                     PostfixType.INCREMENT, PostfixType.DECREMENT -> {
                         // post-fix and contained variable will have the same type
-                        if (expr.variable.resolvedTypeI == null) {
-                            expr.variable.resolvedTypeI = expr.resolvedTypeI
-                            collectExprConstraints(expr.variable, targetType, functionReturnType)
+                        if (expr.base.resolvedTypeI == null) {
+                            expr.base.resolvedTypeI = expr.resolvedTypeI
+                            collectExprConstraints(expr.base, targetType, functionReturnType)
                         } else {
-                            collectExprConstraints(expr.variable, targetType, functionReturnType)
-                            setSameType(expr.resolvedTypeI!!, expr.variable.resolvedTypeI!!)
+                            collectExprConstraints(expr.base, targetType, functionReturnType)
+                            setSameType(expr.resolvedTypeI!!, expr.base.resolvedTypeI!!)
                         }
                     }
                     PostfixType.ASSERT_NON_NULL -> {
                         // is this good enough???
-                        collectExprConstraints(expr.variable, tryGetNonNullType(targetType), functionReturnType)
-                        setNonNull(expr.variable.resolvedTypeI!!, expr.resolvedTypeI!!)
+                        collectExprConstraints(expr.base, tryGetNonNullType(targetType), functionReturnType)
+                        setNonNull(expr.base.resolvedTypeI!!, expr.resolvedTypeI!!)
                     }
                 }
             }

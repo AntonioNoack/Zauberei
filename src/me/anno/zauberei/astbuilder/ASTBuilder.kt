@@ -1538,19 +1538,33 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                         val names = ArrayList<String>()
                         pushCall {
                             while (i < tokens.size) {
-                                if (tokens.equals(i, TokenType.NAME)) names.add(tokens.toString(i++))
-                                else throw IllegalStateException("Expected name")
+                                if (tokens.equals(i, TokenType.NAME)) {
+                                    val origin = origin(i)
+                                    val name = tokens.toString(i++)
+                                    names.add(name)
+                                    // todo we neither know type nor initial value :/, both come from the called function/set variable
+                                    Field( // this is more of a parameter...
+                                        currPackage, false, true, null, name,
+                                        null, null, emptyList(), origin
+                                    )
+                                } else throw IllegalStateException("Expected name")
                                 readComma()
                             }
                         }
                         variables.add(LambdaDestructuring(names))
                     } else if (tokens.equals(i, TokenType.NAME)) {
+                        val origin = origin(i)
                         val name = tokens.toString(i++)
                         val type = if (tokens.equals(i, ":")) {
                             i++
                             readType()
                         } else null
                         variables.add(LambdaVariable(type, name))
+                        // todo we neither know type nor initial value :/, both come from the called function/set variable
+                        Field( // this is more of a parameter...
+                            currPackage, false, true, null, name,
+                            null, null, emptyList(), origin
+                        )
                     } else throw NotImplementedError()
                     readComma()
                 }
