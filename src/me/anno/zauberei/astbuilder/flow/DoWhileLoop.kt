@@ -4,8 +4,8 @@ import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.astbuilder.expression.ExpressionList
 import me.anno.zauberei.astbuilder.expression.PrefixExpression
 import me.anno.zauberei.astbuilder.expression.PrefixType
-import me.anno.zauberei.astbuilder.expression.constants.Constant
-import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
+import me.anno.zauberei.astbuilder.expression.constants.SpecialValue
+import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
 
 @Suppress("FunctionName")
 fun DoWhileLoop(body: Expression, condition: Expression, label: String?): Expression {
@@ -16,5 +16,5 @@ fun DoWhileLoop(body: Expression, condition: Expression, label: String?): Expres
             IfElseBranch(PrefixExpression(PrefixType.NOT, origin, condition), BreakExpression(label, origin), null)
         ), origin
     )
-    return WhileLoop(ConstantExpression(Constant.TRUE, origin), newBody, label)
+    return WhileLoop(SpecialValueExpression(SpecialValue.TRUE, origin), newBody, label)
 }

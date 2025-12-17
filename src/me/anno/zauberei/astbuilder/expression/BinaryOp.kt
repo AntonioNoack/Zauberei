@@ -2,8 +2,8 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.NamedParameter
-import me.anno.zauberei.astbuilder.expression.constants.Constant
-import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
+import me.anno.zauberei.astbuilder.expression.constants.SpecialValue
+import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
 import me.anno.zauberei.types.Scope
 
 private fun compareTo(left: Expression, right: Expression) =
@@ -26,17 +26,17 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
         "::" -> {
             fun getBase(): Scope = when {
                 left is VariableExpression -> scope.resolveType(left.name, this) as Scope
-                left is ConstantExpression && left.value == Constant.THIS -> scope
+                left is SpecialValueExpression && left.value == SpecialValue.THIS -> scope
                 else -> throw NotImplementedError("GetBase($left::$right at ${tokens.err(i)})")
             }
 
             val leftIsType = left is VariableExpression && left.name[0].isUpperCase() ||
-                    left is ConstantExpression && left.value == Constant.THIS
+                    left is SpecialValueExpression && left.value == SpecialValue.THIS
             when {
-                leftIsType && right is ConstantExpression && right.value == Constant.CLASS -> {
+                leftIsType && right is SpecialValueExpression && right.value == SpecialValue.CLASS -> {
                     GetClassFromTypeExpression(getBase(), left.origin)
                 }
-                right is ConstantExpression && right.value == Constant.CLASS -> {
+                right is SpecialValueExpression && right.value == SpecialValue.CLASS -> {
                     GetClassFromValueExpression(left, right.origin)
                 }
                 leftIsType && right is VariableExpression -> {
@@ -54,16 +54,16 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
                 // todo oh no, to know whether this is mutable or not,
                 //  we have to know all types, because left may be really complicated,
                 //  e.g. a["5",3].x()() += 17
-                return AssignIfMutableExpr(left, symbol, right)
+                AssignIfMutableExpr(left, symbol, right)
             } else if (symbol.startsWith("!")) {
                 val methodName = lookupBinaryOp(symbol.substring(1))
                 val param = NamedParameter(null, right)
                 val base = NamedCallExpression(left, methodName, emptyList(), listOf(param), right.origin)
-                return PrefixExpression(PrefixType.NOT, right.origin, base)
+                PrefixExpression(PrefixType.NOT, right.origin, base)
             } else {
                 val methodName = lookupBinaryOp(symbol)
                 val param = NamedParameter(null, right)
-                return NamedCallExpression(left, methodName, emptyList(), listOf(param), right.origin)
+                NamedCallExpression(left, methodName, emptyList(), listOf(param), right.origin)
             }
         }
     }

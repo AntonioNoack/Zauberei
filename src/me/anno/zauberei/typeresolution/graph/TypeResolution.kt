@@ -1,7 +1,7 @@
 package me.anno.zauberei.typeresolution.graph
 
 import me.anno.zauberei.astbuilder.expression.*
-import me.anno.zauberei.astbuilder.expression.constants.ConstantExpression
+import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
 import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
 import me.anno.zauberei.astbuilder.expression.constants.StringExpression
 import me.anno.zauberei.astbuilder.flow.*
@@ -182,7 +182,7 @@ object TypeResolution {
             is BinaryTypeOp -> {
                 // todo conditions...
             }
-            is ConstantExpression -> {
+            is SpecialValueExpression -> {
                 // todo conditions...
             }
             is WhileLoop -> {

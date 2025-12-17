@@ -3,6 +3,9 @@ package me.anno.zauberei.astbuilder.expression
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.types.Type
 
+/**
+ * Calls base<typeParams>(valueParams)
+ * */
 class CallExpression(
     val base: Expression, val typeParameters: List<Type>?,
     val valueParameters: List<NamedParameter>,

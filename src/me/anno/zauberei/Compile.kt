@@ -2,6 +2,8 @@ package me.anno.zauberei
 
 import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.ASTClassScanner.findNamedClasses
+import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.generator.c.CSourceGenerator
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
 import me.anno.zauberei.typeresolution.graph.TypeResolution
@@ -123,14 +125,13 @@ object Compile {
 
         // 658k expressions 😲 (1µs/element at the moment)
 
-        if(true){
-            LinearTypeResolution.resolveTypesAndNames(root)
-        } else {
-            TypeResolution.resolveTypesAndNames(root)
-        }
+        LinearTypeResolution.resolveTypesAndNames(root)
 
         val t4 = System.nanoTime()
+        println("Num Expressions: ${Expression.counter}")
         println("Took ${(t4 - t3) * 1e-6f} ms Resolving Types")
+
+        CSourceGenerator.generateCode(File("./out/c"), root)
     }
 
     fun printPackages(root: Scope, depth: Int) {

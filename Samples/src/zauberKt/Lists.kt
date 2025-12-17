@@ -13,6 +13,9 @@ interface MutableList<V> : List<V> {
 
 class ArrayList<V>(capacity: Int) : MutableList<V> {
 
+    // todo implement inserting constructors and methods from parameters with default values
+    constructor(): this(16)
+
     val content = Array<V>(capacity)
 
     override var size: Int = 0

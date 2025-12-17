@@ -23,4 +23,8 @@ class Constructor(
         if (superCall != null) callback(superCall)
         if (body != null) callback(body)
     }
+
+    override fun toString(): String {
+        return "new ${clazz.pathStr}<${typeParameters}>($valueParameters) { ... }"
+    }
 }

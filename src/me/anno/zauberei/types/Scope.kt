@@ -2,6 +2,7 @@ package me.anno.zauberei.types
 
 import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.*
+import me.anno.zauberei.astbuilder.expression.CallExpression
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.typeresolution.graph.ResolvingType
@@ -10,7 +11,7 @@ import me.anno.zauberei.typeresolution.graph.ResolvingType
  * Scope / Package / Class / Object / Interface ...
  * keywords tell you what it is
  * */
-class Scope(val name: String? = null, val parent: Scope? = null): Type() {
+class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
 
     var scopeType: ScopeType? = null
 
@@ -29,7 +30,7 @@ class Scope(val name: String? = null, val parent: Scope? = null): Type() {
     val superCalls = ArrayList<SuperCall>()
     val superCallNames = ArrayList<SuperCallName>()
 
-    val enumValues = ArrayList<Expression>()
+    val enumValues = ArrayList<EnumEntry>()
     var typeAlias: Type? = null
 
     var functionReturnType: ResolvingType? = null
@@ -49,7 +50,7 @@ class Scope(val name: String? = null, val parent: Scope? = null): Type() {
         if (fields.any { it.name == field.name }) {
             val other = fields.first { it.name == field.name }
             throw IllegalStateException(
-                "Each field must only be declared once per scope, " +
+                "Each field must only be declared once per scope [$pathStr], " +
                         "${field.name} at ${TokenListIndex.resolveOrigin(field.origin)} vs ${
                             TokenListIndex.resolveOrigin(
                                 other.origin
@@ -71,10 +72,7 @@ class Scope(val name: String? = null, val parent: Scope? = null): Type() {
         var child = children.firstOrNull { it.name == name }
         if (child != null) {
             if (child.fileName == null) child.fileName = fileName
-            if (scopeType != null) {
-                if (child.scopeType == null || child.scopeType == scopeType) child.scopeType = scopeType
-                else throw IllegalStateException("ScopeType conflict! ${child.scopeType} vs $scopeType")
-            }
+            child.mergeScopeTypes(scopeType)
             return child
         }
 
@@ -82,6 +80,14 @@ class Scope(val name: String? = null, val parent: Scope? = null): Type() {
         child.scopeType = scopeType
         children.add(child)
         return child
+    }
+
+    fun mergeScopeTypes(scopeType: ScopeType?) {
+        val self = this
+        if (scopeType != null) {
+            if (self.scopeType == null || self.scopeType == scopeType) self.scopeType = scopeType
+            else throw IllegalStateException("ScopeType conflict! ${self.scopeType} vs $scopeType")
+        }
     }
 
     fun getOrPut(name: String, fileName: String, scopeType: ScopeType?): Scope {
@@ -267,5 +273,4 @@ class Scope(val name: String? = null, val parent: Scope? = null): Type() {
     override fun toString(): String {
         return "Scope($pathStr)"
     }
-
 }

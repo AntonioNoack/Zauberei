@@ -6,7 +6,11 @@ class UnionType(val types: List<Type>) : Type() {
     }
 
     companion object {
-        fun unionTypes(typeA: Type, typeB: Type): UnionType {
+        /**
+         * OR
+         * */
+        fun unionTypes(typeA: Type, typeB: Type): Type {
+            if (typeA == typeB) return typeA
             return UnionType((getTypes(typeA) + getTypes(typeB)).distinct())
         }
 

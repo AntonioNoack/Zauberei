@@ -21,6 +21,8 @@ object Types {
     val NullableAnyType = NullableType(AnyType)
     val UnitType = getType("Unit")
     val CharType = getType("Char")
+    val ByteType = getType("Byte")
+    val ShortType = getType("Short")
     val IntType = getType("Int")
     val LongType = getType("Long")
     val FloatType = getType("Float")

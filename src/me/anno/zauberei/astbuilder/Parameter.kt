@@ -10,7 +10,8 @@ class Parameter(
     val isVararg: Boolean,
     val name: String,
     val type: Type,
-    val initialValue: Expression?
+    val initialValue: Expression?,
+    val origin: Int
 ) {
 
     lateinit var typeI: KnownType

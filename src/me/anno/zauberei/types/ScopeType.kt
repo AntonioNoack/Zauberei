@@ -15,5 +15,7 @@ enum class ScopeType {
     FIELD_SETTER,
     LAMBDA,
     WHEN_CASES,
-    EXPRESSION
+    EXPRESSION,
+    PACKAGE,
+    TYPE_ALIAS
 }

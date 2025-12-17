@@ -55,7 +55,6 @@ object ASTClassScanner {
 
                     if (depth == 0) {
                         when {
-
                             tokens.equals(i, "package") && listening.size == 1 -> {
                                 var j = i + 1
                                 assert(tokens.equals(j, TokenType.NAME))
@@ -66,7 +65,6 @@ object ASTClassScanner {
                                 }
                                 currPackage = path
                             }
-
                             tokens.equals(i, "import") && listening.size == 1 -> {
                                 var j = i + 1
                                 assert(tokens.equals(j, TokenType.NAME))

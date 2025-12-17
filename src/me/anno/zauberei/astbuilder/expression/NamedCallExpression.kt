@@ -6,23 +6,31 @@ import me.anno.zauberei.types.Type
 class NamedCallExpression(
     val base: Expression,
     val name: String,
-    val typeParams: List<Type>?,
-    val params: List<NamedParameter>,
+    val typeParameters: List<Type>?,
+    val valueParameters: List<NamedParameter>,
     origin: Int
 ) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)
-        for (i in params.indices) {
-            callback(params[i].value)
+        for (i in valueParameters.indices) {
+            callback(valueParameters[i].value)
         }
     }
 
     override fun toString(): String {
-        return if (typeParams == null) {
-            "($base).$name($params)"
+        return if (
+            typeParameters.isNullOrEmpty() && name == "." &&
+            valueParameters.size == 1 &&
+            valueParameters[0].value is VariableExpression
+        ) {
+            if (base is VariableExpression) {
+                "$base.${valueParameters[0].value}"
+            } else {
+                "($base).${valueParameters[0].value}"
+            }
         } else {
-            "($base).$name<${typeParams.joinToString()}>($params)"
+            "($base).$name<${typeParameters ?: "?"}>($valueParameters)"
         }
     }
 }

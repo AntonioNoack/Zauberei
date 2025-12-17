@@ -7,8 +7,6 @@ import me.anno.zauberei.astbuilder.expression.Expression
  * */
 class NamedParameter(val name: String?, val value: Expression) {
     override fun toString(): String {
-        return if (name != null) {
-            "$name=$value"
-        } else value.toString()
+        return if (name != null) "$name=$value" else "$value"
     }
 }

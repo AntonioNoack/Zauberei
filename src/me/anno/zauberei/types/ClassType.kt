@@ -6,7 +6,8 @@ class ClassType(val clazz: Scope, val typeArgs: List<Type>?, val subType: Type? 
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is ClassType && clazz == other.clazz &&
+        return other is ClassType &&
+                clazz == other.clazz &&
                 typeArgs == other.typeArgs &&
                 subType == other.subType
     }
