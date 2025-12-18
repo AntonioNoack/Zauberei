@@ -1,5 +1,11 @@
 package me.anno.zauberei.generator.c
 
+import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.astbuilder.expression.ExpressionList
+import me.anno.zauberei.astbuilder.expression.VariableExpression
+import me.anno.zauberei.astbuilder.flow.IfElseBranch
+import me.anno.zauberei.astbuilder.flow.ReturnExpression
+import me.anno.zauberei.astbuilder.flow.WhileLoop
 import me.anno.zauberei.types.ClassType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
@@ -13,7 +19,19 @@ object CSourceGenerator {
 
     // todo we need .h and .c files...
 
-    fun getName(scope: Scope): String = scope.path.joinToString("_")
+    fun getName(scope: Scope?): String {
+        scope ?: return "void /*???*/"
+        return scope.path.joinToString("_")
+            .replace("\$f:", "M_")
+    }
+
+    fun getName(scope: Type?): String {
+        return when (scope) {
+            is ClassType -> getName(scope.clazz)
+            null, is Scope -> getName(scope)
+            else -> "void /* $scope */"
+        }
+    }
 
     val builder = StringBuilder()
 
@@ -34,9 +52,6 @@ object CSourceGenerator {
                         builder.append("// package ").append(scope.name).append('\n')
                         depth++
                     }
-                    for (child in scope.children) {
-                        generateCode(child)
-                    }
                     if (scope.name != "*") depth--
                 }
                 ScopeType.NORMAL_CLASS, ScopeType.ENUM_CLASS, ScopeType.INTERFACE, ScopeType.OBJECT -> {
@@ -44,12 +59,17 @@ object CSourceGenerator {
                     writeClassInstanceStruct(scope)
                 }
                 ScopeType.TYPE_ALIAS -> {} // nothing to do
+                ScopeType.METHOD -> {
+                    writeMethod(scope)
+                }
                 else -> {
                     indent()
                     builder.append("// todo: ").append(scope.name).append(" (${scope.scopeType})").append('\n')
                 }
             }
-            // todo write all methods...
+            for (child in scope.children) {
+                generateCode(child)
+            }
         }
 
         generateCode(root)
@@ -59,65 +79,166 @@ object CSourceGenerator {
         dstFile.writeText(builder.toString())
     }
 
-    fun writeClassReflectionStruct(scope: Scope) {
+    fun open() {
         indent()
-        builder.append("struct ").append(getName(scope)).append("_Class {\n")
         depth++
+    }
 
-        // super class as a field
-        for (parent in scope.superCalls) {
-            // todo make them structs??? can already have resolved methods
-            // todo include all to-be-resolved (open/interface) methods
-            val pt = parent.type as ClassType
-            indent()
-            builder.append("struct ").append(getName(pt.clazz)).append("_Class super").append(pt.clazz.name)
-                .append(";\n")
-        }
-
+    fun close() {
         depth--
         indent()
+    }
+
+    fun block(run: () -> Unit) {
+        open()
+        run()
+        close()
         builder.append("}\n")
     }
 
-    fun writeClassInstanceStruct(scope: Scope) {
-        indent()
-        builder.append("struct ").append(getName(scope)).append(" {\n")
-        depth++
+    fun writeMethod(scope: Scope) {
+        block {
+            val self = scope.selfAsMethod!!
+            val returnType = self.returnType
 
-        // super class as a field
-        for (parent in scope.superCalls) {
-            // only primary super instance is needed, the rest should be put into Class
-            if (parent.params == null) continue
-            val pt = parent.type as ClassType
-            indent()
-            builder.append("struct ").append(getName(pt.clazz)).append(" super").append(pt.clazz.name)
-                .append(";\n")
-        }
+            builder.append("struct ").append(getName(returnType))
+            builder.append(if (returnType.isValueType()) " " else "* ")
+            builder.append(getName(scope)).append("(")
 
-        // todo append proper type...
-        for (field in scope.fields) {
-            // if (field.selfType != null) continue
+            // todo append context parameters, e.g. self
 
+            depth++
+            builder.append("\n")
             indent()
             builder.append("struct ")
-            val type = field.valueType
-            when (type) {
-                is ClassType -> builder.append(getName(type.clazz))
-                is Scope -> builder.append(getName(type))
-                null -> builder.append("void /* null */")
-                else -> builder.append("void /* $type */")
+                .append(getName(scope.parent))
+                .append("* ")
+                .append("__this")
+
+            for (param in self.valueParameters) {
+                if (!builder.endsWith("(")) builder.append(", ")
+                builder.append("\n")
+                indent()
+                builder.append("struct ")
+                    .append(getName(param.type))
+                    .append(if (param.type.isValueType()) " " else "* ")
+                    .append(param.name)
             }
-            if (!type.isValueType()) {
-                builder.append("* ")
-            } else builder.append(' ')
-            builder.append(field.name).append(";\n")
+            depth--
+
+            builder.append(") {\n")
+
+            fun writeExpr(expr: Expression, needsValue: Boolean) {
+                when (expr) {
+                    is IfElseBranch -> {
+                        block {
+                            builder.append(if (needsValue) "(" else "if (")
+                            writeExpr(expr.condition, true)
+                            builder.append(if (needsValue) ")" else ") {\n")
+                            indent()
+                            writeExpr(expr.ifBranch, needsValue)
+                            if (expr.elseBranch != null) {
+                                builder.append(if (needsValue) ") : (" else "} else {\n")
+                                indent()
+                                writeExpr(expr.elseBranch, needsValue)
+                                if (needsValue) builder.append(")")
+                            }
+                        }
+                    }
+                    is WhileLoop -> {
+                        block {
+                            builder.append("while (")
+                            writeExpr(expr.condition, true)
+                            builder.append(") {\n")
+                            indent()
+                            writeExpr(expr.body, false)
+                        }
+                    }
+                    is ExpressionList -> {
+                        // check(!needsValue) // todo if needs value, we somehow need to extract the last one...
+                        for (entry in expr.list) {
+                            builder.append("\n")
+                            indent()
+                            writeExpr(entry, needsValue)
+                        }
+                    }
+                    is ReturnExpression -> {
+                        val value = expr.value
+                        if (value != null) {
+                            builder.append("return ")
+                            writeExpr(value, true)
+                            builder.append(";\n")
+                        } else {
+                            builder.append("return;\n")
+                        }
+                    }
+                    is VariableExpression -> {
+                        builder.append(expr.name)
+                    }
+                    else -> {
+                        RuntimeException(" Write ${expr.javaClass}: $expr")
+                            .printStackTrace()
+                        builder.append("/* $expr */")
+                    }
+                }
+            }
+
+            val body = self.body
+            if (body != null) {
+                writeExpr(body, false)
+            }
+
         }
+    }
 
-        // todo interfaces as fields
+    fun writeClassReflectionStruct(scope: Scope) {
+        block {
+            builder.append("struct ").append(getName(scope)).append("_Class {\n")
 
-        depth--
-        indent()
-        builder.append("}\n")
+            // super class as a field
+            for (parent in scope.superCalls) {
+                // todo make them structs??? can already have resolved methods
+                // todo include all to-be-resolved (open/interface) methods
+                val pt = parent.type as ClassType
+                indent()
+                builder.append("struct ").append(getName(pt.clazz)).append("_Class super").append(pt.clazz.name)
+                    .append(";\n")
+            }
+        }
+    }
+
+    fun writeClassInstanceStruct(scope: Scope) {
+        block {
+            builder.append("struct ").append(getName(scope)).append(" {\n")
+
+            // super class as a field
+            for (parent in scope.superCalls) {
+                // only primary super instance is needed, the rest should be put into Class
+                if (parent.params == null) continue
+                val pt = parent.type as ClassType
+                indent()
+                builder.append("struct ").append(getName(pt.clazz)).append(" superStruct;\n")
+            }
+
+            // todo append proper type...
+            for (field in scope.fields) {
+                // if (field.selfType != null) continue
+
+                indent()
+                builder.append("struct ")
+                val type = field.valueType
+                when (type) {
+                    is ClassType -> builder.append(getName(type.clazz))
+                    is Scope -> builder.append(getName(type))
+                    null -> builder.append("void /* null */")
+                    else -> builder.append("void /* $type */")
+                }
+                builder.append(if (type.isValueType()) " " else "* ")
+                builder.append(field.name).append(";\n")
+            }
+
+            // todo interfaces as fields
+        }
     }
 
     // todo "value" should also be a property for fields to embed them into the class
