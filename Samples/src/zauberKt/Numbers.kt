@@ -10,7 +10,7 @@ interface Number {
     operator fun rem(other: Self): Self
 }
 
-class Int: Number {
+value class Int: Number {
     operator fun plus(other: Int): Int = native("this + other")
     operator fun minus(other: Int): Int = native("this - other")
     operator fun times(other: Int): Int = native("this * other")
@@ -23,7 +23,7 @@ class Int: Number {
     fun toDouble(): Double = native("f64(this)")
 }
 
-class Long: Number {
+value class Long: Number {
     operator fun plus(other: Long): Long = native("this + other")
     operator fun minus(other: Long): Long = native("this - other")
     operator fun times(other: Long): Long = native("this * other")
@@ -36,7 +36,7 @@ class Long: Number {
     fun toDouble(): Double = native("f64(this)")
 }
 
-class Float: Number {
+value class Float: Number {
     operator fun plus(other: Float): Float = native("this + other")
     operator fun minus(other: Float): Float = native("this - other")
     operator fun times(other: Float): Float = native("this * other")
@@ -49,7 +49,7 @@ class Float: Number {
     fun toDouble(): Double = native("f64(this)")
 }
 
-class Double: Number {
+value class Double: Number {
     operator fun plus(other: Double): Double = native("this + other")
     operator fun minus(other: Double): Double = native("this - other")
     operator fun times(other: Double): Double = native("this * other")

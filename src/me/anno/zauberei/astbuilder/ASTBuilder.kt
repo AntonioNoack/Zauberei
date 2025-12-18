@@ -9,6 +9,7 @@ import me.anno.zauberei.astbuilder.flow.*
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.TokenType
 import me.anno.zauberei.types.*
+import me.anno.zauberei.types.Types.AnyType
 import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.Types.UnitType
@@ -29,7 +30,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
     companion object {
         val fileLevelKeywords = listOf(
-            "enum", "private", "protected", "fun", "class", "data",
+            "enum", "private", "protected", "fun", "class", "data", "value",
             "companion", "object", "constructor", "inline",
             "override", "abstract", "open", "final", "operator",
             "const", "lateinit", "annotation", "internal", "inner", "sealed",
@@ -115,7 +116,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             }
         } else null
 
-        readSuperCalls(clazz)
+        val needsSuperCall = clazz != AnyType.clazz
+        readSuperCalls(clazz, needsSuperCall)
 
         if (constructorParams != null) {
             val prim = clazz.getOrCreatePrimConstructorScope()
@@ -161,7 +163,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val keywords = packKeywords()
         clazz.typeParameters = readTypeParameterDeclarations(clazz)
 
-        readSuperCalls(clazz)
+        readSuperCalls(clazz, false)
         readClassBody(name, keywords, ScopeType.INTERFACE)
         popGenericParams()
     }
@@ -181,11 +183,11 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         keywords.add("object")
         val keywords = packKeywords()
 
-        readSuperCalls(currPackage.getOrPut(name, tokens.fileName, ScopeType.OBJECT))
+        readSuperCalls(currPackage.getOrPut(name, tokens.fileName, ScopeType.OBJECT), true)
         readClassBody(name, keywords, ScopeType.OBJECT)
     }
 
-    private fun readSuperCalls(clazz: Scope) {
+    private fun readSuperCalls(clazz: Scope, needsEntry: Boolean) {
         if (tokens.equals(i, ":")) {
             i++ // skip :
             var endIndex = findEndOfSuperCalls(i)
@@ -197,6 +199,9 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 }
             }
             i = endIndex // index of {
+        }
+        if (needsEntry && clazz.superCalls.isEmpty()) {
+            clazz.superCalls.add(SuperCall(AnyType, emptyList(), null))
         }
     }
 

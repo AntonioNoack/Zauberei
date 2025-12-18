@@ -160,7 +160,8 @@ object LinearTypeResolution {
                 }
             }
             is VariableExpression -> {
-                val field = findField(codeScope, selfType, expr.name)
+                val field = findField(codeScope, selfScope, expr.name)
+                    ?: findField(langScope, selfScope, expr.name)
                 if (field != null) return resolveFieldType(field)
                 val type = findType(codeScope, selfType, expr.name)
                 if (type != null) return NamedType(type)
@@ -185,6 +186,7 @@ object LinearTypeResolution {
             is SpecialValueExpression -> {
                 return when (expr.value) {
                     SpecialValue.NULL -> NullType
+                    SpecialValue.TRUE, SpecialValue.FALSE -> BooleanType
                     SpecialValue.THIS -> {
                         // todo 'this' might have a label, and then means the parent with that name
                         resolveThisType(typeToScope(selfType) ?: codeScope)

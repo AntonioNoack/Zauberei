@@ -6,7 +6,6 @@ import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.generator.c.CSourceGenerator
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
-import me.anno.zauberei.typeresolution.graph.TypeResolution
 import me.anno.zauberei.typeresolution.linear.LinearTypeResolution
 import me.anno.zauberei.types.Scope
 import java.io.File
@@ -123,12 +122,16 @@ object Compile {
 
         if (false) printPackages(root, 0)
 
-        // 658k expressions 😲 (1µs/element at the moment)
+        // todo we should expand all methods with default-values here
 
         LinearTypeResolution.resolveTypesAndNames(root)
 
+        // todo all types are resolved now, so we should create "instantiate" all generic types
+        //  to reduce type/traversal complexity (comptime gets "compiled")
+
         val t4 = System.nanoTime()
         println("Num Expressions: ${Expression.counter}")
+        // 658k expressions 😲 (1µs/element at the moment)
         println("Took ${(t4 - t3) * 1e-6f} ms Resolving Types")
 
         CSourceGenerator.generateCode(File("./out/c"), root)
