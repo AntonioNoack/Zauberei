@@ -2,7 +2,6 @@ package me.anno.zauberei.types
 
 import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.*
-import me.anno.zauberei.astbuilder.expression.CallExpression
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.typeresolution.graph.ResolvingType
@@ -11,7 +10,7 @@ import me.anno.zauberei.typeresolution.graph.ResolvingType
  * Scope / Package / Class / Object / Interface ...
  * keywords tell you what it is
  * */
-class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
+class Scope(val name: String, val parent: Scope? = null) : Type() {
 
     var scopeType: ScopeType? = null
 
@@ -33,9 +32,11 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
     val enumValues = ArrayList<EnumEntry>()
     var typeAlias: Type? = null
 
+    var selfAsMethod: Method? = null
     var functionReturnType: ResolvingType? = null
 
     var typeParameters: List<Parameter> = emptyList()
+    var imports: List<Import2> = emptyList()
 
     var primaryConstructorScope: Scope? = null
     fun getOrCreatePrimConstructorScope(): Scope {
@@ -101,8 +102,9 @@ class Scope(val name: String? = null, val parent: Scope? = null) : Type() {
             val path = ArrayList<String>()
             var that = this
             while (true) {
-                if (that.name != null) path.add(that.name)
-                that = that.parent ?: break
+                if (that.name == "*") break
+                path.add(that.name)
+                that = that.parent!!
             }
             path.reverse()
             return path

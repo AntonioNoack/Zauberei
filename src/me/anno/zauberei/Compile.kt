@@ -41,7 +41,7 @@ object Compile {
 
     val stdlib = "zauberKt"
 
-    val root = Scope()
+    val root = Scope("*")
 
     val sources = ArrayList<TokenList>()
 

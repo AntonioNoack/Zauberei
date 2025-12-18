@@ -313,10 +313,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         assert(tokens.equals(j, TokenType.NAME))
         val name = tokens.toString(j)
         val name1 = currPackage.generateName("f:$name")
-        return currPackage.getOrPut(name1, tokens.fileName, ScopeType.FUNCTION)
+        return currPackage.getOrPut(name1, tokens.fileName, ScopeType.METHOD)
     }
 
-    private fun readFunctionSelfType(typeParameters: List<Parameter>, functionScope: Scope): Type? {
+    private fun readMethodSelfType(typeParameters: List<Parameter>, functionScope: Scope): Type? {
         return if (tokens.equals(i + 1, ".") ||
             tokens.equals(i + 1, "<") ||
             tokens.equals(i + 1, "?.")
@@ -372,18 +372,18 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         } else emptyList()
     }
 
-    private fun readFunction(): Method {
+    private fun readMethod(): Method {
         val origin = origin(i++) // skip 'fun'
 
         val keywords = packKeywords()
 
         // parse optional <T, U>
         val clazz = currPackage
-        val scope = skipTypeParametersToFindFunctionNameAndScope()
-        val typeParameters = readTypeParameterDeclarations(scope)
+        val methodScope = skipTypeParametersToFindFunctionNameAndScope()
+        val typeParameters = readTypeParameterDeclarations(methodScope)
 
         assert(tokens.equals(i, TokenType.NAME))
-        val selfType = readFunctionSelfType(typeParameters, scope)
+        val selfType = readMethodSelfType(typeParameters, methodScope)
 
         assert(tokens.equals(i, TokenType.NAME))
         val name = tokens.toString(i++)
@@ -394,7 +394,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         assert(tokens.equals(i, TokenType.OPEN_CALL))
 
         lateinit var parameters: List<Parameter>
-        pushScope(scope) {
+        pushScope(methodScope) {
             parameters = pushCall {
                 val selfType = ClassType(clazz, null)
                 readParamDeclarations(selfType)
@@ -410,13 +410,13 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val extraConditions = readWhereConditions()
 
         // body (or just = expression)
-        val body = pushScope(scope) {
+        val body = pushScope(methodScope) {
             if (tokens.equals(i, "=")) {
                 i++ // skip =
                 readExpression()
             } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
                 if (returnType == null) returnType = UnitType
-                pushBlock(ScopeType.FUNCTION, scope.name) { readFunctionBody() }
+                pushBlock(ScopeType.METHOD_BODY, methodScope.name) { readMethodBody() }
             } else {
                 if (returnType == null) returnType = UnitType
                 null
@@ -426,9 +426,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         popGenericParams()
 
         val method = Method(
-            selfType, name, typeParameters, parameters, scope,
+            selfType, name, typeParameters, parameters, methodScope,
             returnType, extraConditions, body, keywords, origin
         )
+        methodScope.selfAsMethod = method
         currPackage.methods.add(method)
         return method
     }
@@ -471,7 +472,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 i++ // skip =
                 readExpression()
             } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
-                pushBlock(ScopeType.CONSTRUCTOR, null) { readFunctionBody() }
+                pushBlock(ScopeType.CONSTRUCTOR, null) { readMethodBody() }
             } else null
         }
 
@@ -500,8 +501,16 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     val name = if (!allChildren && tokens.equals(i, "as") && tokens.equals(i + 1, TokenType.NAME)) {
                         i++
                         tokens.toString(i++)
-                    } else path.name!!
+                    } else path.name
+
                     imports.add(Import(path, allChildren, name))
+                    if (allChildren) {
+                        for (child in path.children) {
+                            currPackage.imports += Import2(child.name, child, false)
+                        }
+                    } else {
+                        currPackage.imports += Import2(name, path, true)
+                    }
                 }
 
                 tokens.equals(i, "class") -> readClass()
@@ -510,7 +519,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     if (tokens.equals(i + 1, "interface")) {
                         keywords.add("fun"); i++
                         readInterface()
-                    } else readFunction()
+                    } else readMethod()
                 }
                 tokens.equals(i, "interface") -> readInterface()
                 tokens.equals(i, "constructor") -> readConstructor()
@@ -520,7 +529,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 tokens.equals(i, "init") -> {
                     assert(tokens.equals(++i, TokenType.OPEN_BLOCK))
                     pushBlock(currPackage.getOrCreatePrimConstructorScope()) {
-                        readFunctionBody()
+                        readMethodBody()
                     }
                 }
 
@@ -545,7 +554,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                         }
                         tokens.equals(i, TokenType.OPEN_BLOCK) -> {
                             field.getterExpr = pushBlock(ScopeType.FIELD_GETTER, "${field.name}:get") {
-                                readFunctionBody()
+                                readMethodBody()
                             }
                         }
                         else -> throw IllegalStateException("Expected = or {} after get() at ${tokens.err(i)}")
@@ -565,7 +574,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                             readExpression()
                         } else if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
                             pushBlock(ScopeType.FIELD_SETTER, "${field.name}:set") {
-                                readFunctionBody()
+                                readMethodBody()
                             }
                         } else null
                     }// else println("found set without anything else, ${field.name}")
@@ -775,7 +784,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 j++
             }
 
-            pushBlock(ScopeType.EXPRESSION, null) { readFunctionBody() }
+            pushBlock(ScopeType.EXPRESSION, null) { readMethodBody() }
         } else {
             readExpression()
         }
@@ -1570,9 +1579,9 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 }
             }
             i++ // skip ->
-            val body = readFunctionBody()
+            val body = readMethodBody()
             return LambdaExpression(variables, body)
-        } else return readFunctionBody()
+        } else return readMethodBody()
     }
 
     fun readComma() {
@@ -1580,7 +1589,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         else if (i < tokens.size) throw IllegalStateException("Expected comma at ${tokens.err(i)}")
     }
 
-    fun readFunctionBody(): ExpressionList {
+    fun readMethodBody(): ExpressionList {
         val origin = origin(i)
         val result = ArrayList<Expression>()
         if (debug) println("reading function body[$i], ${tokens.err(i)}")
@@ -1593,7 +1602,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 tokens.equals(i, "@") -> annotations.add(readAnnotation())
                 tokens.equals(i, "val") -> result.add(readDeclaration(false))
                 tokens.equals(i, "var") -> result.add(readDeclaration(true))
-                tokens.equals(i, "fun") -> result.add(readFunction())
+                tokens.equals(i, "fun") -> result.add(readMethod())
                 tokens.equals(i, "lateinit") -> {
                     assert(tokens.equals(++i, "var"))
                     result.add(readDeclaration(true, isLateinit = true))

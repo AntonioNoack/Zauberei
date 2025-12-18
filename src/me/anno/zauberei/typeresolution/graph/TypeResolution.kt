@@ -241,7 +241,7 @@ object TypeResolution {
     fun findFunction(scope: Scope): Scope? {
         var scope = scope
         while (true) {
-            if (scope.scopeType == ScopeType.FUNCTION) return scope
+            if (scope.scopeType == ScopeType.METHOD) return scope
             scope = scope.parent ?: return null
         }
     }

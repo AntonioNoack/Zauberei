@@ -17,6 +17,7 @@ import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.Types.UnitType
 import me.anno.zauberei.types.UnionType.Companion.unionTypes
+import kotlin.jvm.Throws
 
 /**
  * Resolve types step by step.
@@ -34,17 +35,34 @@ object LinearTypeResolution {
         forEachScope(root, ::resolveTypesAndNamesImpl)
     }
 
+    private fun isInsideLambda(scope: Scope): Boolean {
+        var scope = scope
+        while (true) {
+            if (scope.scopeType == ScopeType.LAMBDA) return true
+            scope = scope.parent ?: return false
+        }
+    }
+
     fun resolveTypesAndNamesImpl(scope: Scope) {
+        if (isInsideLambda(scope)) {
+            // todo parameters usually depend on the context
+            return
+        }
         for (method in scope.methods) {
             resolveMethodReturnType(method)
         }
         for (field in scope.fields) {
             if (field.valueType == null && field.initialValue != null) {
                 println("Resolving field $field in scope ${scope.pathStr}")
-                field.valueType = resolveType(
-                    field.declaredScope, field.selfType, null,
-                    field.initialValue, false
-                )
+                try {
+                    field.valueType = resolveType(
+                        field.declaredScope, field.selfType, null,
+                        field.initialValue, false
+                    )
+                } catch (e: Throwable) {
+                    e.printStackTrace()
+                    // continue anyway for now
+                }
             }
         }
         if (false) println("${scope.fileName}: ${scope.pathStr}, ${scope.fields.size}f, ${scope.methods.size}m, ${scope.code.size}c")
@@ -165,9 +183,13 @@ object LinearTypeResolution {
                 return unionTypes(ifType, elseType)
             }
             is SpecialValueExpression -> {
-                when (expr.value) {
-                    SpecialValue.NULL -> return NullType
-                    else -> TODO("Resolve type for ConstantExpression in $codeScope,$selfType")
+                return when (expr.value) {
+                    SpecialValue.NULL -> NullType
+                    SpecialValue.THIS -> {
+                        // todo 'this' might have a label, and then means the parent with that name
+                        resolveThisType(typeToScope(selfType) ?: codeScope)
+                    }
+                    else -> TODO("Resolve type for ConstantExpression in $codeScope,${expr.value}")
                 }
             }
             is NamedCallExpression -> {
@@ -230,7 +252,39 @@ object LinearTypeResolution {
                 }
                 else -> TODO("Resolve type for PostfixExpression.${expr.type} in $codeScope,$selfType")
             }
+            is ExpressionList -> {
+                val lastExpr = expr.list.lastOrNull()
+                return if (lastExpr != null) {
+                    resolveType(
+                        codeScope, selfType, selfScope,
+                        lastExpr,
+                        allowTypeless
+                    )
+                } else UnitType
+            }
             else -> TODO("Resolve type for ${expr.javaClass} in $codeScope,$selfType")
+        }
+    }
+
+    private fun resolveThisType(scope: Scope): Scope {
+        var scope = scope
+        while (true) {
+            println("Checking ${scope.pathStr}/${scope.scopeType} for 'this'")
+            when (scope.scopeType) {
+                ScopeType.NORMAL_CLASS, ScopeType.ENUM_CLASS,
+                ScopeType.INTERFACE, ScopeType.OBJECT,
+                ScopeType.INLINE_CLASS -> return scope
+                ScopeType.METHOD -> {
+                    val func = scope.selfAsMethod!!
+                    val self = func.selfType
+                    if (self != null) {
+                        val selfScope = typeToScope(self)!!
+                        return resolveThisType(selfScope)
+                    }
+                }
+                else -> {}
+            }
+            scope = scope.parent!!
         }
     }
 
@@ -445,6 +499,16 @@ object LinearTypeResolution {
                     }
                 }
             }
+
+            val bestImport = scope.imports.firstOrNull { it.direct && it.name == name }
+                ?: scope.imports.firstOrNull { !it.direct && it.name == name }
+            if (bestImport != null) {
+                return findConstructor(
+                    bestImport.target, false, bestImport.target.name,
+                    typeParameters, valueParameters
+                )
+            }
+
             val newScope = if (recursive &&
                 scope.scopeType != ScopeType.PACKAGE &&
                 scope.scopeType != null

@@ -1,21 +1,29 @@
 package me.anno.zauberei.types
 
 enum class ScopeType {
+    // structural
+    PACKAGE,
+    TYPE_ALIAS,
+
+    // classes
     NORMAL_CLASS,
     INLINE_CLASS,
     INTERFACE,
     ENUM_CLASS,
     ENUM_ENTRY_CLASS,
-    FUNCTION,
+    OBJECT,
+
+    // methods
+    METHOD,
     CONSTRUCTOR,
     CONSTRUCTOR_PARAMS,
     PRIMARY_CONSTRUCTOR,
-    OBJECT,
     FIELD_GETTER,
     FIELD_SETTER,
     LAMBDA,
-    WHEN_CASES,
+    METHOD_BODY,
+
+    // inside expressions
     EXPRESSION,
-    PACKAGE,
-    TYPE_ALIAS
+    WHEN_CASES,
 }
