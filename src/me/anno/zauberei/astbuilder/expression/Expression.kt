@@ -1,12 +1,10 @@
 package me.anno.zauberei.astbuilder.expression
 
-import me.anno.zauberei.typeresolution.graph.ResolvingType
 import me.anno.zauberei.types.Type
 
 abstract class Expression(val origin: Int) {
 
     var resolvedType: Type? = null
-    var resolvedTypeI: ResolvingType? = null
 
     abstract fun forEachExpr(callback: (Expression) -> Unit)
 

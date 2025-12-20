@@ -1,7 +1,6 @@
 package me.anno.zauberei.types
 
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.typeresolution.graph.ResolvingType
 
 class Field(
     val declaredScope: Scope,
@@ -14,8 +13,6 @@ class Field(
     val keywords: List<String>,
     val origin: Int
 ) {
-
-    lateinit var valueType1: ResolvingType
 
     var privateGet = false
     var privateSet = false

@@ -7,7 +7,8 @@ import me.anno.zauberei.types.Type
  * Calls base<typeParams>(valueParams)
  * */
 class CallExpression(
-    val base: Expression, val typeParameters: List<Type>?,
+    val base: Expression,
+    val typeParameters: List<Type>?,
     val valueParameters: List<NamedParameter>,
     origin: Int
 ) : Expression(origin) {
@@ -20,10 +21,6 @@ class CallExpression(
     }
 
     override fun toString(): String {
-        return if (typeParameters == null) {
-            "($base)($valueParameters)"
-        } else {
-            "($base)<${typeParameters.joinToString()}>($valueParameters)"
-        }
+        return "($base)<${typeParameters ?: "?"}>($valueParameters)"
     }
 }

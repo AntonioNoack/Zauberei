@@ -6,7 +6,7 @@ import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.generator.c.CSourceGenerator
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
-import me.anno.zauberei.typeresolution.linear.LinearTypeResolution
+import me.anno.zauberei.typeresolution.LinearTypeResolution
 import me.anno.zauberei.types.Scope
 import java.io.File
 

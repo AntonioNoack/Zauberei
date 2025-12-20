@@ -1,7 +1,6 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.typeresolution.graph.ResolvingType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
@@ -18,8 +17,6 @@ class Method(
     val keywords: List<String>,
     origin: Int
 ) : Expression(origin) {
-
-    lateinit var returnTypeI: ResolvingType
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         for (param in typeParameters) {

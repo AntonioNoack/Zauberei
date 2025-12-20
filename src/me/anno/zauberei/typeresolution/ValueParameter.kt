@@ -1,4 +1,4 @@
-package me.anno.zauberei.typeresolution.linear
+package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.types.Type
 

@@ -23,7 +23,7 @@ package me.anno.zauberei
 /**
  * <> is optional, deducible;
  * () is mandatory... -> default values??...
- * class MyClass<comptime Type T>(T x, T y, T z) {
+ * class MyClass<comptime T>(T x, T y, T z) {
  *
  *  init {
  *      require(...)

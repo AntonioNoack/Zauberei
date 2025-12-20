@@ -1,4 +1,4 @@
-package me.anno.zauberei.typeresolution.linear
+package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile
 import me.anno.zauberei.astbuilder.Constructor
@@ -10,14 +10,12 @@ import me.anno.zauberei.astbuilder.expression.constants.SpecialValue
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.WhileLoop
-import me.anno.zauberei.typeresolution.graph.TypeResolution.forEachScope
-import me.anno.zauberei.typeresolution.linear.Inheritance.isSubTypeOf
+import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.Types.UnitType
 import me.anno.zauberei.types.UnionType.Companion.unionTypes
-import kotlin.jvm.Throws
 
 /**
  * Resolve types step by step.
@@ -33,6 +31,13 @@ object LinearTypeResolution {
 
     fun resolveTypesAndNames(root: Scope) {
         forEachScope(root, ::resolveTypesAndNamesImpl)
+    }
+
+    private fun forEachScope(scope: Scope, callback: (Scope) -> Unit) {
+        callback(scope)
+        for (child in scope.children) {
+            forEachScope(child, callback)
+        }
     }
 
     private fun isInsideLambda(scope: Scope): Boolean {
@@ -54,15 +59,15 @@ object LinearTypeResolution {
         for (field in scope.fields) {
             if (field.valueType == null && field.initialValue != null) {
                 println("Resolving field $field in scope ${scope.pathStr}")
-                try {
-                    field.valueType = resolveType(
-                        field.declaredScope, field.selfType, null,
-                        field.initialValue, false
-                    )
-                } catch (e: Throwable) {
+                //try {
+                field.valueType = resolveType(
+                    field.declaredScope, field.selfType, null,
+                    field.initialValue, false
+                )
+                /*} catch (e: Throwable) {
                     e.printStackTrace()
                     // continue anyway for now
-                }
+                }*/
             }
         }
         if (false) println("${scope.fileName}: ${scope.pathStr}, ${scope.fields.size}f, ${scope.methods.size}m, ${scope.code.size}c")
@@ -93,7 +98,10 @@ object LinearTypeResolution {
 
     /**
      * resolve the type for a given expression;
-     * an expression can be
+     * todo expr can be a lambda,
+     *  and then the type not only depends on expr, but what it's used for, too,
+     *  e.g. List<Int>.map { it * 2 } -> List<Int>.map(Function1<S,T>),
+     *  S <= Int, because there is a only a function List<V>.map(Function1<V,R>).
      * */
     fun resolveType(
         codeScope: Scope, // 3rd
@@ -209,6 +217,7 @@ object LinearTypeResolution {
                         is CallExpression -> {
                             val baseName = parameter.base as VariableExpression
                             val constructor = null
+                            // todo for lambdas, baseType must be known for their type to be resolved
                             val baseScope = typeToScope(baseType)
                             val valueParameters = parameter.valueParameters.map {
                                 val type = resolveType(codeScope, selfType, selfScope, it.value, allowTypeless)
