@@ -148,6 +148,7 @@ object Inheritance {
                     "$actualType<${(actualType as? ClassType)?.typeArgs}> " +
                     "-> ${expectedType == actualType}"
         )
+
         if (expectedType == actualType ||
             (expectedType is ClassType && actualType is ClassType &&
                     expectedType.clazz == actualType.clazz &&
@@ -163,14 +164,9 @@ object Inheritance {
             if (!(size0 == 0 && size1 == 0) &&
                 expectedType.clazz == actualType.clazz
             ) {
-                if (actualGenerics != null && expectedGenerics != null &&
-                    actualGenerics.size != expectedGenerics.size
-                ) {
+                if (actualGenerics != null && expectedGenerics != null) {
                     // should not happen, I think
                     return false
-                }
-                if (actualGenerics != null && expectedGenerics != null) {
-                    TODO("Compare all generics...")
                 }
                 TODO("Compare generics $expectedGenerics vs $actualGenerics")
             }
