@@ -44,6 +44,6 @@ class NumberExpression(val value: String, origin: Int) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String {
-        return "Const($value)"
+        return "NumberExpr($value)"
     }
 }

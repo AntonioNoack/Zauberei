@@ -2,6 +2,12 @@ package me.anno.zauberei.types
 
 class ClassType(val clazz: Scope, val typeArgs: List<Type>?, val subType: Type? = null) : Type() {
 
+    init {
+        check(subType == null) {
+            "Implement subTypes... need recursive generics..."
+        }
+    }
+
     override fun equals(other: Any?): Boolean {
         return other is ClassType &&
                 clazz == other.clazz &&

@@ -7,6 +7,7 @@ import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.*
+import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValue
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
 import me.anno.zauberei.astbuilder.flow.ForLoop
@@ -135,6 +136,7 @@ object TypeResolution {
         return when (expr) {
             null -> false
             is LambdaExpression -> true
+            is NumberExpression -> false
             is IfElseBranch -> {
                 exprContainsLambdaWRTReturnType(expr.condition) ||
                         exprContainsLambdaWRTReturnType(expr.ifBranch) ||
@@ -500,10 +502,25 @@ object TypeResolution {
     }
 
     fun resolveTypeGivenGenerics(type: Type, typeParams: List<Parameter>, generics: List<Type>): Type {
-        if (type is GenericType) {
-            val idx = typeParams.indexOfFirst { it.name == type.name }
-            if (idx >= 0) return generics[idx]
+        when (type) {
+            is GenericType -> {
+                val idx = typeParams.indexOfFirst { it.name == type.name }
+                if (idx >= 0) return generics[idx]
+            }
+            is UnionType -> {
+                return type.types.map { partType ->
+                    resolveTypeGivenGenerics(partType, typeParams, generics)
+                }.reduce { a, b -> unionTypes(a, b) }
+            }
+            is ClassType -> {
+                val typeArgs = type.typeArgs ?: return type
+                val newTypeArgs = typeArgs.map { partType ->
+                    resolveTypeGivenGenerics(partType, typeParams, generics)
+                }
+                return ClassType(type.clazz, newTypeArgs)
+            }
         }
+
         // todo we need nested resolution, going into all subtypes...
         return type
     }
@@ -620,7 +637,7 @@ object TypeResolution {
         for (constructor in scope.constructors) {
             println("  candidate constructor: $constructor")
             val generics = findGenericsForMatch(
-                scope.typeParameters,
+                constructor.clazz.typeParameters,
                 constructor.valueParameters,
                 typeParameters, valueParameters
             ) ?: continue

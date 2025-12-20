@@ -14,6 +14,7 @@ import me.anno.zauberei.types.Types.DoubleType
 import me.anno.zauberei.types.Types.FloatType
 import me.anno.zauberei.types.Types.IntType
 import me.anno.zauberei.types.Types.LongType
+import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.Types.StringType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -100,7 +101,25 @@ class TypeResolutionTest {
     @Test
     fun testConstructorsWithGenerics() {
         val arrayListType = standardTypes["ArrayList"]!!
-        arrayListType.parent!!.mergeScopeTypes(ScopeType.PACKAGE)
+        defineArrayListConstructors()
+
+        assertEquals(
+            ClassType(
+                arrayListType,
+                listOf(ClassType(IntType.clazz, null))
+            ),
+            testTypeResolution("val tested = ArrayList<Int>(8)")
+        )
+    }
+
+    private fun defineArrayListConstructors() {
+        val arrayListType = standardTypes["ArrayList"]!!
+        if (arrayListType.typeParameters.isEmpty()) {
+            arrayListType.typeParameters += Parameter(
+                false, false, false,
+                "V", NullableAnyType, null, -1
+            )
+        }
 
         // we need to define the constructor without any args
         val constructors = arrayListType.constructors
@@ -113,41 +132,60 @@ class TypeResolutionTest {
                 )
             )
         }
+        if (constructors.none { it.valueParameters.size == 1 }) {
+            constructors.add(
+                Constructor(
+                    arrayListType, listOf(
+                        Parameter(
+                            false, false, false, "size",
+                            IntType, null, -1
+                        ),
+                    ),
+                    arrayListType.getOrCreatePrimConstructorScope(), null, null,
+                    emptyList(), -1
+                )
+            )
+        }
+    }
 
+    @Test
+    fun testGenericFunction() {
+        defineArrayListConstructors()
+
+        val listType = standardTypes["List"]!!
         assertEquals(
             ClassType(
-                arrayListType,
+                listType,
                 listOf(ClassType(IntType.clazz, null))
             ),
-            testTypeResolution("val tested = ArrayList<Int>()")
+            testTypeResolution(
+                """
+                fun <V> emptyList(): List<V> = ArrayList<V>(0)
+                val tested = emptyList<Int>()
+            """.trimIndent()
+            )
         )
     }
 
     @Test
     fun testGenericsMap() {
         val arrayListType = standardTypes["ArrayList"]!!
-        arrayListType.parent!!.mergeScopeTypes(ScopeType.PACKAGE)
-
-        // we need to define the constructor without any args
-        val constructors = arrayListType.constructors
-        if (constructors.none { it.valueParameters.isEmpty() }) {
-            constructors.add(
-                Constructor(
-                    arrayListType, emptyList(),
-                    arrayListType.getOrCreatePrimConstructorScope(), null, null,
-                    emptyList(), -1
-                )
-            )
-        }
+        defineArrayListConstructors()
 
         assertEquals(
             ClassType(
                 arrayListType,
                 listOf(ClassType(IntType.clazz, null))
             ),
-            testTypeResolution("" +
-                    "fun <V> emptyList(): List<V>\n" +
-                    "val tested = emptyList<Int>().map { \"\$it\" }")
+            testTypeResolution(
+                """
+                fun <V> emptyList(): List<V> = ArrayList<V>(0)
+                fun <V,R> List<V>.map(map: (V) -> R): List<R> {
+                    return List(size) { map(this[it]) }
+                }
+                val tested = emptyList<Int>().map { it.toString() }
+            """.trimIndent()
+            )
         )
     }
 }
