@@ -3,11 +3,13 @@ package me.anno.zauberei.typeresolution
 import me.anno.zauberei.Compile
 import me.anno.zauberei.astbuilder.Constructor
 import me.anno.zauberei.astbuilder.Method
+import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValue
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
+import me.anno.zauberei.astbuilder.flow.ForLoop
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.WhileLoop
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
@@ -62,7 +64,7 @@ object TypeResolution {
                 //try {
                 field.valueType = resolveType(
                     field.declaredScope, field.selfType, null,
-                    field.initialValue, false
+                    field.initialValue, false, null
                 )
                 /*} catch (e: Throwable) {
                     e.printStackTrace()
@@ -79,7 +81,7 @@ object TypeResolution {
             method.returnType = resolveType(
                 method.innerScope,
                 method.selfType, typeToScope(method.selfType),
-                method.body!!, false
+                method.body!!, false, null
             )
         }
         return method.returnType!!
@@ -90,7 +92,7 @@ object TypeResolution {
             field.valueType = resolveType(
                 field.declaredScope,
                 field.selfType, typeToScope(field.selfType),
-                field.initialValue!!, false
+                field.initialValue!!, false, null
             )
         }
         return field.valueType!!
@@ -108,7 +110,8 @@ object TypeResolution {
         selfType: Type?, // 2nd
         selfScope: Scope?,
         expr: Expression,
-        allowTypeless: Boolean
+        allowTypeless: Boolean,
+        targetLambdaType: Type?
     ): Type {
         // if already resolved, just use that type
         val alreadyResolved = expr.resolvedType
@@ -116,10 +119,54 @@ object TypeResolution {
             return alreadyResolved
         } else {
             println("Resolving type of (${expr.javaClass.simpleName}) $expr")
-            val type = resolveTypeImpl(codeScope, selfType, selfScope, expr, allowTypeless)
+            val type = resolveTypeImpl(
+                codeScope, selfType, selfScope,
+                expr, allowTypeless, targetLambdaType
+            )
             println("Resolved type of $expr to $type")
             expr.resolvedType = type
             return type
+        }
+    }
+
+    fun exprContainsLambdaWRTReturnType(expr: Expression?): Boolean {
+        // todo what about listOf("1,2,3").map{it.split(',').map{it.toInt()}}?
+        //  can we somehow hide lambdas? I don't think so...
+        return when (expr) {
+            null -> false
+            is LambdaExpression -> true
+            is IfElseBranch -> {
+                exprContainsLambdaWRTReturnType(expr.condition) ||
+                        exprContainsLambdaWRTReturnType(expr.ifBranch) ||
+                        exprContainsLambdaWRTReturnType(expr.elseBranch)
+            }
+            is WhileLoop -> {
+                // do we need to check the body? not really, because it has no effect on the return type
+                exprContainsLambdaWRTReturnType(expr.condition)
+            }
+            is ForLoop -> {
+                exprContainsLambdaWRTReturnType(expr.iterable)
+            }
+            else -> TODO("Does $expr contain a lambda?")
+        }
+    }
+
+    fun resolveValueParams(
+        codeScope: Scope, // 3rd
+        selfType: Type?, // 2nd
+        selfScope: Scope?,
+        base: List<NamedParameter>
+    ): List<ValueParameter> {
+        return base.map { param ->
+            if (exprContainsLambdaWRTReturnType(param.value)) {
+                ValueParameterWithLambda(param.name)
+            } else {
+                val type = resolveType(
+                    codeScope, selfType, selfScope, param.value, false,
+                    /* no lambda contained -> doesn't matter */null
+                )
+                ValueParameterImpl(param.name, type)
+            }
         }
     }
 
@@ -132,15 +179,13 @@ object TypeResolution {
         selfType: Type?, // 2nd
         selfScope: Scope?,
         expr: Expression,
-        allowTypeless: Boolean
+        allowTypeless: Boolean,
+        targetLambdaType: Type?
     ): Type {
         when (expr) {
             is CallExpression -> {
                 val typeParameters = expr.typeParameters
-                val valueParameters = expr.valueParameters.map { param ->
-                    val type = resolveType(codeScope, selfType, selfScope, param.value, false)
-                    ValueParameter(param.name, type)
-                }
+                val valueParameters = resolveValueParams(codeScope, selfType, selfScope, expr.valueParameters)
                 println("Resolving call: ${expr.base}<${typeParameters ?: "?"}>($valueParameters)")
                 // todo base can be a constructor, field or a method
                 // todo find the best matching candidate...
@@ -187,8 +232,10 @@ object TypeResolution {
                 if (expr.elseBranch == null && !allowTypeless)
                     throw IllegalStateException("Expected type, but found if without else")
                 if (expr.elseBranch == null) return UnitType
-                val ifType = resolveType(codeScope, selfType, selfScope, expr.ifBranch, allowTypeless)
-                val elseType = resolveType(codeScope, selfType, selfScope, expr.elseBranch, allowTypeless)
+                // targetLambdaType stays the same
+                val ifType = resolveType(codeScope, selfType, selfScope, expr.ifBranch, allowTypeless, targetLambdaType)
+                val elseType =
+                    resolveType(codeScope, selfType, selfScope, expr.elseBranch, allowTypeless, targetLambdaType)
                 return unionTypes(ifType, elseType)
             }
             is SpecialValueExpression -> {
@@ -203,7 +250,10 @@ object TypeResolution {
                 }
             }
             is NamedCallExpression -> {
-                val baseType = resolveType(codeScope, selfType, selfScope, expr.base, allowTypeless)
+                val baseType = resolveType(
+                    codeScope, selfType, selfScope, expr.base, allowTypeless,
+                    /* targetLambdaType seems not deductible */ null
+                )
                 if (expr.name == ".") {
                     check(expr.valueParameters.size == 1)
                     val parameter0 = expr.valueParameters[0]
@@ -219,10 +269,8 @@ object TypeResolution {
                             val constructor = null
                             // todo for lambdas, baseType must be known for their type to be resolved
                             val baseScope = typeToScope(baseType)
-                            val valueParameters = parameter.valueParameters.map {
-                                val type = resolveType(codeScope, selfType, selfScope, it.value, allowTypeless)
-                                ValueParameter(it.name, type)
-                            }
+                            val valueParameters =
+                                resolveValueParams(codeScope, selfType, selfScope, parameter.valueParameters)
                             return resolveCallType(
                                 codeScope, baseType, baseScope,
                                 expr, baseName.name, constructor,
@@ -233,13 +281,13 @@ object TypeResolution {
                     }
                 } else {
 
-                    val calleeType = resolveType(codeScope, selfType, selfScope, expr.base, allowTypeless)
+                    val calleeType = resolveType(
+                        codeScope, selfType, selfScope, expr.base, allowTypeless,
+                        /* target lambda type seems not deductible */null
+                    )
                     // todo type-args may be needed for type resolution
                     val calleeScope = typeToScope(calleeType)
-                    val valueParameters = expr.valueParameters.map {
-                        val type = resolveType(codeScope, calleeType, calleeScope, it.value, allowTypeless)
-                        ValueParameter(it.name, type)
-                    }
+                    val valueParameters = resolveValueParams(codeScope, selfType, selfScope, expr.valueParameters)
 
                     val constructor = null
                     return resolveCallType(
@@ -258,7 +306,10 @@ object TypeResolution {
             is CheckEqualsOp -> return BooleanType
             is PostfixExpression -> when (expr.type) {
                 PostfixType.ASSERT_NON_NULL -> {
-                    val type = resolveType(codeScope, selfType, selfScope, expr.base, allowTypeless)
+                    val type = resolveType(
+                        codeScope, selfType, selfScope, expr.base, allowTypeless,
+                        /* just copying is fine, is it? */ targetLambdaType
+                    )
                     return removeNullFromType(type)
                 }
                 else -> TODO("Resolve type for PostfixExpression.${expr.type} in $codeScope,$selfType")
@@ -268,11 +319,11 @@ object TypeResolution {
                 return if (lastExpr != null) {
                     resolveType(
                         codeScope, selfType, selfScope,
-                        lastExpr,
-                        allowTypeless
+                        lastExpr, allowTypeless, targetLambdaType
                     )
                 } else UnitType
             }
+            is LambdaExpression -> TODO("We require a target type for lambdas, $expr, ${resolveOrigin(expr.origin)}")
             else -> TODO("Resolve type for ${expr.javaClass} in $codeScope,$selfType")
         }
     }
@@ -356,7 +407,7 @@ object TypeResolution {
                         field.declaredScope,
                         base, base.clazz,
                         field.initialValue!!,
-                        false
+                        false, null
                     )
                 }
                 return field.valueType
@@ -493,17 +544,19 @@ object TypeResolution {
     ): ResolvedConstructor? {
         var scope = scope ?: return null
         while (true) {
-            println("Searching constructors '$name' in ${scope.pathStr}")
+            println("Searching constructors '$name' in ${scope.pathStr}, type: ${scope.scopeType}")
             if (scope.name == name) {
                 val found = findConstructorImpl(scope, typeParameters, valueParameters)
                 if (found != null) return found
             } else if (scope.scopeType == ScopeType.PACKAGE) {
+                println("  ${scope.pathStr} is a package, looking inside")
                 for (child in scope.children) {
                     if (child.name == name) {
                         val constructor = findConstructor(
                             child, false, name,
                             typeParameters, valueParameters
                         )
+                        println("  constructor candidate for $name: $constructor")
                         if (constructor != null) {
                             return constructor
                         }
@@ -560,12 +613,12 @@ object TypeResolution {
         val alias = scope.typeAlias
         if (alias != null) {
             val newType = applyTypeAlias(typeParameters, scope.typeParameters, alias)
-            println("mapped ${scope.pathStr}<$typeParameters> via $alias to ${newType.clazz.pathStr}<${newType.typeArgs}>")
+            println("  mapped ${scope.pathStr}<$typeParameters> via $alias to ${newType.clazz.pathStr}<${newType.typeArgs}>")
             return findConstructorImpl(newType.clazz, newType.typeArgs, valueParameters)
         }
 
         for (constructor in scope.constructors) {
-            println("candidate constructor: $constructor")
+            println("  candidate constructor: $constructor")
             val generics = findGenericsForMatch(
                 scope.typeParameters,
                 constructor.valueParameters,
@@ -577,68 +630,78 @@ object TypeResolution {
     }
 
     fun findGenericsForMatch(
-        methodTypeParameters: List<Parameter>,
-        methodValueParameters: List<Parameter>,
-        typeParameters: List<Type>?,
-        valueParameters: List<ValueParameter>
+        // our method expects these:
+        expectedTypeParameters: List<Parameter>,
+        expectedValueParameters: List<Parameter>,
+        // and given are these:
+        actualTypeParameters: List<Type>?,
+        actualValueParameters: List<ValueParameter>
     ): List<Type>? { // found generic values for a match
 
-        println("checking $methodTypeParameters vs $typeParameters")
-        println("     and $methodValueParameters vs $valueParameters")
+        println("checking $expectedTypeParameters vs $actualTypeParameters")
+        println("     and $expectedValueParameters vs $actualValueParameters")
 
         // first match everything by name
         // todo resolve default values... -> could be expanded earlier :)
         // todo resolve varargs...
 
-        val isVararg = methodValueParameters.lastOrNull()?.isVararg == true
+        val isVararg = expectedValueParameters.lastOrNull()?.isVararg == true
         if (isVararg) {
-            if (methodValueParameters.size > valueParameters.size) {
+            if (expectedValueParameters.size > actualValueParameters.size) {
                 println("param-size too low")
                 return null
             }
         } else {
-            if (methodValueParameters.size != valueParameters.size) {
-                println("param-size mismatch: expected ${methodValueParameters.size}, but got ${valueParameters.size}")
+            if (expectedValueParameters.size != actualValueParameters.size) {
+                println("param-size mismatch: expected ${expectedValueParameters.size}, but got ${actualValueParameters.size}")
                 return null
             }
         }
 
-        if (typeParameters != null && typeParameters.size != methodTypeParameters.size) {
-            println("type-param-size mismatch: expected ${methodTypeParameters.size}, but got ${typeParameters.size}")
+        if (actualTypeParameters != null && actualTypeParameters.size != expectedTypeParameters.size) {
+            println("type-param-size mismatch: expected ${expectedTypeParameters.size}, but got ${actualTypeParameters.size}")
             return null
         }
 
-        val sortedValueParameters = resolveNamedParameters(methodValueParameters, valueParameters)
+        val sortedValueParameters = resolveNamedParameters(expectedValueParameters, actualValueParameters)
             ?: run {
                 println("param-name mismatch")
                 return null
             }
 
         val resolvedTypes =
-            typeParameters ?: ArrayList(List(methodTypeParameters.size) { null })
+            actualTypeParameters ?: ArrayList(List(expectedTypeParameters.size) { null })
 
-        val findGenericTypes = typeParameters == null
+        val findGenericTypes = actualTypeParameters == null
 
-        for (i in methodValueParameters.indices) {
-            val mvParam = methodValueParameters[i]
+        for (i in expectedValueParameters.indices) {
+            val mvParam = expectedValueParameters[i]
             val vParam = if (mvParam.isVararg) {
+
+                val expectedParamArrayType = mvParam.type
+                check(expectedParamArrayType is ClassType)
+                check(expectedParamArrayType.clazz == ArrayType.clazz)
+                check(expectedParamArrayType.typeArgs?.size == 1)
+                val expectedParamEntryType = expectedParamArrayType.typeArgs[0]
+
                 // if star, use it as-is
                 val commonType = sortedValueParameters.subList(i, sortedValueParameters.size)
-                    .map { it.type }
+                    .map { it.getType(expectedParamEntryType) }
                     .reduce { a, b -> unionTypes(a, b) }
                 val joinedType = ClassType(ArrayType.clazz, listOf(commonType))
-                ValueParameter(null, joinedType)
+                ValueParameterImpl(null, joinedType)
             } else {
                 sortedValueParameters[i]
             }
             if (!isSubTypeOf(
                     mvParam, vParam,
-                    methodTypeParameters,
+                    expectedTypeParameters,
                     resolvedTypes,
                     findGenericTypes
                 )
             ) {
-                println("type mismatch: ${vParam.type} is not always a ${mvParam.type}")
+                val type = vParam.getType(mvParam.type)
+                println("type mismatch: $type is not always a ${mvParam.type}")
                 return null
             }
         }

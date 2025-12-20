@@ -11,7 +11,6 @@ enum class TokenType {
     KEYWORD,
 
     APPEND_STRING,// special string concat operator
-    // LINE_BREAK,
 
     // todo the following could all be symbols
     COMMA,
@@ -24,16 +23,7 @@ enum class TokenType {
     CLOSE_BLOCK,
     CLOSE_ARRAY,
 
-    COMMENT
-
+    BLOCK_COMMENT
 
     ;
-
-    val contentAlwaysSame: Boolean
-        get() = when (this) {
-            OPEN_CALL, OPEN_BLOCK, OPEN_ARRAY,
-            CLOSE_CALL, CLOSE_BLOCK, CLOSE_ARRAY -> true
-            else -> false
-        }
-
 }

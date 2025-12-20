@@ -127,7 +127,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         }
 
         val primaryConstructor = Constructor(
-            clazz, emptyList(), constructorParams ?: emptyList(),
+            clazz, constructorParams ?: emptyList(),
             clazz.getOrCreatePrimConstructorScope(), null, null,
             if (privatePrimaryConstructor) listOf("private") else emptyList(),
             constructorOrigin
@@ -482,7 +482,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         }
 
         val constructor = Constructor(
-            clazz, emptyList(), parameters, innerScope,
+            clazz, parameters, innerScope,
             superCall, body, keywords, origin
         )
         currPackage.constructors.add(constructor)
@@ -1544,7 +1544,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
     fun readLambda(): Expression {
         val arrow = tokens.findToken(i, "->")
-        if (arrow >= 0) {
+        val variables = if (arrow >= 0) {
             val variables = ArrayList<LambdaVariable>()
             tokens.push(arrow) {
                 while (i < tokens.size) {
@@ -1584,9 +1584,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 }
             }
             i++ // skip ->
-            val body = readMethodBody()
-            return LambdaExpression(variables, body)
-        } else return readMethodBody()
+            variables
+        } else null
+        val body = readMethodBody()
+        return LambdaExpression(variables, body)
     }
 
     fun readComma() {

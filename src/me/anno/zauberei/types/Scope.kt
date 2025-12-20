@@ -230,6 +230,7 @@ class Scope(val name: String, val parent: Scope? = null) : Type() {
         val sameFolder = resolveTypeSameFolder(name)
         if (sameFolder != null) return sameFolder
 
+        // helper at startup / for tests
         val standardType = StandardTypes.standardTypes[name]
         if (standardType != null) return standardType
 

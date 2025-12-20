@@ -15,7 +15,7 @@ class LambdaDestructuring(val names: List<String>) : LambdaVariable(null, "") {
 }
 
 class LambdaExpression(
-    val variables: List<LambdaVariable>,
+    val variables: List<LambdaVariable>?,
     val body: Expression,
 ) : Expression(body.origin) {
 
@@ -24,6 +24,6 @@ class LambdaExpression(
     }
 
     override fun toString(): String {
-        return "Lambda[$variables]{ $body }"
+        return "LambdaExpr(${variables ?: "?"} -> $body)"
     }
 }

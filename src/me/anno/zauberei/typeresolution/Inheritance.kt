@@ -24,10 +24,10 @@ object Inheritance {
         findGenericTypes: Boolean
     ): Boolean {
         return isSubTypeOf(
-            expected.type, actual.type,
+            expected.type,
+            actual.getType(expected.type),
             expectedTypeParams, actualTypeParameters,
-            true,
-            findGenericTypes
+            true, findGenericTypes
         )
     }
 

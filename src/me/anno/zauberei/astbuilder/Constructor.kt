@@ -5,7 +5,6 @@ import me.anno.zauberei.types.Scope
 
 class Constructor(
     val clazz: Scope,
-    val typeParameters: List<Parameter>,
     val valueParameters: List<Parameter>,
     val innerScope: Scope,
     val superCall: Expression?,
@@ -13,6 +12,7 @@ class Constructor(
     val keywords: List<String>,
     origin: Int
 ) : Expression(origin) {
+
     override fun forEachExpr(callback: (Expression) -> Unit) {
 
         for (param in valueParameters) {
@@ -25,6 +25,6 @@ class Constructor(
     }
 
     override fun toString(): String {
-        return "new ${clazz.pathStr}<${typeParameters}>($valueParameters) { ... }"
+        return "new ${clazz.pathStr}($valueParameters) { ... }"
     }
 }

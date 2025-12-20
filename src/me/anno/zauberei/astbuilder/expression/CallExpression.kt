@@ -21,6 +21,8 @@ class CallExpression(
     }
 
     override fun toString(): String {
-        return "($base)<${typeParameters ?: "?"}>($valueParameters)"
+        return if (typeParameters != null && typeParameters.isEmpty()) {
+            "($base)($valueParameters)"
+        } else "($base)<${typeParameters ?: "?"}>($valueParameters)"
     }
 }

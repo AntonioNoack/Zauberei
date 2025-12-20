@@ -7,6 +7,12 @@ import me.anno.zauberei.Compile.stdlib
  * types, that are automatically imported into every file
  * */
 object StandardTypes {
+
+    init {
+        // stdlib must be a package to be searched for children automatically
+        root.getOrPut(stdlib, ScopeType.PACKAGE)
+    }
+
     val standardTypes = mapOf(
         // strings
         "String" to stdlib,

@@ -34,8 +34,11 @@ class NamedCallExpression(
                     "($base).${valueParameters[0].value}"
                 }
             }
+            typeParameters != null && typeParameters.isEmpty() -> {
+                "($base).$name(${valueParameters.joinToString()})"
+            }
             else -> {
-                "($base).$name<${typeParameters ?: "?"}>($valueParameters)"
+                "($base).$name<${typeParameters?.joinToString() ?: "?"}>(${valueParameters.joinToString()})"
             }
         }
     }

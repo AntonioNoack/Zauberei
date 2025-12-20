@@ -1,0 +1,153 @@
+package me.anno.zauberei
+
+import me.anno.zauberei.Compile.root
+import me.anno.zauberei.astbuilder.ASTBuilder
+import me.anno.zauberei.astbuilder.Constructor
+import me.anno.zauberei.astbuilder.Parameter
+import me.anno.zauberei.tokenizer.Tokenizer
+import me.anno.zauberei.typeresolution.TypeResolution
+import me.anno.zauberei.types.*
+import me.anno.zauberei.types.StandardTypes.standardTypes
+import me.anno.zauberei.types.Types.BooleanType
+import me.anno.zauberei.types.Types.CharType
+import me.anno.zauberei.types.Types.DoubleType
+import me.anno.zauberei.types.Types.FloatType
+import me.anno.zauberei.types.Types.IntType
+import me.anno.zauberei.types.Types.LongType
+import me.anno.zauberei.types.Types.StringType
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
+
+// todo test all type-resolution scenarios
+class TypeResolutionTest {
+    companion object {
+        private var ctr = 0
+
+        fun testTypeResolution(code: String): Type {
+            val testScopeName = "Test${ctr++}"
+            val tokens = Tokenizer(
+                """
+            package $testScopeName
+            
+            $code
+        """.trimIndent(), "?"
+            ).tokenize()
+            ASTBuilder(tokens, root).readFileLevel()
+            val testScope = root.children.first { it.name == testScopeName }
+            TypeResolution.resolveTypesAndNames(testScope)
+            return testScope.fields.first { it.name == "tested" }.valueType!!
+        }
+    }
+
+    @Test
+    fun testConstants() {
+        assertEquals(BooleanType, testTypeResolution("val tested = true"))
+        assertEquals(BooleanType, testTypeResolution("val tested = false"))
+        assertEquals(NullType, testTypeResolution("val tested = null"))
+        assertEquals(IntType, testTypeResolution("val tested = 0"))
+        assertEquals(LongType, testTypeResolution("val tested = 0L"))
+        assertEquals(FloatType, testTypeResolution("val tested = 0f"))
+        assertEquals(FloatType, testTypeResolution("val tested = 0.0f"))
+        assertEquals(DoubleType, testTypeResolution("val tested = 0d"))
+        assertEquals(DoubleType, testTypeResolution("val tested = 0.0"))
+        assertEquals(DoubleType, testTypeResolution("val tested = 1e3"))
+        assertEquals(CharType, testTypeResolution("val tested = ' '"))
+        assertEquals(StringType, testTypeResolution("val tested = \"Test 123\""))
+    }
+
+    @Test
+    fun testNullableTypes() {
+        assertEquals(
+            UnionType(listOf(ClassType(BooleanType.clazz, null), NullType)),
+            testTypeResolution("val tested: Boolean?")
+        )
+    }
+
+    @Test
+    fun testTypeWithGenerics() {
+        val ArrayListType = standardTypes["ArrayList"]!!
+        assertEquals(
+            ClassType(
+                ArrayListType,
+                listOf(ClassType(IntType.clazz, null))
+            ),
+            testTypeResolution("val tested: ArrayList<Int>")
+        )
+    }
+
+    @Test
+    fun testConstructorWithParam() {
+        val intArrayType = standardTypes["IntArray"]!!
+        // we need to define the constructor without any args
+        val constructors = intArrayType.constructors
+        if (constructors.none { it.valueParameters.size == 1 }) {
+            constructors.add(
+                Constructor(
+                    intArrayType, listOf(
+                        Parameter(
+                            false, false, false,
+                            "size", IntType, null, -1
+                        )
+                    ),
+                    intArrayType.getOrCreatePrimConstructorScope(), null, null,
+                    emptyList(), -1
+                )
+            )
+        }
+        assertEquals(intArrayType, testTypeResolution("val tested = IntArray(5)"))
+    }
+
+    @Test
+    fun testConstructorsWithGenerics() {
+        val arrayListType = standardTypes["ArrayList"]!!
+        arrayListType.parent!!.mergeScopeTypes(ScopeType.PACKAGE)
+
+        // we need to define the constructor without any args
+        val constructors = arrayListType.constructors
+        if (constructors.none { it.valueParameters.isEmpty() }) {
+            constructors.add(
+                Constructor(
+                    arrayListType, emptyList(),
+                    arrayListType.getOrCreatePrimConstructorScope(), null, null,
+                    emptyList(), -1
+                )
+            )
+        }
+
+        assertEquals(
+            ClassType(
+                arrayListType,
+                listOf(ClassType(IntType.clazz, null))
+            ),
+            testTypeResolution("val tested = ArrayList<Int>()")
+        )
+    }
+
+    @Test
+    fun testGenericsMap() {
+        val arrayListType = standardTypes["ArrayList"]!!
+        arrayListType.parent!!.mergeScopeTypes(ScopeType.PACKAGE)
+
+        // we need to define the constructor without any args
+        val constructors = arrayListType.constructors
+        if (constructors.none { it.valueParameters.isEmpty() }) {
+            constructors.add(
+                Constructor(
+                    arrayListType, emptyList(),
+                    arrayListType.getOrCreatePrimConstructorScope(), null, null,
+                    emptyList(), -1
+                )
+            )
+        }
+
+        assertEquals(
+            ClassType(
+                arrayListType,
+                listOf(ClassType(IntType.clazz, null))
+            ),
+            testTypeResolution("" +
+                    "fun <V> emptyList(): List<V>\n" +
+                    "val tested = emptyList<Int>().map { \"\$it\" }")
+        )
+    }
+}

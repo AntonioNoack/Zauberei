@@ -1,9 +1,6 @@
 package me.anno.zauberei.types
 
 class UnionType(val types: List<Type>) : Type() {
-    override fun toString(): String {
-        return "UnionType(${types.joinToString()})"
-    }
 
     companion object {
         /**
@@ -17,5 +14,18 @@ class UnionType(val types: List<Type>) : Type() {
         fun getTypes(type: Type): List<Type> {
             return if (type is UnionType) type.types else listOf(type)
         }
+    }
+
+    override fun toString(): String {
+        return "UnionType(${types.joinToString()})"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is UnionType &&
+                types.toSet() == other.types.toSet()
+    }
+
+    override fun hashCode(): Int {
+        return types.toSet().hashCode()
     }
 }
