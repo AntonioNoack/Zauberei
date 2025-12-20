@@ -6,7 +6,7 @@ import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.generator.c.CSourceGenerator
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.Tokenizer
-import me.anno.zauberei.typeresolution.LinearTypeResolution
+import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.types.Scope
 import java.io.File
 
@@ -124,7 +124,7 @@ object Compile {
 
         // todo we should expand all methods with default-values here
 
-        LinearTypeResolution.resolveTypesAndNames(root)
+        TypeResolution.resolveTypesAndNames(root)
 
         // todo all types are resolved now, so we should create "instantiate" all generic types
         //  to reduce type/traversal complexity (comptime gets "compiled")

@@ -25,7 +25,7 @@ import me.anno.zauberei.types.UnionType.Companion.unionTypes
  * -> emptyList() - type depends on what it's used for
  * -> todo we need a LazyType -> matchesType() depends on what it's used for :)
  * */
-object LinearTypeResolution {
+object TypeResolution {
 
     val langScope by lazy { Compile.root.getOrPut("zauberKt", null) }
 
@@ -115,7 +115,7 @@ object LinearTypeResolution {
         if (alreadyResolved != null) {
             return alreadyResolved
         } else {
-            println("Resolving type of $expr")
+            println("Resolving type of (${expr.javaClass.simpleName}) $expr")
             val type = resolveTypeImpl(codeScope, selfType, selfScope, expr, allowTypeless)
             println("Resolved type of $expr to $type")
             expr.resolvedType = type

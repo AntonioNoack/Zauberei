@@ -19,18 +19,24 @@ class NamedCallExpression(
     }
 
     override fun toString(): String {
-        return if (
+        return when {
             typeParameters.isNullOrEmpty() && name == "." &&
-            valueParameters.size == 1 &&
-            valueParameters[0].value is VariableExpression
-        ) {
-            if (base is VariableExpression) {
-                "$base.${valueParameters[0].value}"
-            } else {
-                "($base).${valueParameters[0].value}"
+                    valueParameters.size == 1 &&
+                    when (valueParameters[0].value) {
+                        is VariableExpression,
+                        is CallExpression,
+                        is NamedCallExpression -> true
+                        else -> false
+                    } -> {
+                if (base is VariableExpression) {
+                    "$base.${valueParameters[0].value}"
+                } else {
+                    "($base).${valueParameters[0].value}"
+                }
             }
-        } else {
-            "($base).$name<${typeParameters ?: "?"}>($valueParameters)"
+            else -> {
+                "($base).$name<${typeParameters ?: "?"}>($valueParameters)"
+            }
         }
     }
 }

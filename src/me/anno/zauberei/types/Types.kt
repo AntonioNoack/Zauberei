@@ -1,7 +1,7 @@
 package me.anno.zauberei.types
 
 import me.anno.zauberei.Compile.root
-import me.anno.zauberei.typeresolution.LinearTypeResolution.langScope
+import me.anno.zauberei.typeresolution.TypeResolution.langScope
 
 object Types {
 
