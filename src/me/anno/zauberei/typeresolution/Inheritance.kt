@@ -1,14 +1,8 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.astbuilder.Parameter
-import me.anno.zauberei.types.ClassType
-import me.anno.zauberei.types.GenericType
-import me.anno.zauberei.types.NullType
-import me.anno.zauberei.types.Scope
-import me.anno.zauberei.types.ScopeType
-import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.AnyType
-import me.anno.zauberei.types.UnionType
 import me.anno.zauberei.types.UnionType.Companion.unionTypes
 
 /**
@@ -62,6 +56,7 @@ object Inheritance {
     ): Boolean {
 
         if (expectedType == actualType) return true
+
         if (actualType is UnionType) {
             // everything must fit
             // first try without inserting types
@@ -86,6 +81,7 @@ object Inheritance {
                 )
             }
         }
+
         if (expectedType is UnionType) {
             // first try without inserting types
             val t0 = expectedType.types.any { anyExpected ->
@@ -202,6 +198,32 @@ object Inheritance {
                 ScopeType.ENUM_CLASS -> false
                 ScopeType.OBJECT -> false
                 else -> false
+            }
+        }
+
+        if ((actualType is LambdaType) != (expectedType is LambdaType)) {
+            return false
+        }
+
+        if (actualType is LambdaType && expectedType is LambdaType) {
+            if (expectedType.parameters.size != actualType.parameters.size) return false
+
+            return isSubTypeOf(
+                // todo return type is one direction, actual type is the other...
+                //  params are normal, return type is the other way around...
+                //  -> this needs to be flipped, but I don't really know what
+                //         [  expectedTypeParams, actualTypeParameters, insertTypes, findGenericTypes] is,
+                //     and how we're supposed to replace them
+                expectedType.returnType, actualType.returnType,
+                expectedTypeParams, actualTypeParameters,
+                insertTypes, findGenericTypes
+            ) && expectedType.parameters.indices.all { paramIndex ->
+                isSubTypeOf(
+                    expectedType.parameters[paramIndex].type,
+                    actualType.parameters[paramIndex].type,
+                    expectedTypeParams, actualTypeParameters,
+                    insertTypes, findGenericTypes
+                )
             }
         }
 

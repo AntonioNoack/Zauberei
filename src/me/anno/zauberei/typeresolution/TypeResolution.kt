@@ -1,10 +1,7 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile
-import me.anno.zauberei.astbuilder.Constructor
-import me.anno.zauberei.astbuilder.Method
-import me.anno.zauberei.astbuilder.NamedParameter
-import me.anno.zauberei.astbuilder.Parameter
+import me.anno.zauberei.astbuilder.*
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
@@ -161,7 +158,7 @@ object TypeResolution {
     ): List<ValueParameter> {
         return base.map { param ->
             if (exprContainsLambdaWRTReturnType(param.value)) {
-                ValueParameterWithLambda(param.name)
+                ValueParameterWithLambda(param, codeScope, selfType, selfScope)
             } else {
                 val type = resolveType(
                     codeScope, selfType, selfScope, param.value, false,
@@ -219,7 +216,7 @@ object TypeResolution {
                     ?: findField(langScope, selfScope, expr.name)
                 if (field != null) return resolveFieldType(field)
                 val type = findType(codeScope, selfType, expr.name)
-                if (type != null) return NamedType(type)
+                if (type != null) return type
                 throw IllegalStateException(
                     "Missing field '${expr.name}' in $codeScope,$selfType, " +
                             resolveOrigin(expr.origin)
@@ -325,7 +322,50 @@ object TypeResolution {
                     )
                 } else UnitType
             }
-            is LambdaExpression -> TODO("We require a target type for lambdas, $expr, ${resolveOrigin(expr.origin)}")
+            is LambdaExpression -> {
+                when (targetLambdaType) {
+                    is LambdaType -> {
+                        // automatically add it...
+                        if (expr.variables == null) {
+                            expr.variables = when (val size = targetLambdaType.parameters.size) {
+                                0 -> emptyList()
+                                1 -> listOf(LambdaVariable(null, "it"))
+                                else -> {
+                                    // instead of throwing, we should probably just return some impossible type or error type...
+                                    throw IllegalStateException("Found lambda without parameters, but expected $size")
+                                }
+                            }
+                        }
+
+                        check(expr.variables?.size == targetLambdaType.parameters.size)
+
+                        val resolvedReturnType = /*resolveTypeGivenGenerics(
+                            targetLambdaType.returnType,
+                            targetLambdaType.parameters,
+                            generics,
+                        )*/ targetLambdaType.returnType
+                        val parameters = expr.variables!!.mapIndexed { index, param ->
+                            val type = param.type ?: targetLambdaType.parameters[index].type
+                            NamedType(param.name, type)
+                        }
+                        return LambdaType(parameters, resolvedReturnType)
+                    }
+                    null -> {
+                        // else 'it' is not defined
+                        if (expr.variables == null) expr.variables = emptyList()
+
+                        val returnType = resolveType(
+                            codeScope, selfType, selfScope,
+                            expr.body, allowTypeless, null
+                        )
+
+                        return LambdaType(expr.variables!!.map {
+                            NamedType(it.name, it.type!!)
+                        }, returnType)
+                    }
+                    else -> throw NotImplementedError("Extract LambdaType from $targetLambdaType")
+                }
+            }
             else -> TODO("Resolve type for ${expr.javaClass} in $codeScope,$selfType")
         }
     }
@@ -368,6 +408,7 @@ object TypeResolution {
         typeParameters: List<Type>?,
         valueParameters: List<ValueParameter>,
     ): Type {
+        println("typeParams: $typeParameters")
         val method = constructor
             ?: findMethod(selfScope, true, name, typeParameters, valueParameters)
             ?: findMethod(codeScope, true, name, typeParameters, valueParameters)
@@ -414,7 +455,7 @@ object TypeResolution {
                 }
                 return field.valueType
             }
-            if (base0 is NamedType && base.clazz.scopeType == ScopeType.ENUM_CLASS) {
+            if (base0 is ClassType && base.clazz.scopeType == ScopeType.ENUM_CLASS) {
                 val enumValues = base.clazz.enumValues
                 if (enumValues.any { it.name == name }) {
                     return base.clazz

@@ -704,8 +704,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return result
     }
 
-    fun readGenericParams(): List<GenericParam> {
-        val result = ArrayList<GenericParam>()
+    fun readGenericParams(): List<NamedType> {
+        val result = ArrayList<NamedType>()
         loop@ while (i < tokens.size) {
             if (tokens.equals(i, TokenType.NAME) &&
                 tokens.equals(i + 1, ":")
@@ -713,9 +713,9 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             ) {
                 val name = tokens.toString(i)
                 i += 2
-                result.add(GenericParam(name, readType()))
+                result.add(NamedType(name, readType()))
             } else if (tokens.equals(i, TokenType.NAME)) {
-                result.add(GenericParam(null, readType()))
+                result.add(NamedType(null, readType()))
             } else throw IllegalStateException("Expected name: Type or name at ${tokens.err(i)}")
             readComma()
         }
@@ -1511,7 +1511,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
                     pushBlock(ScopeType.LAMBDA, null) { params += NamedParameter(null, readLambda()) }
                 }
-                CallExpression(expr, emptyList(), params, origin)
+                CallExpression(expr, null, params, origin)
             }
             tokens.equals(i, TokenType.OPEN_ARRAY) -> {
                 val origin = origin(i)
@@ -1533,7 +1533,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 val origin = origin(i)
                 val lambda = pushBlock(ScopeType.LAMBDA, null) { readLambda() }
                 val lambdaParam = NamedParameter(null, lambda)
-                CallExpression(expr, emptyList(), listOf(lambdaParam), origin)
+                CallExpression(expr, null, listOf(lambdaParam), origin)
             }
             tokens.equals(i, "++") -> PostfixExpression(expr, PostfixType.INCREMENT, origin(i++))
             tokens.equals(i, "--") -> PostfixExpression(expr, PostfixType.DECREMENT, origin(i++))

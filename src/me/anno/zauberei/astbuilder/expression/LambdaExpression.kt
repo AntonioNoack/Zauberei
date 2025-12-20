@@ -15,7 +15,7 @@ class LambdaDestructuring(val names: List<String>) : LambdaVariable(null, "") {
 }
 
 class LambdaExpression(
-    val variables: List<LambdaVariable>?,
+    var variables: List<LambdaVariable>?,
     val body: Expression,
 ) : Expression(body.origin) {
 

@@ -117,7 +117,7 @@ class TypeResolutionTest {
         if (arrayListType.typeParameters.isEmpty()) {
             arrayListType.typeParameters += Parameter(
                 false, false, false,
-                "V", NullableAnyType, null, -1
+                "X", NullableAnyType, null, -1
             )
         }
 
