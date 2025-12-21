@@ -6,6 +6,7 @@ import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.NothingType
 
 class ReturnExpression(val value: Expression?, val label: String?, origin: Int) : Expression(origin) {
+
     override fun forEachExpr(callback: (Expression) -> Unit) {
         if (value != null) callback(value)
     }

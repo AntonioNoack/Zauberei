@@ -4,14 +4,6 @@ import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.types.Type
 
-enum class PrefixType(val symbol: String) {
-    NOT("!"),
-    MINUS("-"),
-    INCREMENT("++"),
-    DECREMENT("--"),
-    ARRAY_TO_VARARGS("*")
-}
-
 class PrefixExpression(val type: PrefixType, origin: Int, val base: Expression) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {

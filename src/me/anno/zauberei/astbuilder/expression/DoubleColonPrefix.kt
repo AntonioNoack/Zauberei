@@ -8,6 +8,7 @@ import me.anno.zauberei.types.Type
  * ::callMeNow -> type is some lambda
  * */
 class DoubleColonPrefix(val left: Scope, val methodName: String, origin: Int) : Expression(origin) {
+
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String {
         return "($left)::$methodName"

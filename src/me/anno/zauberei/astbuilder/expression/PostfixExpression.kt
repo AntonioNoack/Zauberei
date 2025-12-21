@@ -5,12 +5,6 @@ import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.typeresolution.TypeResolution.removeNullFromType
 import me.anno.zauberei.types.Type
 
-enum class PostfixType(val symbol: String) {
-    INCREMENT("++"),
-    DECREMENT("--"),
-    ASSERT_NON_NULL("!!")
-}
-
 class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int) : Expression(origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
@@ -23,14 +17,14 @@ class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int
 
     override fun resolveType(context: ResolutionContext): Type {
         return when (type) {
+            PostfixType.INCREMENT, PostfixType.DECREMENT -> {
+                TypeResolution.resolveType(context, base)
+            }
             PostfixType.ASSERT_NON_NULL -> {
-                val type = TypeResolution.resolveType(
-                    /* just copying targetLambdaType is fine, is it? */
-                    context, base,
-                )
+                val newTargetType = if (context.targetType != null) removeNullFromType(context.targetType) else null
+                val type = TypeResolution.resolveType(context.withTargetType(newTargetType), base)
                 removeNullFromType(type)
             }
-            else -> TODO("Resolve type for PostfixExpression.${type} in ${context.codeScope}, ${context.selfType}")
         }
     }
 }
