@@ -13,7 +13,7 @@ object StandardTypes {
         root.getOrPut(stdlib, ScopeType.PACKAGE)
     }
 
-    val standardTypes = mapOf(
+    val standardClasses = mapOf(
         // strings
         "String" to stdlib,
         "StringBuilder" to stdlib,
@@ -120,5 +120,80 @@ object StandardTypes {
             currPackage = currPackage.getOrPut(parts[i], null)
         }
         currPackage.getOrPut(name, null)
+    }
+
+    init {
+        // mark these types as not having a generic parameter
+        val nonGenericTypes = listOf(
+            // strings
+            "String",
+            "StringBuilder",
+            "CharSequence",
+
+            // special types
+            "Any",
+            "Nothing",
+            "Unit",
+
+            // util
+            "IntRange",
+            "ClosedFloatingPointRange",
+
+            "Annotation",
+            "Suppress",
+            "Deprecated",
+
+            "Throwable",
+            "Exception",
+            "RuntimeException",
+            "InterruptedException",
+            "InstantiationException",
+            "NoSuchMethodException",
+            "IllegalArgumentException",
+            "IllegalStateException",
+            "ClassCastException",
+            "Error",
+            "NoClassDefFoundError",
+            "ClassNotFoundException",
+            "NoSuchFieldException",
+            "NoSuchMethodException",
+            "OutOfMemoryError",
+            "IndexOutOfBoundsException",
+
+            "Number",
+
+            // util²
+            "JvmField",
+            "JvmStatic",
+            "JvmOverloads",
+            "Throws",
+            "Thread",
+            "Process",
+            "ClassLoader",
+
+            // natives
+            "Boolean",
+            "Byte",
+            "Short",
+            "Char",
+            "Int",
+            "Long",
+            "Float",
+            "Double",
+
+            // native arrays
+            "BooleanArray",
+            "ByteArray",
+            "ShortArray",
+            "CharArray",
+            "IntArray",
+            "LongArray",
+            "FloatArray",
+            "DoubleArray",
+        )
+        for (name in nonGenericTypes) {
+            val type = standardClasses[name]!!
+            type.hasTypeParameters = true
+        }
     }
 }

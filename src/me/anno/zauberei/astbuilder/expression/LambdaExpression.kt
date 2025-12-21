@@ -32,11 +32,12 @@ class LambdaExpression(
                         0 -> emptyList()
                         1 -> {
                             // define 'it'-parameter in the scope
+                            val type = targetLambdaType.parameters[0].type
                             val autoParamName = "it"
-                            println("Inserting $autoParamName into lambda automatically")
+                            println("Inserting $autoParamName into lambda automatically, type: $type")
                             Field(
                                 scope, false, true, null,
-                                autoParamName, null, null,
+                                autoParamName, type, null,
                                 emptyList(), origin
                             )
                             listOf(LambdaVariable(null, autoParamName))

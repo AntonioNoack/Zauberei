@@ -1,14 +1,12 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.astbuilder.Parameter
-import me.anno.zauberei.types.*
+import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
+import me.anno.zauberei.types.ScopeType
+import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.AnyType
+import me.anno.zauberei.types.impl.*
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
-import me.anno.zauberei.types.impl.ClassType
-import me.anno.zauberei.types.impl.GenericType
-import me.anno.zauberei.types.impl.LambdaType
-import me.anno.zauberei.types.impl.NullType
-import me.anno.zauberei.types.impl.UnionType
 
 /**
  * Check if one type inherits from another, incl. generic checks.
@@ -22,9 +20,17 @@ object Inheritance {
         actualTypeParameters: List<Type?>,
         findGenericTypes: Boolean
     ): Boolean {
-        return isSubTypeOf(
+        val expectedType = resolveGenerics(
             expected.type,
-            actual.getType(expected.type),
+            expectedTypeParams.filterIndexed { index, _ -> actualTypeParameters[index] != null },
+            actualTypeParameters.filterNotNull()
+        )
+        if (expected.type != expectedType) {
+            println("Resolved ${expected.type} to $expectedType for isSubTypeOf")
+        }
+        return isSubTypeOf(
+            expectedType,
+            actual.getType(expectedType),
             expectedTypeParams, actualTypeParameters,
             true, findGenericTypes
         )
@@ -49,6 +55,42 @@ object Inheritance {
         )
         println("got $result for $actualType instanceOf $expectedType")
         return result
+    }
+
+    private fun checkGenericInsert(
+        expectedType: GenericType,
+        actualType: Type,
+        expectedTypeParams: List<Parameter>,
+        actualTypeParameters: List<Type?>,
+        findGenericTypes: Boolean
+    ): Boolean {
+        if (findGenericTypes) {
+            val typeParamIdx = expectedTypeParams.indexOfFirst { it.name == expectedType.name }
+            actualTypeParameters as MutableList<Type?>
+
+            val oldActualTypeParam = actualTypeParameters[typeParamIdx]
+            val expectedTypeParam = expectedTypeParams[typeParamIdx]
+            if (!isSubTypeOf( // check bounds of expectedTypeParam
+                    expectedTypeParam.type,
+                    actualType,
+                    expectedTypeParams,
+                    actualTypeParameters,
+                    insertTypes = false,
+                    findGenericTypes = false
+                )
+            ) return false
+
+            val newTypeParam = if (oldActualTypeParam != null) {
+                unionTypes(oldActualTypeParam, actualType)
+            } else {
+                actualType
+            }
+
+            actualTypeParameters[typeParamIdx] = newTypeParam
+            println("Found Type: [$typeParamIdx,'${expectedType.name}'] = ${actualTypeParameters[typeParamIdx]}")
+            return true
+
+        } else TODO("Is $actualType a $expectedType?, $expectedTypeParams, $actualTypeParameters")
     }
 
     private fun isSubTypeOfImpl(
@@ -111,35 +153,21 @@ object Inheritance {
             }
         }
 
-        if (actualType is GenericType) {
-            TODO("Is $actualType a $expectedType?, $expectedTypeParams, $actualTypeParameters")
+        if (expectedType is GenericType) {
+            return checkGenericInsert(
+                expectedType, actualType,
+                expectedTypeParams, actualTypeParameters,
+                findGenericTypes
+            )
         }
 
-        if (expectedType is GenericType) {
-            if (findGenericTypes) {
-                val typeParamIdx = expectedTypeParams.indexOfFirst { it.name == expectedType.name }
-                actualTypeParameters as MutableList<Type?>
-
-                val actualTypeParam = actualTypeParameters[typeParamIdx]
-                val expectedTypeParam = expectedTypeParams[typeParamIdx]
-                if (!isSubTypeOf( // subtype not fulfilled
-                        expectedTypeParam.type,
-                        actualType,
-                        expectedTypeParams,
-                        actualTypeParameters,
-                        insertTypes = false, findGenericTypes = false
-                    )
-                ) return false
-
-                actualTypeParameters[typeParamIdx] = if (actualTypeParam != null && actualTypeParam != actualType) {
-                    unionTypes(actualTypeParam, actualType)
-                } else {
-                    actualTypeParam
-                }
-                println("set types[$typeParamIdx] = ${actualTypeParameters[typeParamIdx]}")
-                return true
-
-            } else TODO("Is $actualType a $expectedType?, $expectedTypeParams, $actualTypeParameters")
+        if (actualType is GenericType) {
+            return checkGenericInsert(
+                // does this work with just swapping them???
+                actualType, expectedType,
+                expectedTypeParams, actualTypeParameters,
+                findGenericTypes
+            )
         }
 
         if ((expectedType == NullType) != (actualType == NullType)) {
@@ -147,31 +175,40 @@ object Inheritance {
         }
 
         println(
-            "checking-1: $expectedType<${(expectedType as? ClassType)?.typeParameters}> vs " +
-                    "$actualType<${(actualType as? ClassType)?.typeParameters}> " +
+            "checking-1: $expectedType vs $actualType " +
                     "-> ${expectedType == actualType}"
         )
 
-        if (expectedType == actualType ||
-            (expectedType is ClassType && actualType is ClassType &&
-                    expectedType.clazz == actualType.clazz &&
-                    (expectedType.typeParameters?.size ?: 0) == (actualType.typeParameters?.size ?: 0))
-        ) return true
-
+        if (expectedType == actualType) return true
         if (actualType is ClassType && expectedType is ClassType) {
             // todo check generics
-            val actualGenerics = actualType.typeParameters
-            val expectedGenerics = expectedType.typeParameters
-            val size0 = actualGenerics?.size ?: 0
-            val size1 = expectedGenerics?.size ?: 0
-            if (!(size0 == 0 && size1 == 0) &&
-                expectedType.clazz == actualType.clazz
-            ) {
-                if (actualGenerics != null && expectedGenerics != null) {
-                    // should not happen, I think
+            if (expectedType.clazz == actualType.clazz) {
+                val actualGenerics = actualType.typeParameters
+                val expectedGenerics = expectedType.typeParameters
+                val actualSize = actualGenerics?.size ?: if (actualType.hasSufficientTypeParameters()) 0 else -1
+                val expectedSize = expectedGenerics?.size ?: if (expectedType.hasSufficientTypeParameters()) 0 else -1
+                println("Class vs Class, $actualSize vs $expectedSize")
+
+                if (actualSize != expectedSize) {
+                    println("Mismatch in generic count :(")
                     return false
                 }
-                TODO("Compare generics $expectedGenerics vs $actualGenerics")
+
+                // todo in/out now matters for the direction of the isSubTypeOf...
+                if (actualGenerics != null && expectedGenerics != null) {
+                    for (i in actualGenerics.indices) {
+                        val expectedType = expectedGenerics[i]
+                        val actualType = actualGenerics[i]
+                        if (!isSubTypeOf(
+                                expectedType, actualType,
+                                expectedTypeParams, actualTypeParameters,
+                                insertTypes, findGenericTypes
+                            )
+                        ) return false
+                    }
+                }
+
+                return true
             }
 
             println("classType of $expectedType: ${expectedType.clazz.scopeType}")
@@ -179,12 +216,15 @@ object Inheritance {
                 ScopeType.INTERFACE -> {
                     TODO("check super interfaces of $actualType for $expectedType")
                 }
-                ScopeType.NORMAL_CLASS -> {
+                else -> {
+                    val isAnyClass = actualType.clazz == AnyType.clazz
+                    if (isAnyClass) return false
+
                     // check super class
                     // todo if super type has generics, we need to inject them into the super type
                     val superType = actualType.clazz.superCalls.firstOrNull { it.valueParams != null }?.type ?: AnyType
-                    if (superType != actualType.clazz) println("super($actualType): $superType")
-                    (superType != actualType.clazz) && isSubTypeOf(
+                    println("super($actualType): $superType")
+                    isSubTypeOf(
                         expectedType,
                         superType,
                         expectedTypeParams,
@@ -193,10 +233,6 @@ object Inheritance {
                         findGenericTypes
                     )
                 }
-                ScopeType.INLINE_CLASS -> false
-                ScopeType.ENUM_CLASS -> false
-                ScopeType.OBJECT -> false
-                else -> false
             }
         }
 

@@ -7,17 +7,19 @@ import me.anno.zauberei.types.Type
 class ResolutionContext(
     val codeScope: Scope, // 3rd
     val selfType: Type?, // 2nd
-    val selfScope: Scope?,
     /**
      * Whether something without type, like while(true){}, is supported
      * */
     val allowTypeless: Boolean,
     val targetType: Type?
 ) {
+
+    val selfScope = typeToScope(selfType)
+
     fun withTargetType(newTargetType: Type?): ResolutionContext {
         if (newTargetType == targetType) return this
         return ResolutionContext(
-            codeScope, selfType, selfScope,
+            codeScope, selfType,
             allowTypeless, newTargetType
         )
     }
@@ -25,7 +27,7 @@ class ResolutionContext(
     fun withSelfType(newSelfType: Type?): ResolutionContext {
         if (newSelfType == selfType) return this
         return ResolutionContext(
-            codeScope, newSelfType, typeToScope(newSelfType),
+            codeScope, newSelfType,
             allowTypeless, targetType
         )
     }

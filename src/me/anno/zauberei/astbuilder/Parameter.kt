@@ -13,6 +13,6 @@ class Parameter(
     val origin: Int
 ) {
     override fun toString(): String {
-        return "${if (isVar) "var " else ""}${if (isVal) "val " else ""}$name: $type${if(initialValue != null) " = $initialValue" else ""}"
+        return "${if (isVar) "var " else ""}${if (isVal) "val " else ""}$name: $type${if (initialValue != null) " = $initialValue" else ""}"
     }
 }

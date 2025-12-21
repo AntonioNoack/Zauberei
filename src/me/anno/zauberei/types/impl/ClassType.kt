@@ -19,11 +19,16 @@ class ClassType(val clazz: Scope, val typeParameters: List<Type>?) : Type() {
         return clazz.pathStr.hashCode()
     }
 
+    fun hasSufficientTypeParameters(): Boolean {
+        return typeParameters != null || (clazz.hasTypeParameters && clazz.typeParameters.isEmpty())
+    }
+
     override fun toString(): String {
-        return if (typeParameters != null && typeParameters.isEmpty()) {
-            "ClassType(${clazz.pathStr})"
+        return if ((typeParameters != null && typeParameters.isEmpty())) { // we know it's empty, because it's defined as such
+            clazz.pathStr
         } else {
-            "ClassType<${typeParameters?.joinToString() ?: "?"}>(${clazz.pathStr})"
+            // unknown or not empty
+            "${clazz.pathStr}<${typeParameters?.joinToString() ?: "?"}>"
         }
     }
 

@@ -8,6 +8,7 @@ import me.anno.zauberei.astbuilder.expression.constants.StringExpression
 import me.anno.zauberei.astbuilder.flow.*
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.TokenType
+import me.anno.zauberei.typeresolution.TypeResolution.getSelfType
 import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.AnyType
 import me.anno.zauberei.types.Types.ArrayType
@@ -101,6 +102,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val keywords = packKeywords()
         val typeParameters = readTypeParameterDeclarations(clazz)
         clazz.typeParameters = typeParameters
+        clazz.hasTypeParameters = true
 
         val privatePrimaryConstructor = tokens.equals(i, "private")
         if (privatePrimaryConstructor) i++
@@ -166,6 +168,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val clazz = currPackage.getOrPut(name, tokens.fileName, ScopeType.INTERFACE)
         val keywords = packKeywords()
         clazz.typeParameters = readTypeParameterDeclarations(clazz)
+        clazz.hasTypeParameters = true
 
         readSuperCalls(clazz, false)
         readClassBody(name, keywords, ScopeType.INTERFACE)
@@ -305,7 +308,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             DelegateExpression(readExpression())
         } else null
 
-        if (ownerType == null) ownerType = ClassType(currPackage, emptyList())
+        if (ownerType == null) ownerType = getSelfType(currPackage)
         val field = Field(
             currPackage, isVar, !isVar, ownerType,
             name, valueType, initialValue, keywords, origin
@@ -326,7 +329,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     }
 
     private fun readMethodSelfType(typeParameters: List<Parameter>, functionScope: Scope): Type? {
-        return if (tokens.equals(i + 1, ".") ||
+        if (tokens.equals(i + 1, ".") ||
             tokens.equals(i + 1, "<") ||
             tokens.equals(i + 1, "?.")
         ) {
@@ -338,7 +341,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     functionScope, this,
                 )
                 check(tokens.equals(i++, "."))
-                type
+                return type
             } else {
                 var type = readType()
                 if (tokens.equals(i, "?.")) {
@@ -347,9 +350,9 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 } else {
                     check(tokens.equals(i++, "."))
                 }
-                type
+                return type
             }
-        } else null
+        } else return null
     }
 
     private fun readWhereConditions(): List<TypeCondition> {
@@ -393,6 +396,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
         check(tokens.equals(i, TokenType.NAME))
         val selfType = readMethodSelfType(typeParameters, methodScope)
+            ?: getSelfType(methodScope)
 
         check(tokens.equals(i, TokenType.NAME))
         val name = tokens.toString(i++)
@@ -762,6 +766,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         }
         check(tokens.equals(i++, ">")) // skip >
         scope.typeParameters += params
+        scope.hasTypeParameters = true
         return params
     }
 
@@ -1701,7 +1706,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
         // define variable in the scope
         val field = Field(
-            currPackage, isVar, !isVar, currPackage.typeWithoutArgs,
+            currPackage, isVar, !isVar, getSelfType(currPackage),
             name, type, value, emptyList(), origin
         )
 

@@ -36,6 +36,8 @@ class Scope(val name: String, val parent: Scope? = null) {
     var selfAsMethod: Method? = null
 
     var typeParameters: List<Parameter> = emptyList()
+    var hasTypeParameters = false
+
     var imports: List<Import2> = emptyList()
 
     var primaryConstructorScope: Scope? = null
@@ -233,7 +235,7 @@ class Scope(val name: String, val parent: Scope? = null) {
         if (sameFolder != null) return sameFolder.typeWithoutArgs
 
         // helper at startup / for tests
-        val standardType = StandardTypes.standardTypes[name]
+        val standardType = StandardTypes.standardClasses[name]
         if (standardType != null) return standardType.typeWithoutArgs
 
         // check siblings

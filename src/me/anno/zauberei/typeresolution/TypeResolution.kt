@@ -1,7 +1,6 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile
-import me.anno.zauberei.astbuilder.Method
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
@@ -19,17 +18,13 @@ import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.GenericType
 import me.anno.zauberei.types.impl.NullType
 import me.anno.zauberei.types.impl.UnionType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 /**
- * Resolve types step by step.
- * -> good idea, but Kotlin is more complex :(
- * todo -> simple sample, where it fails:
- * fun execute(args: List<String>); execute(emptyList())
- * -> emptyList() - type depends on what it's used for
- * -> todo we need a LazyType -> matchesType() depends on what it's used for :)
+ * Resolve types step by step, might fail, but should be stable at least.
  * */
 object TypeResolution {
 
@@ -59,15 +54,26 @@ object TypeResolution {
             // todo parameters usually depend on the context
             return
         }
+        val scopeSelfType = getSelfType(scope)
         for (method in scope.methods) {
-            resolveMethodReturnType(method)
+            if (method.returnType == null) {
+                if (false) println("Resolving ${method.innerScope}.type by ${method.body}")
+                val context = ResolutionContext(
+                    method.innerScope,
+                    method.selfType ?: scopeSelfType,
+                    false, null
+                )
+                method.returnType = resolveType(context, method.body!!)
+            }
         }
         for (field in scope.fields) {
             if (field.valueType == null && field.initialValue != null) {
                 println("Resolving field $field in scope ${scope.pathStr}")
+                println("fieldSelfType: ${field.selfType}")
+                println("scopeSelfType: $scopeSelfType")
                 //try {
                 val context = ResolutionContext(
-                    field.declaredScope, field.selfType, null,
+                    field.declaredScope, field.selfType ?: scopeSelfType,
                     false, null
                 )
                 field.valueType = resolveType(context, field.initialValue)
@@ -80,24 +86,25 @@ object TypeResolution {
         if (false) println("${scope.fileName}: ${scope.pathStr}, ${scope.fields.size}f, ${scope.methods.size}m, ${scope.code.size}c")
     }
 
-    fun resolveMethodReturnType(method: Method): Type {
-        if (method.returnType == null) {
-            if (false) println("Resolving ${method.innerScope}.type by ${method.body}")
-            val context = ResolutionContext(
-                method.innerScope,
-                method.selfType, typeToScope(method.selfType),
-                false, null
-            )
-            method.returnType = resolveType(context, method.body!!)
+    fun getSelfType(scope: Scope): Type? {
+        var scope = scope
+        while (true) {
+            when (scope.scopeType) {
+                ScopeType.NORMAL_CLASS, ScopeType.ENUM_CLASS,
+                ScopeType.ENUM_ENTRY_CLASS, ScopeType.INTERFACE,
+                ScopeType.OBJECT -> ClassType(scope, scope.typeParameters.map {
+                    GenericType(scope, it.name)
+                })
+                else -> scope = scope.parent ?: return null
+            }
         }
-        return method.returnType!!
     }
 
     fun resolveFieldType(field: Field): Type {
         if (field.valueType == null) {
             val context = ResolutionContext(
                 field.declaredScope,
-                field.selfType, typeToScope(field.selfType),
+                field.selfType ?: getSelfType(field.declaredScope),
                 false, null
             )
             field.valueType = resolveType(context, field.initialValue!!)
@@ -122,7 +129,7 @@ object TypeResolution {
         if (alreadyResolved != null) {
             return alreadyResolved
         } else {
-            println("Resolving type of (${expr.javaClass.simpleName}) $expr")
+            println("Resolving type of (${expr.javaClass.simpleName}) $expr (targetType=${context.targetType})")
             val type = expr.resolveType(context)
             println("Resolved type of $expr to $type")
             expr.resolvedType = type
@@ -211,9 +218,9 @@ object TypeResolution {
     ): Type {
         println("typeParams: $typeParameters")
         val method = constructor
-            ?: findMethod(context.selfScope, true, name, typeParameters, valueParameters)
-            ?: findMethod(context.codeScope, true, name, typeParameters, valueParameters)
-            ?: findMethod(langScope, false, name, typeParameters, valueParameters)
+            ?: findMethod(context.selfScope, true, name, context.selfType, typeParameters, valueParameters)
+            ?: findMethod(context.codeScope, true, name, context.selfType, typeParameters, valueParameters)
+            ?: findMethod(langScope, false, name, context.selfType, typeParameters, valueParameters)
         val field = findField(context.codeScope, context.selfType, name)
         val candidates =
             listOfNotNull(method?.getTypeFromCall(), field?.resolveCall()?.getTypeFromCall())
@@ -246,8 +253,7 @@ object TypeResolution {
                 if (field.valueType == null) {
                     val context = ResolutionContext(
                         field.declaredScope,
-                        base, base.clazz,
-                        false, null
+                        base, false, null
                     )
                     field.valueType = resolveType(context, field.initialValue!!)
                 }
@@ -338,13 +344,21 @@ object TypeResolution {
      * */
     fun findMethod(
         scope: Scope?, recursive: Boolean, name: String,
-        typeParameters: List<Type>?, valueParameters: List<ValueParameter>
+        givenSelfType: Type?, // if inside Companion/Object/Class/Interface, this is defined; else null
+
+        typeParameters: List<Type>?,
+        valueParameters: List<ValueParameter>
     ): ResolvedMethod? {
         var scope = scope ?: return null
         while (true) {
             for (method in scope.methods) {
                 if (method.name != name) continue
+                if (method.typeParameters.isNotEmpty()) {
+                    println("Given $method on $givenSelfType, can we deduct any generics from that?")
+                }
                 val generics = findGenericsForMatch(
+                    givenSelfType,
+                    method.selfType,
                     method.typeParameters,
                     method.valueParameters,
                     typeParameters,
@@ -441,6 +455,7 @@ object TypeResolution {
         for (constructor in scope.constructors) {
             println("  candidate constructor: $constructor")
             val generics = findGenericsForMatch(
+                null, null,
                 constructor.clazz.typeParameters,
                 constructor.valueParameters,
                 typeParameters, valueParameters
@@ -451,6 +466,8 @@ object TypeResolution {
     }
 
     fun findGenericsForMatch(
+        expectedSelfType: Type?,
+        actualSelfType: Type?,
         // our method expects these:
         expectedTypeParameters: List<Parameter>,
         expectedValueParameters: List<Parameter>,
@@ -458,6 +475,11 @@ object TypeResolution {
         actualTypeParameters: List<Type>?,
         actualValueParameters: List<ValueParameter>
     ): List<Type>? { // found generic values for a match
+
+        // todo objects don't need actualSelfType, if properly in scope or imported...
+        if ((expectedSelfType != null) != (actualSelfType != null)) {
+            return null
+        }
 
         println("checking $expectedTypeParameters vs $actualTypeParameters")
         println("     and $expectedValueParameters vs $actualValueParameters")
@@ -490,10 +512,22 @@ object TypeResolution {
                 return null
             }
 
-        val resolvedTypes =
-            actualTypeParameters ?: ArrayList(List(expectedTypeParameters.size) { null })
+        val resolvedTypes = actualTypeParameters
+            ?: ArrayList(List(expectedTypeParameters.size) { null })
 
         val findGenericTypes = actualTypeParameters == null
+
+        println("Checking method-match, self-types: $expectedSelfType vs $actualSelfType")
+        val matchesSelfType = expectedSelfType == null || isSubTypeOf(
+            expectedSelfType, actualSelfType!!,
+            expectedTypeParameters,
+            resolvedTypes,
+            true, findGenericTypes
+        )
+
+        if (!matchesSelfType) {
+            return null
+        }
 
         for (i in expectedValueParameters.indices) {
             val mvParam = expectedValueParameters[i]
@@ -503,6 +537,7 @@ object TypeResolution {
                 check(expectedParamArrayType is ClassType)
                 check(expectedParamArrayType.clazz == ArrayType.clazz)
                 check(expectedParamArrayType.typeParameters?.size == 1)
+                // todo we might need to replace generics here...
                 val expectedParamEntryType = expectedParamArrayType.typeParameters[0]
 
                 // if star, use it as-is
@@ -559,8 +594,4 @@ object TypeResolution {
             list.toList() as List<ValueParameter>
         } else valueParameters
     }
-
-    // todo resolve types step by step,
-    //  not supporting any recursion, but being stable at least
-
 }

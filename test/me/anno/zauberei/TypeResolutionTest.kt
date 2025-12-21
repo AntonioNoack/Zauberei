@@ -1,13 +1,14 @@
 package me.anno.zauberei
 
 import me.anno.zauberei.Compile.root
+import me.anno.zauberei.Compile.stdlib
 import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.Constructor
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.tokenizer.Tokenizer
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.types.*
-import me.anno.zauberei.types.StandardTypes.standardTypes
+import me.anno.zauberei.types.StandardTypes.standardClasses
 import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.Types.CharType
 import me.anno.zauberei.types.Types.DoubleType
@@ -28,7 +29,7 @@ class TypeResolutionTest {
         private var ctr = 0
 
         fun testTypeResolution(code: String): Type {
-            val testScopeName = "Test${ctr++}"
+            val testScopeName = "test${ctr++}"
             val tokens = Tokenizer(
                 """
             package $testScopeName
@@ -69,7 +70,7 @@ class TypeResolutionTest {
 
     @Test
     fun testTypeWithGenerics() {
-        val ArrayListType = standardTypes["ArrayList"]!!
+        val ArrayListType = standardClasses["ArrayList"]!!
         assertEquals(
             ClassType(
                 ArrayListType,
@@ -81,7 +82,7 @@ class TypeResolutionTest {
 
     @Test
     fun testConstructorWithParam() {
-        val intArrayType = standardTypes["IntArray"]!!
+        val intArrayType = standardClasses["IntArray"]!!
         // we need to define the constructor without any args
         val constructors = intArrayType.constructors
         if (constructors.none { it.valueParameters.size == 1 }) {
@@ -103,7 +104,7 @@ class TypeResolutionTest {
 
     @Test
     fun testConstructorsWithGenerics() {
-        val arrayListType = standardTypes["ArrayList"]!!
+        val arrayListType = standardClasses["ArrayList"]!!
         defineArrayListConstructors()
 
         assertEquals(
@@ -116,7 +117,7 @@ class TypeResolutionTest {
     }
 
     private fun defineArrayListConstructors() {
-        val arrayListType = standardTypes["ArrayList"]!!
+        val arrayListType = standardClasses["ArrayList"]!!
         if (arrayListType.typeParameters.isEmpty()) {
             arrayListType.typeParameters += Parameter(
                 false, false, false,
@@ -155,7 +156,7 @@ class TypeResolutionTest {
     fun testGenericFunction() {
         defineArrayListConstructors()
 
-        val listType = standardTypes["List"]!!
+        val listType = standardClasses["List"]!!
         assertEquals(
             ClassType(
                 listType,
@@ -172,12 +173,11 @@ class TypeResolutionTest {
 
     @Test
     fun testGenericsMap() {
-        val arrayListType = standardTypes["ArrayList"]!!
         defineArrayListConstructors()
 
         assertEquals(
             ClassType(
-                arrayListType,
+                standardClasses["List"]!!,
                 listOf(ClassType(FloatType.clazz, null))
             ),
             testTypeResolution(
@@ -187,6 +187,12 @@ class TypeResolutionTest {
                     return List(size) { map(this[it]) }
                 }
                 val tested = emptyList<Int>().map { it + 1f }
+                
+                // mark Int as a class (that extends Any)
+                package $stdlib
+                class Int: Any()
+                // mark Any as a class
+                class Any()
             """.trimIndent()
             )
         )
