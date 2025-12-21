@@ -65,7 +65,7 @@ fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: L
     val origin = subject.origin
     val subjectName = scope.generateName("subject")
     Field(
-        scope, false, true, scope, subjectName,
+        scope, false, true, scope.typeWithoutArgs, subjectName,
         null, subject, emptyList(), origin
     )
     val subjectV = VariableExpression(subjectName, origin, this)

@@ -18,6 +18,10 @@ class UnionType(val types: List<Type>) : Type() {
         }
     }
 
+    init {
+        check(types.size >= 2)
+    }
+
     override fun toString(): String {
         return "UnionType(${types.joinToString()})"
     }

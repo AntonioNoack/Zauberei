@@ -13,9 +13,9 @@ fun ASTBuilder.DestructuringForLoop(
 ): Expression {
     val origin = iterable.origin
     val fullName = scope.generateName("full")
-    Field(scope, false, true, scope, fullName, null, null, emptyList(), origin)
+    Field(scope, false, true, scope.typeWithoutArgs, fullName, null, null, emptyList(), origin)
     for (varName in variableNames) {
-        Field(scope, false, true, scope, varName, null, null, emptyList(), origin)
+        Field(scope, false, true, scope.typeWithoutArgs, varName, null, null, emptyList(), origin)
     }
     val fullExpr = VariableExpression(fullName, origin, this)
     val newBody = ExpressionList(

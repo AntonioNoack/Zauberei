@@ -11,7 +11,7 @@ import me.anno.zauberei.types.impl.GenericType
  * Scope / Package / Class / Object / Interface ...
  * keywords tell you what it is
  * */
-class Scope(val name: String, val parent: Scope? = null) : Type() {
+class Scope(val name: String, val parent: Scope? = null) {
 
     var scopeType: ScopeType? = null
 
@@ -205,11 +205,11 @@ class Scope(val name: String, val parent: Scope? = null) : Type() {
 
         if (parent != null && parent.fileName == fileName &&
             parent.name == name
-        ) return parent
+        ) return parent.typeWithoutArgs
 
         if (searchInside) {
             val insideThisFile = resolveTypeInner(name)
-            if (insideThisFile != null) return insideThisFile
+            if (insideThisFile != null) return insideThisFile.typeWithoutArgs
         }
 
         val genericType = resolveGenericType(name)
@@ -221,37 +221,39 @@ class Scope(val name: String, val parent: Scope? = null) : Type() {
                 // scan all of that scope
                 for (child in path.children) {
                     if (child.name == name) {
-                        return child
+                        return child.typeWithoutArgs
                     }
                 }
             } else if (import.name == name) {
-                return path
+                return path.typeWithoutArgs
             }
         }
 
         val sameFolder = resolveTypeSameFolder(name)
-        if (sameFolder != null) return sameFolder
+        if (sameFolder != null) return sameFolder.typeWithoutArgs
 
         // helper at startup / for tests
         val standardType = StandardTypes.standardTypes[name]
-        if (standardType != null) return standardType
+        if (standardType != null) return standardType.typeWithoutArgs
 
         // check siblings
         if (parent != null) {
             for (child in parent.children) {
-                if (child.name == name) return child
+                if (child.name == name) return child.typeWithoutArgs
             }
         }
 
         // we must also check root for any valid paths...
         for (child in root.children) {
             if (child.name == name) {
-                return child
+                return child.typeWithoutArgs
             }
         }
 
         return null
     }
+
+    val typeWithoutArgs = ClassType(this, null)
 
     fun resolveType(
         name: String, typeParameters: List<Parameter>,

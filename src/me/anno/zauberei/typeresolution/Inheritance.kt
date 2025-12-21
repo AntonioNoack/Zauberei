@@ -184,7 +184,7 @@ object Inheritance {
                 ScopeType.NORMAL_CLASS -> {
                     // check super class
                     // todo if super type has generics, we need to inject them into the super type
-                    val superType = actualType.clazz.superCalls.firstOrNull { it.params != null }?.type ?: AnyType.clazz
+                    val superType = actualType.clazz.superCalls.firstOrNull { it.params != null }?.type ?: AnyType
                     if (superType != actualType.clazz) println("super($actualType): $superType")
                     (superType != actualType.clazz) && isSubTypeOf(
                         expectedType,

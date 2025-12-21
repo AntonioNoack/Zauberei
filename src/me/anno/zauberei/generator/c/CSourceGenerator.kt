@@ -6,10 +6,10 @@ import me.anno.zauberei.astbuilder.expression.VariableExpression
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.ReturnExpression
 import me.anno.zauberei.astbuilder.flow.WhileLoop
-import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.impl.ClassType
 import java.io.File
 
 object CSourceGenerator {
@@ -28,7 +28,7 @@ object CSourceGenerator {
     fun getName(scope: Type?): String {
         return when (scope) {
             is ClassType -> getName(scope.clazz)
-            null, is Scope -> getName(scope)
+            null -> "void /*???*/"
             else -> "void /* $scope */"
         }
     }
@@ -229,7 +229,6 @@ object CSourceGenerator {
                 val type = field.valueType
                 when (type) {
                     is ClassType -> builder.append(getName(type.clazz))
-                    is Scope -> builder.append(getName(type))
                     null -> builder.append("void /* null */")
                     else -> builder.append("void /* $type */")
                 }
@@ -245,8 +244,9 @@ object CSourceGenerator {
 
     fun Type?.isValueType(): Boolean {
         if (this == null) return false
-        if (this is ClassType) return clazz.isValueType()
-        if (this !is Scope) return false
-        return "value" in this.keywords
+        if (this is ClassType) {
+            return "value" in clazz.keywords
+        }
+        return false
     }
 }

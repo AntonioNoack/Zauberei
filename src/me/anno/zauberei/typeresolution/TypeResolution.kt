@@ -208,8 +208,8 @@ object TypeResolution {
                 }
             }
             is VariableExpression -> {
-                val field = findField(context.codeScope, context.selfScope, expr.name)
-                    ?: findField(langScope, context.selfScope, expr.name)
+                val field = findField(context.codeScope, context.selfScope?.typeWithoutArgs, expr.name)
+                    ?: findField(langScope, context.selfScope?.typeWithoutArgs, expr.name)
                 if (field != null) return resolveFieldType(field)
                 val type = findType(context.codeScope, context.selfType, expr.name)
                 if (type != null) return type
@@ -238,7 +238,7 @@ object TypeResolution {
                     SpecialValue.TRUE, SpecialValue.FALSE -> BooleanType
                     SpecialValue.THIS -> {
                         // todo 'this' might have a label, and then means the parent with that name
-                        resolveThisType(typeToScope(context.selfType) ?: context.codeScope)
+                        resolveThisType(typeToScope(context.selfType) ?: context.codeScope).typeWithoutArgs
                     }
                     else -> TODO("Resolve type for ConstantExpression in ${context.codeScope},${expr.value}")
                 }
@@ -418,14 +418,9 @@ object TypeResolution {
         return candidates.first()
     }
 
-    fun findFieldType(base0: Type, name: String): Type? {
+    fun findFieldType(base: Type, name: String): Type? {
         // todo field may be generic, inject the generics as needed...
         // todo check extension fields
-        val base = when (base0) {
-            is Scope -> ClassType(base0, null)
-            is NamedType -> base0.type
-            else -> base0
-        }
         if (base is ClassType) {
             val fields = base.clazz.fields
             val field = fields.firstOrNull {
@@ -444,10 +439,10 @@ object TypeResolution {
                 }
                 return field.valueType
             }
-            if (base0 is ClassType && base.clazz.scopeType == ScopeType.ENUM_CLASS) {
+            if (base.clazz.scopeType == ScopeType.ENUM_CLASS) {
                 val enumValues = base.clazz.enumValues
                 if (enumValues.any { it.name == name }) {
-                    return base.clazz
+                    return base.clazz.typeWithoutArgs
                 }
 
                 TODO("find child class")
@@ -520,7 +515,7 @@ object TypeResolution {
 
     class ResolvedConstructor(val constructor: Constructor, val generics: List<Type>) : Resolved {
         override fun getTypeFromCall(): Type {
-            return if (generics.isEmpty()) constructor.clazz
+            return if (generics.isEmpty()) constructor.clazz.typeWithoutArgs
             else ClassType(constructor.clazz, generics)
         }
     }

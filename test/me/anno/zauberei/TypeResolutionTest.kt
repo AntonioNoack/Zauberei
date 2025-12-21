@@ -98,7 +98,7 @@ class TypeResolutionTest {
                 )
             )
         }
-        assertEquals(intArrayType, testTypeResolution("val tested = IntArray(5)"))
+        assertEquals(intArrayType.typeWithoutArgs, testTypeResolution("val tested = IntArray(5)"))
     }
 
     @Test

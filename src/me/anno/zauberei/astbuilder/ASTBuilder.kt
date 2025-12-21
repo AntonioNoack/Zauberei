@@ -88,7 +88,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         var path = genericParams.last()[name0]
             ?: currPackage.resolveType(name0, this)
         while (tokens.equals(i, ".") && tokens.equals(i + 1, TokenType.NAME)) {
-            path = (path as Scope).getOrPut(tokens.toString(i + 1), null)
+            path = (path as ClassType).clazz.getOrPut(tokens.toString(i + 1), null).typeWithoutArgs
             i += 2 // skip period and name
         }
         return path
@@ -1258,7 +1258,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val typeArgs = readTypeParams()
         val isNullable = consumeNullable()
         val baseType =
-            if (path is Scope) ClassType(path, typeArgs)
+            if (path is ClassType) ClassType(path.clazz, typeArgs)
             else if (typeArgs == null) path
             else throw IllegalStateException("Cannot combine $path with $typeArgs and $subType")
         return if (isNullable) typeOrNull(baseType) else baseType
@@ -1685,7 +1685,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
         // define variable in the scope
         val field = Field(
-            currPackage, isVar, !isVar, currPackage,
+            currPackage, isVar, !isVar, currPackage.typeWithoutArgs,
             name, type, value, emptyList(), origin
         )
 
