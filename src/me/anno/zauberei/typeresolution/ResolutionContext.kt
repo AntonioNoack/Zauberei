@@ -12,13 +12,13 @@ class ResolutionContext(
      * Whether something without type, like while(true){}, is supported
      * */
     val allowTypeless: Boolean,
-    val targetLambdaType: Type?
+    val targetType: Type?
 ) {
-    fun withTargetLambdaType(newTargetLambdaType: Type?): ResolutionContext {
-        if (newTargetLambdaType == targetLambdaType) return this
+    fun withTargetType(newTargetType: Type?): ResolutionContext {
+        if (newTargetType == targetType) return this
         return ResolutionContext(
             codeScope, selfType, selfScope,
-            allowTypeless, newTargetLambdaType
+            allowTypeless, newTargetType
         )
     }
 
@@ -26,7 +26,7 @@ class ResolutionContext(
         if (newSelfType == selfType) return this
         return ResolutionContext(
             codeScope, newSelfType, typeToScope(newSelfType),
-            allowTypeless, targetLambdaType
+            allowTypeless, targetType
         )
     }
 }

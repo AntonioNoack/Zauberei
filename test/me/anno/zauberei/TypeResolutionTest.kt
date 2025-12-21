@@ -178,7 +178,7 @@ class TypeResolutionTest {
         assertEquals(
             ClassType(
                 arrayListType,
-                listOf(ClassType(IntType.clazz, null))
+                listOf(ClassType(FloatType.clazz, null))
             ),
             testTypeResolution(
                 """
@@ -186,7 +186,7 @@ class TypeResolutionTest {
                 fun <V,R> List<V>.map(map: (V) -> R): List<R> {
                     return List(size) { map(this[it]) }
                 }
-                val tested = emptyList<Int>().map { it.toString() }
+                val tested = emptyList<Int>().map { it + 1f }
             """.trimIndent()
             )
         )

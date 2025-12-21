@@ -12,7 +12,7 @@ class ValueParameterWithLambda(
 
     override fun getType(targetType: Type): Type {
         return when (val expr = param.value) {
-            is LambdaExpression -> resolveType(context, expr)
+            is LambdaExpression -> resolveType(context.withTargetType(targetType), expr)
             else -> TODO("Resolve $expr in ${context.codeScope}/${context.selfScope} to type $targetType")
         }
     }

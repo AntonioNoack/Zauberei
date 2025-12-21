@@ -1595,7 +1595,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             variables
         } else null
         val body = readMethodBody()
-        return LambdaExpression(variables, body)
+        check(currPackage.scopeType == ScopeType.LAMBDA)
+        return LambdaExpression(variables, body, currPackage)
     }
 
     fun readComma() {

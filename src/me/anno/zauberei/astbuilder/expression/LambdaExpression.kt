@@ -1,5 +1,6 @@
 package me.anno.zauberei.astbuilder.expression
 
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 open class LambdaVariable(val type: Type?, val name: String) {
@@ -17,6 +18,7 @@ class LambdaDestructuring(val names: List<String>) : LambdaVariable(null, "") {
 class LambdaExpression(
     var variables: List<LambdaVariable>?,
     val body: Expression,
+    val scope: Scope,
 ) : Expression(body.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {

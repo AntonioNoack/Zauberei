@@ -1,7 +1,6 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile
-import me.anno.zauberei.astbuilder.Constructor
 import me.anno.zauberei.astbuilder.Method
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
@@ -18,7 +17,10 @@ import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.Types.UnitType
-import me.anno.zauberei.types.impl.*
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.LambdaType
+import me.anno.zauberei.types.impl.NullType
+import me.anno.zauberei.types.impl.UnionType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 /**
@@ -161,7 +163,7 @@ object TypeResolution {
             } else {
                 val type = resolveType(
                     /* no lambda contained -> doesn't matter */
-                    context.withTargetLambdaType(null),
+                    context.withTargetType(null),
                     param.value,
                 )
                 ValueParameterImpl(param.name, type)
@@ -245,7 +247,7 @@ object TypeResolution {
             is NamedCallExpression -> {
                 val baseType = resolveType(
                     /* targetLambdaType seems not deductible */
-                    context.withTargetLambdaType(null),
+                    context.withTargetType(null),
                     expr.base,
                 )
                 if (expr.name == ".") {
@@ -275,7 +277,7 @@ object TypeResolution {
 
                     val calleeType = resolveType(
                         /* target lambda type seems not deductible */
-                        context.withTargetLambdaType(null),
+                        context.withTargetType(null),
                         expr.base,
                     )
                     // todo type-args may be needed for type resolution
@@ -310,51 +312,64 @@ object TypeResolution {
                 val lastExpr = expr.list.lastOrNull()
                 return if (lastExpr != null) resolveType(context, lastExpr) else UnitType
             }
-            is LambdaExpression -> {
-                when (val targetLambdaType = context.targetLambdaType) {
-                    is LambdaType -> {
-                        // automatically add it...
-                        if (expr.variables == null) {
-                            expr.variables = when (val size = targetLambdaType.parameters.size) {
-                                0 -> emptyList()
-                                1 -> listOf(LambdaVariable(null, "it"))
-                                else -> {
-                                    // instead of throwing, we should probably just return some impossible type or error type...
-                                    throw IllegalStateException("Found lambda without parameters, but expected $size")
-                                }
-                            }
+            is LambdaExpression -> return resolveLambdaType(context, expr)
+            else -> TODO("Resolve type for ${expr.javaClass} in ${context.codeScope},${context.selfType}")
+        }
+    }
+
+    private fun resolveLambdaType(context: ResolutionContext, expr: LambdaExpression): Type {
+        println("Handling lambda expression... target: ${context.targetType}")
+        when (val targetLambdaType = context.targetType) {
+            is LambdaType -> {
+                // automatically add it...
+                if (expr.variables == null) {
+                    expr.variables = when (val size = targetLambdaType.parameters.size) {
+                        0 -> emptyList()
+                        1 -> {
+                            // define 'it'-parameter in the scope
+                            val autoParamName = "it"
+                            println("Inserting $autoParamName into lambda automatically")
+                            Field(
+                                expr.scope, false, true, null,
+                                autoParamName, null, null,
+                                emptyList(), expr.origin
+                            )
+                            listOf(LambdaVariable(null, autoParamName))
                         }
+                        else -> {
+                            // instead of throwing, we should probably just return some impossible type or error type...
+                            throw IllegalStateException("Found lambda without parameters, but expected $size")
+                        }
+                    }
+                }
 
-                        check(expr.variables?.size == targetLambdaType.parameters.size)
+                check(expr.variables?.size == targetLambdaType.parameters.size)
 
-                        val resolvedReturnType = /*resolveTypeGivenGenerics(
+                val resolvedReturnType = /*resolveTypeGivenGenerics(
                             targetLambdaType.returnType,
                             targetLambdaType.parameters,
                             generics,
                         )*/ targetLambdaType.returnType
-                        val parameters = expr.variables!!.mapIndexed { index, param ->
-                            val type = param.type ?: targetLambdaType.parameters[index].type
-                            LambdaParameter(param.name, type)
-                        }
-                        return LambdaType(parameters, resolvedReturnType)
-                    }
-                    null -> {
-                        // else 'it' is not defined
-                        if (expr.variables == null) expr.variables = emptyList()
-
-                        val returnType = resolveType(
-                            context.withTargetLambdaType(null),
-                            expr.body,
-                        )
-
-                        return LambdaType(expr.variables!!.map {
-                            LambdaParameter(it.name, it.type!!)
-                        }, returnType)
-                    }
-                    else -> throw NotImplementedError("Extract LambdaType from $targetLambdaType")
+                val parameters = expr.variables!!.mapIndexed { index, param ->
+                    val type = param.type ?: targetLambdaType.parameters[index].type
+                    LambdaParameter(param.name, type)
                 }
+                return LambdaType(parameters, resolvedReturnType)
             }
-            else -> TODO("Resolve type for ${expr.javaClass} in ${context.codeScope},${context.selfType}")
+            null -> {
+                // else 'it' is not defined
+                if (expr.variables == null) expr.variables = emptyList()
+
+                val returnType = resolveType(
+                    context.withTargetType(null),
+                    expr.body,
+                )
+
+                return LambdaType(expr.variables!!.map {
+                    LambdaParameter(it.name, it.type!!)
+                }, returnType)
+            }
+            else -> throw NotImplementedError("Extract LambdaType from $targetLambdaType")
         }
     }
 
@@ -472,7 +487,6 @@ object TypeResolution {
         return when (type) {
             null -> null
             is ClassType -> type.clazz
-            is Scope -> type
             // is NullableType -> typeToScope(type.base)
             else -> throw NotImplementedError("typeToScope($type)")
         }
@@ -502,54 +516,6 @@ object TypeResolution {
         return null
     }
 
-    interface Resolved {
-        fun getTypeFromCall(): Type
-    }
-
-    class ResolvedField(val field: Field) : Resolved {
-        override fun getTypeFromCall(): Type {
-            TODO("Not yet implemented")
-        }
-    }
-
-    class ResolvedConstructor(val constructor: Constructor, val generics: List<Type>) : Resolved {
-        override fun getTypeFromCall(): Type {
-            return if (generics.isEmpty()) constructor.clazz.typeWithoutArgs
-            else ClassType(constructor.clazz, generics)
-        }
-    }
-
-    class ResolvedMethod(val method: Method, val generics: List<Type>) : Resolved {
-        override fun getTypeFromCall(): Type {
-            return resolveTypeGivenGenerics(method.returnType!!, method.typeParameters, generics)
-        }
-    }
-
-    fun resolveTypeGivenGenerics(type: Type, typeParams: List<Parameter>, generics: List<Type>): Type {
-        when (type) {
-            is GenericType -> {
-                val idx = typeParams.indexOfFirst { it.name == type.name }
-                if (idx >= 0) return generics[idx]
-            }
-            is UnionType -> {
-                return type.types.map { partType ->
-                    resolveTypeGivenGenerics(partType, typeParams, generics)
-                }.reduce { a, b -> unionTypes(a, b) }
-            }
-            is ClassType -> {
-                val typeArgs = type.typeArgs ?: return type
-                val newTypeArgs = typeArgs.map { partType ->
-                    resolveTypeGivenGenerics(partType, typeParams, generics)
-                }
-                return ClassType(type.clazz, newTypeArgs)
-            }
-            NullType -> return type
-        }
-
-        // todo we need nested resolution, going into all subtypes...
-        return type
-    }
-
     /**
      * finds a method, returns the method and any inserted type parameters
      * */
@@ -569,13 +535,8 @@ object TypeResolution {
                 ) ?: continue
                 return ResolvedMethod(method, generics)
             }
-            val newScope = if (recursive &&
-                scope.scopeType != ScopeType.PACKAGE &&
-                scope.scopeType != null
-            ) {
-                scope.parent
-            } else null
-            scope = newScope ?: return null
+
+            scope = nextCheckedScope(scope, recursive) ?: return null
         }
     }
 
@@ -615,14 +576,17 @@ object TypeResolution {
                 )
             }
 
-            val newScope = if (recursive &&
-                scope.scopeType != ScopeType.PACKAGE &&
-                scope.scopeType != null
-            ) {
-                scope.parent
-            } else null
-            scope = newScope ?: return null
+            scope = nextCheckedScope(scope, recursive) ?: return null
         }
+    }
+
+    private fun nextCheckedScope(scope: Scope, recursive: Boolean): Scope? {
+        return if (recursive &&
+            scope.scopeType != ScopeType.PACKAGE &&
+            scope.scopeType != null
+        ) {
+            scope.parent
+        } else null
     }
 
     fun applyTypeAlias(
@@ -630,7 +594,6 @@ object TypeResolution {
         leftTypeParameters: List<Parameter>,
         rightType: Type
     ): ClassType {
-        val rightType = if (rightType is Scope) ClassType(rightType, null) else rightType
         when (rightType) {
             is ClassType -> {
                 if (leftTypeParameters.isEmpty()) {
