@@ -190,7 +190,10 @@ class TypeResolutionTest {
                 
                 // mark Int as a class (that extends Any)
                 package $stdlib
-                class Int: Any()
+                class Int: Any() {
+                    operator fun plus(other: Int): Int// = native("this + other")
+                    operator fun plus(other: Float): Float// = native("(float)this + other")
+                }
                 // mark Any as a class
                 class Any()
             """.trimIndent()

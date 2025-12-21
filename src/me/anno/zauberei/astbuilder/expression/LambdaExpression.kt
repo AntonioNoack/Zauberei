@@ -10,8 +10,8 @@ import me.anno.zauberei.types.impl.LambdaType
 
 class LambdaExpression(
     var variables: List<LambdaVariable>?,
+    val bodyScope: Scope,
     val body: Expression,
-    val scope: Scope,
 ) : Expression(body.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
@@ -22,7 +22,7 @@ class LambdaExpression(
         return "LambdaExpr(${variables ?: "?"} -> $body)"
     }
 
-    override fun clone() = LambdaExpression(variables, body.clone(), scope)
+    override fun clone() = LambdaExpression(variables, bodyScope, body.clone())
 
     override fun resolveType(context: ResolutionContext): Type {
         println("Handling lambda expression... target: ${context.targetType}")
@@ -39,7 +39,7 @@ class LambdaExpression(
                             val autoParamName = "it"
                             println("Inserting $autoParamName into lambda automatically, type: $type")
                             Field(
-                                scope, false, true, null,
+                                bodyScope, false, true, null,
                                 autoParamName, type, null,
                                 emptyList(), origin
                             )
@@ -54,11 +54,10 @@ class LambdaExpression(
 
                 check(variables?.size == targetLambdaType.parameters.size)
 
-                val resolvedReturnType = /*resolveTypeGivenGenerics(
-                            targetLambdaType.returnType,
-                            targetLambdaType.parameters,
-                            generics,
-                        )*/ targetLambdaType.returnType
+                val resolvedReturnType = if (targetLambdaType.returnType.containsGenerics()) {
+                    // we need to inspect the contents
+                    TypeResolution.resolveType(context.withCodeScope(bodyScope), body)
+                } else targetLambdaType.returnType // trust-me-bro
                 val parameters = variables!!.mapIndexed { index, param ->
                     val type = param.type ?: targetLambdaType.parameters[index].type
                     LambdaParameter(param.name, type)
@@ -70,7 +69,9 @@ class LambdaExpression(
                 if (variables == null) variables = emptyList()
 
                 val returnType = TypeResolution.resolveType(
-                    context.withTargetType(null),
+                    context
+                        .withCodeScope(bodyScope)
+                        .withTargetType(null),
                     body,
                 )
 

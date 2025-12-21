@@ -92,9 +92,10 @@ object TypeResolution {
             when (scope.scopeType) {
                 ScopeType.NORMAL_CLASS, ScopeType.ENUM_CLASS,
                 ScopeType.ENUM_ENTRY_CLASS, ScopeType.INTERFACE,
-                ScopeType.OBJECT -> ClassType(scope, scope.typeParameters.map {
-                    GenericType(scope, it.name)
-                })
+                ScopeType.OBJECT -> {
+                    val typeParams = scope.typeParameters.map { GenericType(scope, it.name) }
+                    return ClassType(scope, typeParams)
+                }
                 else -> scope = scope.parent ?: return null
             }
         }

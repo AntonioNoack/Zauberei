@@ -14,6 +14,7 @@ class ValueParameterWithLambda(
         return when (val expr = param.value) {
             is LambdaExpression -> {
                 // todo how/where can we update R to be an Int???
+                println("expr for resolving lambda: $expr, tt: $targetType")
                 // this is targetType-specific, so we should clone expr
                 resolveType(context.withTargetType(targetType), expr.clone())
             }

@@ -31,4 +31,8 @@ class ResolutionContext(
             allowTypeless, targetType
         )
     }
+
+    fun withCodeScope(newCodeScope: Scope): ResolutionContext {
+        return ResolutionContext(newCodeScope, selfType, allowTypeless, targetType)
+    }
 }
