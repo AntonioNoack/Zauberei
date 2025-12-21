@@ -11,7 +11,6 @@ import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.LambdaType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
-
 class SubjectWhenCase(val conditions: List<SubjectCondition?>, val bodyScope: Scope, val body: Expression) {
     override fun toString(): String {
         return "${conditions.joinToString(", ")} -> { $body }"
@@ -74,7 +73,7 @@ fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: L
             if (null !in case.conditions) {
                 case.toCondition(this, subjectV)
             } else null // else-case
-        // todo if all conditions are 'is X',
+        // if all conditions are 'is X',
         //  then join them together, and insert a field with more specific type...
         if (case.conditions.all { it != null && it.subjectConditionType == SubjectConditionType.INSTANCEOF }) {
             val fieldName = when (subject) {
@@ -85,6 +84,8 @@ fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: L
             if (fieldName != null) {
                 val caseScope = case.bodyScope
                 val jointType = case.conditions.map { it!!.type!! }.reduce { a, b -> unionTypes(a, b) }
+                // todo this more-specific field is only valid until fieldName is assigned, again, then we have to use unionType
+                // todo this is also only valid, if no other thread/function could write to the field
                 Field(
                     caseScope, false, false, null, fieldName,
                     jointType, null, emptyList(), origin

@@ -272,7 +272,7 @@ object TypeResolution {
                 return findFieldType(superClass, name, superGenerics.map { type ->
                     resolveGenerics(type, genericNames, generics)
                 })
-            }// else might be any, but any has no fields anyway
+            }// else might be Any, but Any has no fields anyway
 
             println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
             return null

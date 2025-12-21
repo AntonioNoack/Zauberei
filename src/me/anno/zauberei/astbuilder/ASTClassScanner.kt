@@ -57,7 +57,7 @@ object ASTClassScanner {
                         when {
                             tokens.equals(i, "package") && listening.size == 1 -> {
                                 var j = i + 1
-                                assert(tokens.equals(j, TokenType.NAME))
+                                check(tokens.equals(j, TokenType.NAME))
                                 var path = root.getOrPut(tokens.toString(j++), null)
                                 while (tokens.equals(j, ".") && tokens.equals(j + 1, TokenType.NAME)) {
                                     path = path.getOrPut(tokens.toString(j + 1), null)
@@ -67,7 +67,7 @@ object ASTClassScanner {
                             }
                             tokens.equals(i, "import") && listening.size == 1 -> {
                                 var j = i + 1
-                                assert(tokens.equals(j, TokenType.NAME))
+                                check(tokens.equals(j, TokenType.NAME))
                                 var path = root.getOrPut(tokens.toString(j++), null)
                                 while (tokens.equals(j, ".") && tokens.equals(j + 1, TokenType.NAME)) {
                                     path = path.getOrPut(tokens.toString(j + 1), null)
@@ -155,7 +155,7 @@ object ASTClassScanner {
                 }
             }
         }
-        assert(listen == -1) { "Listening for class/object/interface at ${tokens.err(listen)}" }
+        check(listen == -1) { "Listening for class/object/interface at ${tokens.err(listen)}" }
 
         // if (tokens.fileName.endsWith("Operator.kt")) throw IllegalStateException()
     }

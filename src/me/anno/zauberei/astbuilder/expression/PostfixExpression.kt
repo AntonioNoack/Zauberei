@@ -20,7 +20,7 @@ class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int
             PostfixType.INCREMENT, PostfixType.DECREMENT -> {
                 TypeResolution.resolveType(context, base)
             }
-            PostfixType.ASSERT_NON_NULL -> {
+            PostfixType.ENSURE_NOT_NULL -> {
                 val newTargetType = if (context.targetType != null) removeNullFromType(context.targetType) else null
                 val type = TypeResolution.resolveType(context.withTargetType(newTargetType), base)
                 removeNullFromType(type)

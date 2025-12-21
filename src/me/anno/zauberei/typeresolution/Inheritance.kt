@@ -146,8 +146,6 @@ object Inheritance {
             return false
         }
 
-        val expectedType = if (expectedType is Scope) ClassType(expectedType, null) else expectedType
-        val actualType = if (actualType is Scope) ClassType(actualType, null) else actualType
         println(
             "checking-1: $expectedType<${(expectedType as? ClassType)?.typeParameters}> vs " +
                     "$actualType<${(actualType as? ClassType)?.typeParameters}> " +
@@ -213,7 +211,7 @@ object Inheritance {
                 // todo return type is one direction, actual type is the other...
                 //  params are normal, return type is the other way around...
                 //  -> this needs to be flipped, but I don't really know what
-                //         [  expectedTypeParams, actualTypeParameters, insertTypes, findGenericTypes] is,
+                //         [expectedTypeParams, actualTypeParameters, insertTypes, findGenericTypes] is,
                 //     and how we're supposed to replace them
                 expectedType.returnType, actualType.returnType,
                 expectedTypeParams, actualTypeParameters,
