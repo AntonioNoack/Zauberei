@@ -1,6 +1,8 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.Annotation
+import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Type
 
 class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Expression(base.origin) {
 
@@ -10,5 +12,9 @@ class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Ex
 
     override fun toString(): String {
         return "$annotation$base"
+    }
+
+    override fun resolveType(context: ResolutionContext): Type {
+        return base.resolveType(context)
     }
 }

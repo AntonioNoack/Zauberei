@@ -16,20 +16,7 @@ class Method(
     val body: Expression?,
     val keywords: List<String>,
     origin: Int
-) : Expression(origin) {
-
-    override fun forEachExpr(callback: (Expression) -> Unit) {
-        for (param in typeParameters) {
-            if (param.initialValue != null)
-                callback(param.initialValue)
-        }
-        for (param in valueParameters) {
-            if (param.initialValue != null)
-                callback(param.initialValue)
-        }
-        if (body != null) callback(body)
-    }
-
+) {
     override fun toString(): String {
         val builder = StringBuilder()
         builder.append("fun ")

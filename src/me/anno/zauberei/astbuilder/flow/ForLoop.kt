@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.types.Type
 
 class ForLoop(
@@ -11,5 +12,9 @@ class ForLoop(
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(iterable)
         callback(body)
+    }
+
+    override fun resolveType(context: ResolutionContext): Type {
+        return asTypeless(context)
     }
 }

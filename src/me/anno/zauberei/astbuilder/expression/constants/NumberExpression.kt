@@ -1,6 +1,8 @@
 package me.anno.zauberei.astbuilder.expression.constants
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.Types.CharType
 import me.anno.zauberei.types.Types.DoubleType
@@ -43,5 +45,9 @@ class NumberExpression(val value: String, origin: Int) : Expression(origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String {
         return "NumberExpr($value)"
+    }
+
+    override fun resolveType(context: ResolutionContext): Type {
+        return resolvedType!!
     }
 }

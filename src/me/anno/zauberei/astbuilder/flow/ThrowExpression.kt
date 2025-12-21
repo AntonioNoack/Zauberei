@@ -1,6 +1,9 @@
 package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.Types.NothingType
 
 // todo we maybe can pack this into an return Err(thrown), and return into return Ok(value)
 class ThrowExpression(origin: Int, val thrown: Expression) : Expression(origin) {
@@ -10,5 +13,9 @@ class ThrowExpression(origin: Int, val thrown: Expression) : Expression(origin) 
 
     override fun toString(): String {
         return "throw $thrown"
+    }
+
+    override fun resolveType(context: ResolutionContext): Type {
+        return NothingType
     }
 }

@@ -1,7 +1,9 @@
 package me.anno.zauberei.astbuilder.expression
 
+import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.impl.ClassType
 
 class ConstructorExpression(
     val clazz: Scope,
@@ -18,5 +20,9 @@ class ConstructorExpression(
 
     override fun toString(): String {
         return "new($clazz)($params)"
+    }
+
+    override fun resolveType(context: ResolutionContext): Type {
+        return ClassType(clazz, typeParams)
     }
 }

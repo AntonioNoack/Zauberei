@@ -1617,7 +1617,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 tokens.equals(i, "@") -> annotations.add(readAnnotation())
                 tokens.equals(i, "val") -> result.add(readDeclaration(false))
                 tokens.equals(i, "var") -> result.add(readDeclaration(true))
-                tokens.equals(i, "fun") -> result.add(readMethod())
+                tokens.equals(i, "fun") -> {
+                    // just read the method, it gets added to the scope
+                    readMethod()
+                }
                 tokens.equals(i, "lateinit") -> {
                     assert(tokens.equals(++i, "var"))
                     result.add(readDeclaration(true, isLateinit = true))

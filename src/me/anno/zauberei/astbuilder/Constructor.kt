@@ -11,18 +11,7 @@ class Constructor(
     val body: Expression?,
     val keywords: List<String>,
     origin: Int
-) : Expression(origin) {
-
-    override fun forEachExpr(callback: (Expression) -> Unit) {
-
-        for (param in valueParameters) {
-            if (param.initialValue != null)
-                callback(param.initialValue)
-        }
-
-        if (superCall != null) callback(superCall)
-        if (body != null) callback(body)
-    }
+) {
 
     override fun toString(): String {
         return "new ${clazz.pathStr}($valueParameters) { ... }"
