@@ -60,10 +60,11 @@ object TypeResolution {
             if (field.valueType == null && field.initialValue != null) {
                 println("Resolving field $field in scope ${scope.pathStr}")
                 //try {
-                field.valueType = resolveType(
+                val context = ResolutionContext(
                     field.declaredScope, field.selfType, null,
-                    field.initialValue, false, null
+                    false, null
                 )
+                field.valueType = resolveType(context, field.initialValue)
                 /*} catch (e: Throwable) {
                     e.printStackTrace()
                     // continue anyway for now
@@ -76,25 +77,28 @@ object TypeResolution {
     fun resolveMethodReturnType(method: Method): Type {
         if (method.returnType == null) {
             if (false) println("Resolving ${method.innerScope}.type by ${method.body}")
-            method.returnType = resolveType(
+            val context = ResolutionContext(
                 method.innerScope,
                 method.selfType, typeToScope(method.selfType),
-                method.body!!, false, null
+                false, null
             )
+            method.returnType = resolveType(context, method.body!!)
         }
         return method.returnType!!
     }
 
     fun resolveFieldType(field: Field): Type {
         if (field.valueType == null) {
-            field.valueType = resolveType(
+            val context = ResolutionContext(
                 field.declaredScope,
                 field.selfType, typeToScope(field.selfType),
-                field.initialValue!!, false, null
+                false, null
             )
+            field.valueType = resolveType(context, field.initialValue!!)
         }
         return field.valueType!!
     }
+
 
     /**
      * resolve the type for a given expression;
@@ -104,12 +108,8 @@ object TypeResolution {
      *  S <= Int, because there is a only a function List<V>.map(Function1<V,R>).
      * */
     fun resolveType(
-        codeScope: Scope, // 3rd
-        selfType: Type?, // 2nd
-        selfScope: Scope?,
+        context: ResolutionContext,
         expr: Expression,
-        allowTypeless: Boolean,
-        targetLambdaType: Type?
     ): Type {
         // if already resolved, just use that type
         val alreadyResolved = expr.resolvedType
@@ -117,10 +117,7 @@ object TypeResolution {
             return alreadyResolved
         } else {
             println("Resolving type of (${expr.javaClass.simpleName}) $expr")
-            val type = resolveTypeImpl(
-                codeScope, selfType, selfScope,
-                expr, allowTypeless, targetLambdaType
-            )
+            val type = resolveTypeImpl(context, expr)
             println("Resolved type of $expr to $type")
             expr.resolvedType = type
             return type
@@ -151,18 +148,17 @@ object TypeResolution {
     }
 
     fun resolveValueParams(
-        codeScope: Scope, // 3rd
-        selfType: Type?, // 2nd
-        selfScope: Scope?,
+        context: ResolutionContext,
         base: List<NamedParameter>
     ): List<ValueParameter> {
         return base.map { param ->
             if (exprContainsLambdaWRTReturnType(param.value)) {
-                ValueParameterWithLambda(param, codeScope, selfType, selfScope)
+                ValueParameterWithLambda(param, context)
             } else {
                 val type = resolveType(
-                    codeScope, selfType, selfScope, param.value, false,
-                    /* no lambda contained -> doesn't matter */null
+                    /* no lambda contained -> doesn't matter */
+                    context.withTargetLambdaType(null),
+                    param.value,
                 )
                 ValueParameterImpl(param.name, type)
             }
@@ -174,17 +170,13 @@ object TypeResolution {
      * an expression can be
      * */
     fun resolveTypeImpl(
-        codeScope: Scope, // 3rd
-        selfType: Type?, // 2nd
-        selfScope: Scope?,
+        context: ResolutionContext,
         expr: Expression,
-        allowTypeless: Boolean,
-        targetLambdaType: Type?
     ): Type {
         when (expr) {
             is CallExpression -> {
                 val typeParameters = expr.typeParameters
-                val valueParameters = resolveValueParams(codeScope, selfType, selfScope, expr.valueParameters)
+                val valueParameters = resolveValueParams(context, expr.valueParameters)
                 println("Resolving call: ${expr.base}<${typeParameters ?: "?"}>($valueParameters)")
                 // todo base can be a constructor, field or a method
                 // todo find the best matching candidate...
@@ -197,11 +189,10 @@ object TypeResolution {
                         // findConstructor(selfScope, false, name, typeParameters, valueParameters)
                         val constructor =
                             findConstructor(base.nameAsImport, false, name, typeParameters, valueParameters)
-                                ?: findConstructor(codeScope, true, name, typeParameters, valueParameters)
+                                ?: findConstructor(context.codeScope, true, name, typeParameters, valueParameters)
                                 ?: findConstructor(langScope, false, name, typeParameters, valueParameters)
                         return resolveCallType(
-                            codeScope, selfType, selfScope,
-                            expr, name, constructor,
+                            context, expr, name, constructor,
                             typeParameters, valueParameters
                         )
                     }
@@ -212,29 +203,28 @@ object TypeResolution {
                 }
             }
             is VariableExpression -> {
-                val field = findField(codeScope, selfScope, expr.name)
-                    ?: findField(langScope, selfScope, expr.name)
+                val field = findField(context.codeScope, context.selfScope, expr.name)
+                    ?: findField(langScope, context.selfScope, expr.name)
                 if (field != null) return resolveFieldType(field)
-                val type = findType(codeScope, selfType, expr.name)
+                val type = findType(context.codeScope, context.selfType, expr.name)
                 if (type != null) return type
                 throw IllegalStateException(
-                    "Missing field '${expr.name}' in $codeScope,$selfType, " +
+                    "Missing field '${expr.name}' in ${context.codeScope},${context.selfType}, " +
                             resolveOrigin(expr.origin)
                 )
             }
             is WhileLoop -> {
-                if (!allowTypeless)
+                if (!context.allowTypeless)
                     throw IllegalStateException("Expected type, but found while-loop")
                 return UnitType
             }
             is IfElseBranch -> {
-                if (expr.elseBranch == null && !allowTypeless)
+                if (expr.elseBranch == null && !context.allowTypeless)
                     throw IllegalStateException("Expected type, but found if without else")
                 if (expr.elseBranch == null) return UnitType
                 // targetLambdaType stays the same
-                val ifType = resolveType(codeScope, selfType, selfScope, expr.ifBranch, allowTypeless, targetLambdaType)
-                val elseType =
-                    resolveType(codeScope, selfType, selfScope, expr.elseBranch, allowTypeless, targetLambdaType)
+                val ifType = resolveType(context, expr.ifBranch)
+                val elseType = resolveType(context, expr.elseBranch)
                 return unionTypes(ifType, elseType)
             }
             is SpecialValueExpression -> {
@@ -243,15 +233,16 @@ object TypeResolution {
                     SpecialValue.TRUE, SpecialValue.FALSE -> BooleanType
                     SpecialValue.THIS -> {
                         // todo 'this' might have a label, and then means the parent with that name
-                        resolveThisType(typeToScope(selfType) ?: codeScope)
+                        resolveThisType(typeToScope(context.selfType) ?: context.codeScope)
                     }
-                    else -> TODO("Resolve type for ConstantExpression in $codeScope,${expr.value}")
+                    else -> TODO("Resolve type for ConstantExpression in ${context.codeScope},${expr.value}")
                 }
             }
             is NamedCallExpression -> {
                 val baseType = resolveType(
-                    codeScope, selfType, selfScope, expr.base, allowTypeless,
-                    /* targetLambdaType seems not deductible */ null
+                    /* targetLambdaType seems not deductible */
+                    context.withTargetLambdaType(null),
+                    expr.base,
                 )
                 if (expr.name == ".") {
                     check(expr.valueParameters.size == 1)
@@ -267,11 +258,9 @@ object TypeResolution {
                             val baseName = parameter.base as VariableExpression
                             val constructor = null
                             // todo for lambdas, baseType must be known for their type to be resolved
-                            val baseScope = typeToScope(baseType)
-                            val valueParameters =
-                                resolveValueParams(codeScope, selfType, selfScope, parameter.valueParameters)
+                            val valueParameters = resolveValueParams(context, parameter.valueParameters)
                             return resolveCallType(
-                                codeScope, baseType, baseScope,
+                                context.withSelfType(baseType),
                                 expr, baseName.name, constructor,
                                 parameter.typeParameters, valueParameters
                             )
@@ -281,16 +270,16 @@ object TypeResolution {
                 } else {
 
                     val calleeType = resolveType(
-                        codeScope, selfType, selfScope, expr.base, allowTypeless,
-                        /* target lambda type seems not deductible */null
+                        /* target lambda type seems not deductible */
+                        context.withTargetLambdaType(null),
+                        expr.base,
                     )
                     // todo type-args may be needed for type resolution
-                    val calleeScope = typeToScope(calleeType)
-                    val valueParameters = resolveValueParams(codeScope, selfType, selfScope, expr.valueParameters)
+                    val valueParameters = resolveValueParams(context, expr.valueParameters)
 
                     val constructor = null
                     return resolveCallType(
-                        codeScope, selfType, calleeScope,
+                        context.withSelfType(calleeType),
                         expr, expr.name, constructor,
                         expr.typeParameters, valueParameters
                     )
@@ -306,24 +295,19 @@ object TypeResolution {
             is PostfixExpression -> when (expr.type) {
                 PostfixType.ASSERT_NON_NULL -> {
                     val type = resolveType(
-                        codeScope, selfType, selfScope, expr.base, allowTypeless,
-                        /* just copying is fine, is it? */ targetLambdaType
+                        /* just copying targetLambdaType is fine, is it? */
+                        context, expr.base,
                     )
                     return removeNullFromType(type)
                 }
-                else -> TODO("Resolve type for PostfixExpression.${expr.type} in $codeScope,$selfType")
+                else -> TODO("Resolve type for PostfixExpression.${expr.type} in ${context.codeScope}, ${context.selfType}")
             }
             is ExpressionList -> {
                 val lastExpr = expr.list.lastOrNull()
-                return if (lastExpr != null) {
-                    resolveType(
-                        codeScope, selfType, selfScope,
-                        lastExpr, allowTypeless, targetLambdaType
-                    )
-                } else UnitType
+                return if (lastExpr != null) resolveType(context, lastExpr) else UnitType
             }
             is LambdaExpression -> {
-                when (targetLambdaType) {
+                when (val targetLambdaType = context.targetLambdaType) {
                     is LambdaType -> {
                         // automatically add it...
                         if (expr.variables == null) {
@@ -355,8 +339,8 @@ object TypeResolution {
                         if (expr.variables == null) expr.variables = emptyList()
 
                         val returnType = resolveType(
-                            codeScope, selfType, selfScope,
-                            expr.body, allowTypeless, null
+                            context.withTargetLambdaType(null),
+                            expr.body,
                         )
 
                         return LambdaType(expr.variables!!.map {
@@ -366,7 +350,7 @@ object TypeResolution {
                     else -> throw NotImplementedError("Extract LambdaType from $targetLambdaType")
                 }
             }
-            else -> TODO("Resolve type for ${expr.javaClass} in $codeScope,$selfType")
+            else -> TODO("Resolve type for ${expr.javaClass} in ${context.codeScope},${context.selfType}")
         }
     }
 
@@ -399,9 +383,7 @@ object TypeResolution {
     }
 
     private fun resolveCallType(
-        codeScope: Scope, // 3rd
-        selfType: Type?, // 2nd
-        selfScope: Scope?,
+        context: ResolutionContext,
         expr: Expression,
         name: String,
         constructor: ResolvedConstructor?,
@@ -410,13 +392,15 @@ object TypeResolution {
     ): Type {
         println("typeParams: $typeParameters")
         val method = constructor
-            ?: findMethod(selfScope, true, name, typeParameters, valueParameters)
-            ?: findMethod(codeScope, true, name, typeParameters, valueParameters)
+            ?: findMethod(context.selfScope, true, name, typeParameters, valueParameters)
+            ?: findMethod(context.codeScope, true, name, typeParameters, valueParameters)
             ?: findMethod(langScope, false, name, typeParameters, valueParameters)
-        val field = findField(codeScope, selfType, name)
+        val field = findField(context.codeScope, context.selfType, name)
         val candidates =
             listOfNotNull(method?.getTypeFromCall(), field?.resolveCall()?.getTypeFromCall())
         if (candidates.isEmpty()) {
+            val selfScope = context.selfScope
+            val codeScope = context.codeScope
             println("self-scope methods[${selfScope?.pathStr}.'$name']: ${selfScope?.methods?.filter { it.name == name }}")
             println("code-scope methods[${codeScope.pathStr}.'$name']: ${codeScope.methods.filter { it.name == name }}")
             println("lang-scope methods[${langScope.pathStr}.'$name']: ${langScope.methods.filter { it.name == name }}")
@@ -446,12 +430,12 @@ object TypeResolution {
             }
             if (field != null) {
                 if (field.valueType == null) {
-                    field.valueType = resolveType(
+                    val context = ResolutionContext(
                         field.declaredScope,
                         base, base.clazz,
-                        field.initialValue!!,
                         false, null
                     )
+                    field.valueType = resolveType(context, field.initialValue!!)
                 }
                 return field.valueType
             }
