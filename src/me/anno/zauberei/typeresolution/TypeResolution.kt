@@ -1,7 +1,10 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile
-import me.anno.zauberei.astbuilder.*
+import me.anno.zauberei.astbuilder.Constructor
+import me.anno.zauberei.astbuilder.Method
+import me.anno.zauberei.astbuilder.NamedParameter
+import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
@@ -15,12 +18,8 @@ import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.Types.UnitType
+import me.anno.zauberei.types.impl.*
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
-import me.anno.zauberei.types.impl.ClassType
-import me.anno.zauberei.types.impl.GenericType
-import me.anno.zauberei.types.impl.LambdaType
-import me.anno.zauberei.types.impl.NullType
-import me.anno.zauberei.types.impl.UnionType
 
 /**
  * Resolve types step by step.
@@ -335,7 +334,7 @@ object TypeResolution {
                         )*/ targetLambdaType.returnType
                         val parameters = expr.variables!!.mapIndexed { index, param ->
                             val type = param.type ?: targetLambdaType.parameters[index].type
-                            NamedType(param.name, type)
+                            LambdaParameter(param.name, type)
                         }
                         return LambdaType(parameters, resolvedReturnType)
                     }
@@ -349,7 +348,7 @@ object TypeResolution {
                         )
 
                         return LambdaType(expr.variables!!.map {
-                            NamedType(it.name, it.type!!)
+                            LambdaParameter(it.name, it.type!!)
                         }, returnType)
                     }
                     else -> throw NotImplementedError("Extract LambdaType from $targetLambdaType")

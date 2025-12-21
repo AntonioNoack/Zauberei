@@ -708,8 +708,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return result
     }
 
-    fun readGenericParams(): List<NamedType> {
-        val result = ArrayList<NamedType>()
+    fun readLambdaParameter(): List<LambdaParameter> {
+        val result = ArrayList<LambdaParameter>()
         loop@ while (i < tokens.size) {
             if (tokens.equals(i, TokenType.NAME) &&
                 tokens.equals(i + 1, ":")
@@ -717,9 +717,9 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             ) {
                 val name = tokens.toString(i)
                 i += 2
-                result.add(NamedType(name, readType()))
+                result.add(LambdaParameter(name, readType()))
             } else if (tokens.equals(i, TokenType.NAME)) {
-                result.add(NamedType(null, readType()))
+                result.add(LambdaParameter(null, readType()))
             } else throw IllegalStateException("Expected name: Type or name at ${tokens.err(i)}")
             readComma()
         }
@@ -1234,7 +1234,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         if (tokens.equals(i, TokenType.OPEN_CALL)) {
             val endI = tokens.findBlockEnd(i, TokenType.OPEN_CALL, TokenType.CLOSE_CALL)
             if (tokens.equals(endI + 1, "->")) {
-                val parameters = pushCall { readGenericParams() }
+                val parameters = pushCall { readLambdaParameter() }
                 i = endI + 2 // skip ) and ->
                 val returnType = readType()
                 return LambdaType(parameters, returnType)

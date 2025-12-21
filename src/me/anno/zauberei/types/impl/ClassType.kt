@@ -4,7 +4,8 @@ import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 /**
- * A scope, but also with type arguments
+ * A scope, but also with optional type arguments,
+ * e.g. ArrayList, ArrayList<Int> or Map<Key, Value>
  * */
 class ClassType(val clazz: Scope, val typeArgs: List<Type>?) : Type() {
 
