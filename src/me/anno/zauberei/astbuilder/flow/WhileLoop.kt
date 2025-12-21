@@ -17,6 +17,6 @@ class WhileLoop(val condition: Expression, val body: Expression, val label: Stri
     }
 
     override fun resolveType(context: ResolutionContext): Type {
-        return asTypeless(context)
+        return exprHasNoType(context)
     }
 }

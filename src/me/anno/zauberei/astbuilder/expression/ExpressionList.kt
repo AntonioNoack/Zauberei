@@ -16,7 +16,7 @@ class ExpressionList(val list: List<Expression>, origin: Int) : Expression(origi
     }
 
     override fun resolveType(context: ResolutionContext): Type {
-        val lastExpr = list.lastOrNull() ?: return asTypeless(context)
+        val lastExpr = list.lastOrNull() ?: return exprHasNoType(context)
         return TypeResolution.resolveType(context, lastExpr)
     }
 }

@@ -11,7 +11,7 @@ abstract class Expression(val origin: Int) {
     abstract fun forEachExpr(callback: (Expression) -> Unit)
     abstract fun resolveType(context: ResolutionContext): Type
 
-    fun asTypeless(context: ResolutionContext): Type {
+    fun exprHasNoType(context: ResolutionContext): Type {
         if (!context.allowTypeless) throw IllegalStateException("Expected type, but found $this")
         return UnitType
     }

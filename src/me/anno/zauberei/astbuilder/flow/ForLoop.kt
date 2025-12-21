@@ -15,6 +15,6 @@ class ForLoop(
     }
 
     override fun resolveType(context: ResolutionContext): Type {
-        return asTypeless(context)
+        return exprHasNoType(context)
     }
 }
