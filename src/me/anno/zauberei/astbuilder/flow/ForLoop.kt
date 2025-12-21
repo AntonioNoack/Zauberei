@@ -17,4 +17,6 @@ class ForLoop(
     override fun resolveType(context: ResolutionContext): Type {
         return exprHasNoType(context)
     }
+
+    override fun clone() = ForLoop(variableName, variableType, iterable.clone(), body.clone(), label)
 }

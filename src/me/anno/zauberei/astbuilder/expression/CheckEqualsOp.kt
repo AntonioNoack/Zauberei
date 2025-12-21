@@ -28,4 +28,6 @@ class CheckEqualsOp(
     override fun resolveType(context: ResolutionContext): Type {
         return BooleanType
     }
+
+    override fun clone() = CheckEqualsOp(left.clone(), right.clone(), byPointer, negated)
 }

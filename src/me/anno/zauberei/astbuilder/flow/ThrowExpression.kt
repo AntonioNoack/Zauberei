@@ -19,4 +19,7 @@ class ThrowExpression(origin: Int, val thrown: Expression) : Expression(origin) 
     override fun resolveType(context: ResolutionContext): Type {
         return NothingType
     }
+
+    override fun clone() = ThrowExpression(origin, thrown.clone())
+
 }

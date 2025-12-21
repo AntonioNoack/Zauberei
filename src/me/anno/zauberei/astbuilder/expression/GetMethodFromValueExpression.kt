@@ -17,4 +17,7 @@ class GetMethodFromValueExpression(val base: Expression, val name: String, origi
         // todo resolve method, then resolve lambdaType from that
         TODO("Not yet implemented")
     }
+
+    override fun clone() = GetMethodFromValueExpression(base.clone(), name, origin)
+
 }

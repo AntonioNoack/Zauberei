@@ -20,4 +20,7 @@ class GetClassFromValueExpression(val type: Expression, origin: Int) : Expressio
         val base = TypeResolution.resolveType(context, type)
         return ClassType(getScope("Class"), listOf(base))
     }
+
+    override fun clone() = GetClassFromValueExpression(type.clone(), origin)
+
 }

@@ -244,12 +244,10 @@ object Inheritance {
             if (expectedType.parameters.size != actualType.parameters.size) return false
 
             return isSubTypeOf(
-                // todo return type is one direction, actual type is the other...
+                // return type is one direction, actual type is the other...
                 //  params are normal, return type is the other way around...
-                //  -> this needs to be flipped, but I don't really know what
-                //         [expectedTypeParams, actualTypeParameters, insertTypes, findGenericTypes] is,
-                //     and how we're supposed to replace them
-                expectedType.returnType, actualType.returnType,
+                //  -> this needs to be flipped
+                actualType.returnType, expectedType.returnType,
                 expectedTypeParams, actualTypeParameters,
                 insertTypes, findGenericTypes
             ) && expectedType.parameters.indices.all { paramIndex ->

@@ -36,6 +36,11 @@ class CallExpression(
         } else "($base)<${typeParameters ?: "?"}>($valueParameters)"
     }
 
+    override fun clone() = CallExpression(
+        base.clone(), typeParameters,
+        valueParameters.map { NamedParameter(it.name, it.value.clone()) }, origin
+    )
+
     override fun resolveType(context: ResolutionContext): Type {
         val typeParameters = typeParameters
         val valueParameters = resolveValueParams(context, valueParameters)

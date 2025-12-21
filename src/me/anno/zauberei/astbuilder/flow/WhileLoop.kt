@@ -19,4 +19,7 @@ class WhileLoop(val condition: Expression, val body: Expression, val label: Stri
     override fun resolveType(context: ResolutionContext): Type {
         return exprHasNoType(context)
     }
+
+    override fun clone() = WhileLoop(condition.clone(), body.clone(), label)
+
 }

@@ -29,4 +29,9 @@ class TryCatchBlock(val tryBody: Expression, val catches: List<Catch>, val final
         return if (catchTypes == null) bodyType
         else unionTypes(bodyType, catchTypes)
     }
+
+    override fun clone() = TryCatchBlock(tryBody.clone(), catches.map {
+        Catch(it.param.clone(), it.handler.clone())
+    }, finallyExpression?.clone())
+
 }

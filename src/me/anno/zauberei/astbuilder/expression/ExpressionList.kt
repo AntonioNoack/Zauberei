@@ -19,4 +19,7 @@ class ExpressionList(val list: List<Expression>, origin: Int) : Expression(origi
         val lastExpr = list.lastOrNull() ?: return exprHasNoType(context)
         return TypeResolution.resolveType(context, lastExpr)
     }
+
+    override fun clone() = ExpressionList(list.map { it.clone() }, origin)
+
 }

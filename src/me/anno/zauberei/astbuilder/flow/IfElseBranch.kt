@@ -25,4 +25,7 @@ class IfElseBranch(val condition: Expression, val ifBranch: Expression, val else
         val elseType = TypeResolution.resolveType(context, elseBranch)
         return unionTypes(ifType, elseType)
     }
+
+    override fun clone() = IfElseBranch(condition.clone(), ifBranch.clone(), elseBranch?.clone())
+
 }

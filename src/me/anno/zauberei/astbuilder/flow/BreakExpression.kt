@@ -13,4 +13,6 @@ class BreakExpression(val label: String?, origin: Int) : Expression(origin) {
     override fun resolveType(context: ResolutionContext): Type {
         return exprHasNoType(context)
     }
+
+    override fun clone() = BreakExpression(label, origin)
 }

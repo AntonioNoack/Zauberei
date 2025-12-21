@@ -15,6 +15,8 @@ class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int
         return "$base${type.symbol}"
     }
 
+    override fun clone() = PostfixExpression(base.clone(), type, origin)
+
     override fun resolveType(context: ResolutionContext): Type {
         return when (type) {
             PostfixType.INCREMENT, PostfixType.DECREMENT -> {

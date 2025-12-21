@@ -18,4 +18,7 @@ class ReturnExpression(val value: Expression?, val label: String?, origin: Int) 
     override fun resolveType(context: ResolutionContext): Type {
         return NothingType
     }
+
+    override fun clone() = ReturnExpression(value?.clone(), label, origin)
+
 }

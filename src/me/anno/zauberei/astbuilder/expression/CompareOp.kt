@@ -16,4 +16,6 @@ class CompareOp(val value: Expression, val type: CompareType) : Expression(value
     override fun resolveType(context: ResolutionContext): Type {
         return BooleanType
     }
+
+    override fun clone() = CompareOp(value.clone(), type)
 }

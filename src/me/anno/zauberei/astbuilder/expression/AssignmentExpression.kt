@@ -17,4 +17,6 @@ class AssignmentExpression(var variableName: Expression, var newValue: Expressio
     override fun resolveType(context: ResolutionContext): Type {
         return exprHasNoType(context)
     }
+
+    override fun clone() = AssignmentExpression(variableName.clone(), newValue.clone())
 }

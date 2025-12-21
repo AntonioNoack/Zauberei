@@ -12,7 +12,11 @@ class ValueParameterWithLambda(
 
     override fun getType(targetType: Type): Type {
         return when (val expr = param.value) {
-            is LambdaExpression -> resolveType(context.withTargetType(targetType), expr)
+            is LambdaExpression -> {
+                // todo how/where can we update R to be an Int???
+                // this is targetType-specific, so we should clone expr
+                resolveType(context.withTargetType(targetType), expr.clone())
+            }
             else -> TODO("Resolve $expr in ${context.codeScope}/${context.selfScope} to type $targetType")
         }
     }

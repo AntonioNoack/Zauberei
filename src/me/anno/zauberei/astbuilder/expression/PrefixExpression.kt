@@ -17,4 +17,6 @@ class PrefixExpression(val type: PrefixType, origin: Int, val base: Expression) 
     override fun resolveType(context: ResolutionContext): Type {
         return TypeResolution.resolveType(context, base)
     }
+
+    override fun clone() = PrefixExpression(type, origin, base.clone())
 }

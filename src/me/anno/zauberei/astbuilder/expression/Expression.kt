@@ -16,13 +16,24 @@ abstract class Expression(val origin: Int) {
     abstract fun resolveType(context: ResolutionContext): Type
 
     fun exprHasNoType(context: ResolutionContext): Type {
-        if (!context.allowTypeless) throw IllegalStateException("Expected type, but found $this in ${resolveOrigin(origin)}")
+        if (!context.allowTypeless) throw IllegalStateException(
+            "Expected type, but found $this in ${
+                resolveOrigin(
+                    origin
+                )
+            }"
+        )
         return UnitType
     }
 
     init {
         numExpressionsCreated++
     }
+
+    /**
+     * clone to get rid of resolvedType
+     * */
+    abstract fun clone(): Expression
 
     companion object {
         var numExpressionsCreated = 0

@@ -17,4 +17,7 @@ class GetClassFromTypeExpression(val base: Scope, origin: Int) : Expression(orig
     override fun resolveType(context: ResolutionContext): Type {
         return ClassType(getScope("Class"), listOf(ClassType(base, null)))
     }
+
+    override fun clone() = GetClassFromTypeExpression(base, origin)
+
 }

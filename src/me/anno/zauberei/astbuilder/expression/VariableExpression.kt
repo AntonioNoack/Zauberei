@@ -26,6 +26,8 @@ class VariableExpression(val name: String, var owner: Scope?, var field: Field?,
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String = name
 
+    override fun clone() = VariableExpression(name, owner, field, origin)
+
     override fun resolveType(context: ResolutionContext): Type {
         val field = findField(context.codeScope, context.selfScope?.typeWithoutArgs, name)
             ?: findField(langScope, context.selfScope?.typeWithoutArgs, name)

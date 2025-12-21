@@ -7,7 +7,9 @@ import me.anno.zauberei.types.Types.UnitType
 /**
  * this.name [+=, *=, /=, ...] right
  * */
-class AssignIfMutableExpr(val left: Expression, val symbol: String, val right: Expression): Expression(right.origin) {
+class AssignIfMutableExpr(val left: Expression, val symbol: String, val right: Expression) :
+    Expression(right.origin) {
+
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(left)
         callback(right)
@@ -20,4 +22,6 @@ class AssignIfMutableExpr(val left: Expression, val symbol: String, val right: E
     override fun resolveType(context: ResolutionContext): Type {
         return UnitType
     }
+
+    override fun clone() = AssignIfMutableExpr(left.clone(), symbol, right.clone())
 }

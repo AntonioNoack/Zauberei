@@ -50,4 +50,6 @@ class NumberExpression(val value: String, origin: Int) : Expression(origin) {
     override fun resolveType(context: ResolutionContext): Type {
         return resolvedType!!
     }
+
+    override fun clone() = NumberExpression(value, origin)
 }

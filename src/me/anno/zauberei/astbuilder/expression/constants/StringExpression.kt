@@ -17,4 +17,7 @@ class StringExpression(val value: String, origin: Int) : Expression(origin) {
     override fun resolveType(context: ResolutionContext): Type {
         return StringType
     }
+
+    override fun clone() = StringExpression(value, origin)
+
 }

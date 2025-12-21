@@ -26,4 +26,8 @@ class BinaryTypeOp(val left: Expression, val op: BinaryTypeOpType, val right: Ty
             BinaryTypeOpType.CAST_OR_NULL -> unionTypes(right, NullType)
         }
     }
+
+    override fun clone(): Expression {
+        return BinaryTypeOp(left.clone(), op, right, origin)
+    }
 }

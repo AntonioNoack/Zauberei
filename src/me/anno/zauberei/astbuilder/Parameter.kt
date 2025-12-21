@@ -15,4 +15,8 @@ class Parameter(
     override fun toString(): String {
         return "${if (isVar) "var " else ""}${if (isVal) "val " else ""}$name: $type${if (initialValue != null) " = $initialValue" else ""}"
     }
+
+    fun clone(): Parameter {
+        return Parameter(isVar, isVal, isVararg, name, type, initialValue?.clone(), origin)
+    }
 }

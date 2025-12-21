@@ -15,4 +15,7 @@ class GetMethodFromTypeExpression(val base: Scope, val name: String, origin: Int
         // todo resolve method, then convert signature into lambda
         TODO("Not yet implemented")
     }
+
+    override fun clone() = GetMethodFromTypeExpression(base, name, origin)
+
 }

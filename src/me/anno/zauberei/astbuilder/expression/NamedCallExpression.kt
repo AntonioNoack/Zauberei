@@ -24,6 +24,12 @@ class NamedCallExpression(
         }
     }
 
+    override fun clone() = NamedCallExpression(
+        base.clone(), name, typeParameters,
+        valueParameters.map { NamedParameter(it.name, it.value.clone()) },
+        origin
+    )
+
     override fun toString(): String {
         return when {
             typeParameters.isNullOrEmpty() && name == "." &&

@@ -18,4 +18,7 @@ class DoubleColonPrefix(val left: Scope, val methodName: String, origin: Int) : 
         // todo we need to resolve the method...
         TODO("Not yet implemented")
     }
+
+    override fun clone() = DoubleColonPrefix(left, methodName, origin)
+
 }

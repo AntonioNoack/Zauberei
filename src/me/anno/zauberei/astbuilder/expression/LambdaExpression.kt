@@ -22,6 +22,8 @@ class LambdaExpression(
         return "LambdaExpr(${variables ?: "?"} -> $body)"
     }
 
+    override fun clone() = LambdaExpression(variables, body.clone(), scope)
+
     override fun resolveType(context: ResolutionContext): Type {
         println("Handling lambda expression... target: ${context.targetType}")
         when (val targetLambdaType = context.targetType) {

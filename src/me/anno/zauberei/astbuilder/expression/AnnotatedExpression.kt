@@ -17,4 +17,6 @@ class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Ex
     override fun resolveType(context: ResolutionContext): Type {
         return base.resolveType(context)
     }
+
+    override fun clone() = AnnotatedExpression(annotation, base.clone())
 }

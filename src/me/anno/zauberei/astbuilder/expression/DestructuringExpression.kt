@@ -20,4 +20,7 @@ class DestructuringExpression(
     override fun resolveType(context: ResolutionContext): Type {
         TODO("Not yet implemented")
     }
+
+    override fun clone() = DestructuringExpression(names, initialValue.clone(), isVar, isLateinit)
+
 }

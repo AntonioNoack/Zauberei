@@ -17,4 +17,7 @@ class DelegateExpression(val delegate: Expression): Expression(delegate.origin) 
     override fun resolveType(context: ResolutionContext): Type {
         TODO("Not yet implemented")
     }
+
+    override fun clone() = DelegateExpression(delegate.clone())
+
 }

@@ -22,4 +22,6 @@ class SpecialValueExpression(val value: SpecialValue, origin: Int) : Expression(
             else -> TODO("Resolve type for ConstantExpression in ${context.codeScope},${value}")
         }
     }
+
+    override fun clone() = SpecialValueExpression(value, origin)
 }
