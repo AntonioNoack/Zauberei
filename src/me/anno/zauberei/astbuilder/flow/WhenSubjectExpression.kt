@@ -7,20 +7,12 @@ import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.types.Field
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
-import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.LambdaType
+import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
-class SubjectCondition(
-    val value: Expression?, val type: Type?, val keyword: String? /* is, !is, in, !in */,
-    val extraCondition: Expression?
-) {
-    override fun toString(): String {
-        return "${if (keyword != null) "$keyword " else ""}${value ?: type}"
-    }
-}
 
-class SubjectWhenCase(val conditions: List<SubjectCondition?>, val body: Expression) {
+class SubjectWhenCase(val conditions: List<SubjectCondition?>, val bodyScope: Scope, val body: Expression) {
     override fun toString(): String {
         return "${conditions.joinToString(", ")} -> { $body }"
     }
@@ -28,12 +20,15 @@ class SubjectWhenCase(val conditions: List<SubjectCondition?>, val body: Express
     fun toCondition(astBuilder: ASTBuilder, subject: Expression): Expression {
         val scope = astBuilder.currPackage
         return conditions.map { expr ->
-            when (expr!!.keyword) {
-                null -> astBuilder.binaryOp(scope, subject, "||", expr.value!!)
-                "is" -> buildIsExpr(expr, subject)
-                "!is" -> PrefixExpression(PrefixType.NOT, subject.origin, buildIsExpr(expr, subject))
-                "in", "!in" -> astBuilder.binaryOp(scope, subject, expr.keyword, expr.value!!)
-                else -> throw NotImplementedError()
+            when (expr!!.subjectConditionType) {
+                SubjectConditionType.EQUALS ->
+                    astBuilder.binaryOp(scope, subject, "||", expr.value!!)
+                SubjectConditionType.INSTANCEOF ->
+                    buildIsExpr(expr, subject)
+                SubjectConditionType.NOT_INSTANCEOF ->
+                    PrefixExpression(PrefixType.NOT, subject.origin, buildIsExpr(expr, subject))
+                SubjectConditionType.CONTAINS, SubjectConditionType.NOT_CONTAINS ->
+                    astBuilder.binaryOp(scope, subject, expr.subjectConditionType.symbol, expr.value!!)
             }
         }.reduce { a, b ->
             astBuilder.binaryOp(scope, a, "||", b)
@@ -76,8 +71,26 @@ fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: L
     val assignment = AssignmentExpression(subjectV, subject)
     val cases = cases.map { case ->
         val condition =
-            if (null !in case.conditions) case.toCondition(this, subjectV)
-            else null
+            if (null !in case.conditions) {
+                case.toCondition(this, subjectV)
+            } else null // else-case
+        // todo if all conditions are 'is X',
+        //  then join them together, and insert a field with more specific type...
+        if (case.conditions.all { it != null && it.subjectConditionType == SubjectConditionType.INSTANCEOF }) {
+            val fieldName = when (subject) {
+                is AssignmentExpression -> (subject.variableName as VariableExpression).name
+                is VariableExpression -> subject.name
+                else -> null
+            }
+            if (fieldName != null) {
+                val caseScope = case.bodyScope
+                val jointType = case.conditions.map { it!!.type!! }.reduce { a, b -> unionTypes(a, b) }
+                Field(
+                    caseScope, false, false, null, fieldName,
+                    jointType, null, emptyList(), origin
+                )
+            }
+        }
         WhenCase(condition, case.body)
     }
     return ExpressionList(listOf(assignment, WhenBranchExpression(cases, origin)), origin)

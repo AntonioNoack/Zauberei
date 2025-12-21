@@ -769,7 +769,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return pushCall { readExpression() }
     }
 
-    fun readBodyOrExpression(): Expression {
+    fun readBodyOrExpression(): Pair<Scope, Expression> {
         return if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
             // if just names and -> follow, read a single expression instead
             // if a destructuring and -> follow, read a single expression instead
@@ -786,16 +786,24 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                             tokens.equals(j, TokenType.NAME) -> {
                     }
                     tokens.equals(j, "->") -> {
-                        if (depth == 0) return readExpression()
+                        if (depth == 0) {
+                            return readExprInNewScope()
+                        }
                     }
                     else -> break@arrowSearch
                 }
                 j++
             }
 
-            pushBlock(ScopeType.EXPRESSION, null) { readMethodBody() }
+            pushBlock(ScopeType.EXPRESSION, null) { it to readMethodBody() }
         } else {
-            readExpression()
+            readExprInNewScope()
+        }
+    }
+
+    private fun readExprInNewScope(): Pair<Scope, Expression> {
+        return pushScope(currPackage.generateName("expr"), ScopeType.EXPRESSION) {
+            it to readExpression()
         }
     }
 
@@ -955,10 +963,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     private fun readIfBranch(): IfElseBranch {
         i++
         val condition = readExpressionCondition()
-        val ifTrue = readBodyOrExpression()
+        val ifTrue = readBodyOrExpression().second
         val ifFalse = if (tokens.equals(i, "else") && !tokens.equals(i + 1, "->")) {
             i++
-            readBodyOrExpression()
+            readBodyOrExpression().second
         } else null
         return IfElseBranch(condition, ifTrue, ifFalse)
     }
@@ -966,13 +974,13 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     private fun readWhileLoop(label: String?): WhileLoop {
         i++
         val condition = readExpressionCondition()
-        val body = readBodyOrExpression()
+        val body = readBodyOrExpression().second
         return WhileLoop(condition, body, label)
     }
 
     private fun readDoWhileLoop(label: String?): Expression {
         i++
-        val body = readBodyOrExpression()
+        val body = readBodyOrExpression().second
         assert(tokens.equals(i++, "while"))
         val condition = readExpressionCondition()
         return DoWhileLoop(body = body, condition = condition, label)
@@ -997,7 +1005,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 iterable = readExpression()
                 assert(i == tokens.size)
             }
-            val body = readBodyOrExpression()
+            val body = readBodyOrExpression().second
             return DestructuringForLoop(currPackage, names, iterable, body, label)
         } else {
             lateinit var name: String
@@ -1015,7 +1023,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 iterable = readExpression()
                 assert(i == tokens.size)
             }
-            val body = readBodyOrExpression()
+            val body = readBodyOrExpression().second
             return ForLoop(name, variableType, iterable, body, label)
         }
     }
@@ -1044,22 +1052,26 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                                 i++; conditions.add(null)
                             }
                             tokens.equals(i, "in") || tokens.equals(i, "!in") -> {
-                                val keyword = tokens.toString(i++)
+                                val symbol =
+                                    if (tokens.toString(i++) == "in") SubjectConditionType.CONTAINS
+                                    else SubjectConditionType.NOT_CONTAINS
                                 val value = readExpression()
                                 val extra = if (tokens.equals(i, "if")) {
                                     i++
                                     readExpression()
                                 } else null
-                                conditions.add(SubjectCondition(value, null, keyword, extra))
+                                conditions.add(SubjectCondition(value, null, symbol, extra))
                             }
                             tokens.equals(i, "is") || tokens.equals(i, "!is") -> {
-                                val keyword = tokens.toString(i++)
+                                val symbol =
+                                    if (tokens.toString(i++) == "is") SubjectConditionType.INSTANCEOF
+                                    else SubjectConditionType.NOT_INSTANCEOF
                                 val type = readType()
                                 val extra = if (tokens.equals(i, "if")) {
                                     i++
                                     readExpression()
                                 } else null
-                                conditions.add(SubjectCondition(null, type, keyword, extra))
+                                conditions.add(SubjectCondition(null, type, symbol, extra))
                             }
                             else -> {
                                 val value = readExpression()
@@ -1067,7 +1079,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                                     i++
                                     readExpression()
                                 } else null
-                                conditions.add(SubjectCondition(value, null, null, extra))
+                                conditions.add(SubjectCondition(value, null, SubjectConditionType.EQUALS, extra))
                             }
                         }
                         if (debug) println("  read condition '${conditions.last()}'")
@@ -1080,7 +1092,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 if (debug) println("conditions for body: $conditions")
                 val body = readBodyOrExpression()
                 if (debug) println("read body: $body")
-                cases.add(SubjectWhenCase(conditions, body))
+                cases.add(SubjectWhenCase(conditions, body.first, body.second))
             }
             childScope
         }
@@ -1133,7 +1145,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     if (tokens.equals(i, "else")) null
                     else readExpression()
                 }
-                val body = readBodyOrExpression()
+                val body = readBodyOrExpression().second
                 cases.add(WhenCase(condition, body))
             }
         }
@@ -1157,18 +1169,18 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
     private fun readTryCatch(): TryCatchBlock {
         i++ // skip try
-        val tryBody = readBodyOrExpression()
+        val tryBody = readBodyOrExpression().second
         val catches = ArrayList<Catch>()
         while (tokens.equals(i, "catch")) {
             assert(tokens.equals(++i, TokenType.OPEN_CALL))
             val params = pushCall { readParamDeclarations(null) }
             assert(params.size == 1)
-            val handler = readBodyOrExpression()
+            val handler = readBodyOrExpression().second
             catches.add(Catch(params[0], handler))
         }
         val finally = if (tokens.equals(i, "finally")) {
             i++ // skip finally
-            readBodyOrExpression()
+            readBodyOrExpression().second
         } else null
         return TryCatchBlock(tryBody, catches, finally)
     }

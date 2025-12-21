@@ -196,7 +196,8 @@ object TypeResolution {
 
     fun removeNullFromType(type: Type): Type {
         return if (type is UnionType && NullType in type.types) {
-            UnionType(type.types - NullType)
+            if (type.types.size == 2) type.types.first { it != NullType }
+            else UnionType(type.types - NullType)
         } else type
     }
 
