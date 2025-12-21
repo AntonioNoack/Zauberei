@@ -15,7 +15,12 @@ import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.Types.UnitType
-import me.anno.zauberei.types.UnionType.Companion.unionTypes
+import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.GenericType
+import me.anno.zauberei.types.impl.LambdaType
+import me.anno.zauberei.types.impl.NullType
+import me.anno.zauberei.types.impl.UnionType
 
 /**
  * Resolve types step by step.
@@ -544,6 +549,7 @@ object TypeResolution {
                 }
                 return ClassType(type.clazz, newTypeArgs)
             }
+            NullType -> return type
         }
 
         // todo we need nested resolution, going into all subtypes...
@@ -633,7 +639,6 @@ object TypeResolution {
         val rightType = if (rightType is Scope) ClassType(rightType, null) else rightType
         when (rightType) {
             is ClassType -> {
-                check(rightType.subType == null)
                 if (leftTypeParameters.isEmpty()) {
                     check(typeParameters.isNullOrEmpty())
                     // no extra types get applied

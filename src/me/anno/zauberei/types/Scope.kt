@@ -4,6 +4,8 @@ import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.*
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.tokenizer.TokenList
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.GenericType
 
 /**
  * Scope / Package / Class / Object / Interface ...

@@ -13,6 +13,10 @@ import me.anno.zauberei.types.Types.AnyType
 import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.Types.UnitType
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.GenericType
+import me.anno.zauberei.types.impl.LambdaType
+import me.anno.zauberei.types.impl.NullType.typeOrNull
 import kotlin.math.max
 import kotlin.math.min
 
@@ -282,7 +286,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         } else if (tokens.equals(i, "?.")) {
             assert(tokens.equals(++i, TokenType.NAME))
             ownerType = currPackage.resolveType(name, this)
-            ownerType = NullableType(ownerType)
+            ownerType = typeOrNull(ownerType)
             name = tokens.toString(i++)
         }
 
@@ -338,7 +342,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             } else {
                 var type = readType()
                 if (tokens.equals(i, "?.")) {
-                    type = NullableType(type)
+                    type = typeOrNull(type)
                     i++
                 } else {
                     assert(tokens.equals(i++, "."))
@@ -1237,7 +1241,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             } else {
                 val baseType = pushCall { readType() }
                 val isNullable = consumeNullable()
-                return if (isNullable) NullableType(baseType) else baseType
+                return if (isNullable) typeOrNull(baseType) else baseType
             }
         }
 
@@ -1245,15 +1249,19 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val subType = if (tokens.equals(i, ".") && tokens.equals(i + 1, "(")) {
             i++ // skip ., and then read lambda subtype
             readType()
+            TODO(
+                "We somehow need to support types like Map<K,V>.Iterator<J>, where Iterator is an inner class... " +
+                        "or we just forbid inner classes"
+            )
         } else null
 
         val typeArgs = readTypeParams()
         val isNullable = consumeNullable()
         val baseType =
-            if (path is Scope) ClassType(path, typeArgs, subType)
-            else if (typeArgs == null && subType == null) path
+            if (path is Scope) ClassType(path, typeArgs)
+            else if (typeArgs == null) path
             else throw IllegalStateException("Cannot combine $path with $typeArgs and $subType")
-        return if (isNullable) NullableType(baseType) else baseType
+        return if (isNullable) typeOrNull(baseType) else baseType
     }
 
     private fun consumeNullable(): Boolean {

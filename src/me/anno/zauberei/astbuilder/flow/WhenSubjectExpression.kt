@@ -5,6 +5,8 @@ import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.types.*
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.LambdaType
 
 class SubjectCondition(
     val value: Expression?, val type: Type?, val keyword: String? /* is, !is, in, !in */,
@@ -55,7 +57,7 @@ fun buildIsExpr(expr: SubjectCondition, subject: Expression): NamedCallExpressio
 
 fun lambdaTypeToClassType(lambdaType: LambdaType): ClassType {
     val base = root.getOrPut("Function${lambdaType.parameters.size}", ScopeType.INTERFACE)
-    return ClassType(base, lambdaType.parameters.map { it.type }, null)
+    return ClassType(base, lambdaType.parameters.map { it.type })
 }
 
 @Suppress("FunctionName")

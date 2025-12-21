@@ -1,4 +1,7 @@
-package me.anno.zauberei.types
+package me.anno.zauberei.types.impl
+
+import me.anno.zauberei.types.Scope
+import me.anno.zauberei.types.Type
 
 /**
  * Resolved generic type;

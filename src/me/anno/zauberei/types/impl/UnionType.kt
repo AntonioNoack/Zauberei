@@ -1,4 +1,6 @@
-package me.anno.zauberei.types
+package me.anno.zauberei.types.impl
+
+import me.anno.zauberei.types.Type
 
 class UnionType(val types: List<Type>) : Type() {
 

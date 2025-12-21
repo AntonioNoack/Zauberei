@@ -1,10 +1,10 @@
 package me.anno.zauberei
 
 import me.anno.zauberei.Compile.root
-import me.anno.zauberei.types.ClassType
-import me.anno.zauberei.types.NullType
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.NullType
 import me.anno.zauberei.types.Types.BooleanType
-import me.anno.zauberei.types.UnionType
+import me.anno.zauberei.types.impl.UnionType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

@@ -3,7 +3,12 @@ package me.anno.zauberei.typeresolution
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.types.*
 import me.anno.zauberei.types.Types.AnyType
-import me.anno.zauberei.types.UnionType.Companion.unionTypes
+import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.GenericType
+import me.anno.zauberei.types.impl.LambdaType
+import me.anno.zauberei.types.impl.NullType
+import me.anno.zauberei.types.impl.UnionType
 
 /**
  * Check if one type inherits from another, incl. generic checks.

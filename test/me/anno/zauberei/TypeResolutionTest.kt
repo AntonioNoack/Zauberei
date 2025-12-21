@@ -16,6 +16,9 @@ import me.anno.zauberei.types.Types.IntType
 import me.anno.zauberei.types.Types.LongType
 import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.Types.StringType
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.NullType
+import me.anno.zauberei.types.impl.UnionType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

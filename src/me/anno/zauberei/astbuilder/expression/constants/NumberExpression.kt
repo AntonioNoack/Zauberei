@@ -1,15 +1,13 @@
 package me.anno.zauberei.astbuilder.expression.constants
 
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.types.ClassType
-import me.anno.zauberei.types.Types.ByteType
+import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.Types.CharType
 import me.anno.zauberei.types.Types.DoubleType
 import me.anno.zauberei.types.Types.FloatType
 import me.anno.zauberei.types.Types.HalfType
 import me.anno.zauberei.types.Types.IntType
 import me.anno.zauberei.types.Types.LongType
-import me.anno.zauberei.types.Types.ShortType
 import me.anno.zauberei.types.Types.UIntType
 import me.anno.zauberei.types.Types.ULongType
 

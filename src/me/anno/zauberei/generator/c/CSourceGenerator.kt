@@ -6,7 +6,7 @@ import me.anno.zauberei.astbuilder.expression.VariableExpression
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.ReturnExpression
 import me.anno.zauberei.astbuilder.flow.WhileLoop
-import me.anno.zauberei.types.ClassType
+import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type

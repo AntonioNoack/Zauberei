@@ -2,6 +2,8 @@ package me.anno.zauberei.types
 
 import me.anno.zauberei.Compile.root
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.NullType.typeOrNull
 
 object Types {
 
@@ -18,7 +20,7 @@ object Types {
     fun getType(i: String): ClassType = ClassType(getScope(i), emptyList())
 
     val AnyType = getType("Any")
-    val NullableAnyType = NullableType(AnyType)
+    val NullableAnyType = typeOrNull(AnyType)
     val UnitType = getType("Unit")
     val CharType = getType("Char")
     val ByteType = getType("Byte")

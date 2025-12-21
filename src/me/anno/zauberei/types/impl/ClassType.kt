@@ -1,18 +1,17 @@
-package me.anno.zauberei.types
+package me.anno.zauberei.types.impl
 
-class ClassType(val clazz: Scope, val typeArgs: List<Type>?, val subType: Type? = null) : Type() {
+import me.anno.zauberei.types.Scope
+import me.anno.zauberei.types.Type
 
-    init {
-        check(subType == null) {
-            "Implement subTypes... need recursive generics..."
-        }
-    }
+/**
+ * A scope, but also with type arguments
+ * */
+class ClassType(val clazz: Scope, val typeArgs: List<Type>?) : Type() {
 
     override fun equals(other: Any?): Boolean {
         return other is ClassType &&
                 clazz == other.clazz &&
-                typeArgs == other.typeArgs &&
-                subType == other.subType
+                typeArgs == other.typeArgs
     }
 
     override fun hashCode(): Int {
