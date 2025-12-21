@@ -130,7 +130,7 @@ object Compile {
         //  to reduce type/traversal complexity (comptime gets "compiled")
 
         val t4 = System.nanoTime()
-        println("Num Expressions: ${Expression.counter}")
+        println("Num Expressions: ${Expression.numExpressionsCreated}")
         // 658k expressions 😲 (1µs/element at the moment)
         println("Took ${(t4 - t3) * 1e-6f} ms Resolving Types")
 

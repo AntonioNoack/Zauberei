@@ -149,21 +149,21 @@ object Inheritance {
         val expectedType = if (expectedType is Scope) ClassType(expectedType, null) else expectedType
         val actualType = if (actualType is Scope) ClassType(actualType, null) else actualType
         println(
-            "checking-1: $expectedType<${(expectedType as? ClassType)?.typeArgs}> vs " +
-                    "$actualType<${(actualType as? ClassType)?.typeArgs}> " +
+            "checking-1: $expectedType<${(expectedType as? ClassType)?.typeParameters}> vs " +
+                    "$actualType<${(actualType as? ClassType)?.typeParameters}> " +
                     "-> ${expectedType == actualType}"
         )
 
         if (expectedType == actualType ||
             (expectedType is ClassType && actualType is ClassType &&
                     expectedType.clazz == actualType.clazz &&
-                    (expectedType.typeArgs?.size ?: 0) == (actualType.typeArgs?.size ?: 0))
+                    (expectedType.typeParameters?.size ?: 0) == (actualType.typeParameters?.size ?: 0))
         ) return true
 
         if (actualType is ClassType && expectedType is ClassType) {
             // todo check generics
-            val actualGenerics = actualType.typeArgs
-            val expectedGenerics = expectedType.typeArgs
+            val actualGenerics = actualType.typeParameters
+            val expectedGenerics = expectedType.typeParameters
             val size0 = actualGenerics?.size ?: 0
             val size1 = expectedGenerics?.size ?: 0
             if (!(size0 == 0 && size1 == 0) &&
@@ -184,7 +184,7 @@ object Inheritance {
                 ScopeType.NORMAL_CLASS -> {
                     // check super class
                     // todo if super type has generics, we need to inject them into the super type
-                    val superType = actualType.clazz.superCalls.firstOrNull { it.params != null }?.type ?: AnyType
+                    val superType = actualType.clazz.superCalls.firstOrNull { it.valueParams != null }?.type ?: AnyType
                     if (superType != actualType.clazz) println("super($actualType): $superType")
                     (superType != actualType.clazz) && isSubTypeOf(
                         expectedType,

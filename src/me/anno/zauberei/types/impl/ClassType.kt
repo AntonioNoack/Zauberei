@@ -7,12 +7,12 @@ import me.anno.zauberei.types.Type
  * A scope, but also with optional type arguments,
  * e.g. ArrayList, ArrayList<Int> or Map<Key, Value>
  * */
-class ClassType(val clazz: Scope, val typeArgs: List<Type>?) : Type() {
+class ClassType(val clazz: Scope, val typeParameters: List<Type>?) : Type() {
 
     override fun equals(other: Any?): Boolean {
         return other is ClassType &&
                 clazz == other.clazz &&
-                typeArgs == other.typeArgs
+                typeParameters == other.typeParameters
     }
 
     override fun hashCode(): Int {
@@ -20,10 +20,10 @@ class ClassType(val clazz: Scope, val typeArgs: List<Type>?) : Type() {
     }
 
     override fun toString(): String {
-        return if (typeArgs != null && typeArgs.isEmpty()) {
+        return if (typeParameters != null && typeParameters.isEmpty()) {
             "ClassType(${clazz.pathStr})"
         } else {
-            "ClassType<${typeArgs?.joinToString() ?: "?"}>(${clazz.pathStr})"
+            "ClassType<${typeParameters?.joinToString() ?: "?"}>(${clazz.pathStr})"
         }
     }
 

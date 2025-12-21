@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.NamedParameter
+import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.typeresolution.TypeResolution.findFieldType
@@ -61,8 +62,8 @@ class NamedCallExpression(
             when (val parameter = parameter0.value) {
                 is VariableExpression -> {
                     val fieldName = parameter.name
-                    return findFieldType(baseType, fieldName)
-                        ?: throw IllegalStateException("Missing $baseType.$fieldName")
+                    return findFieldType(baseType, fieldName, emptyList())
+                        ?: throw IllegalStateException("Missing $baseType.$fieldName in ${resolveOrigin(origin)}")
                 }
                 is CallExpression -> {
                     val baseName = parameter.base as VariableExpression

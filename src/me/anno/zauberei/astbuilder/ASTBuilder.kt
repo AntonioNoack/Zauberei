@@ -621,7 +621,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             i += 2
         }
         assert(tokens.equals(i, TokenType.NAME))
-        val path = readTypePath() as Scope
+        val path = readTypePath()
         val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
             pushCall { readParamExpressions() }
         } else emptyList()
@@ -940,7 +940,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     private fun readSuperCall(): SuperCall {
         val type = readType()
 
-        val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
+        val valueParams = if (tokens.equals(i, TokenType.OPEN_CALL)) {
             pushCall { readParamExpressions() }
         } else null
 
@@ -949,7 +949,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             readExpression()
         } else null
 
-        return SuperCall(type, params, delegate)
+        return SuperCall(type, valueParams, delegate)
     }
 
     private fun readIfBranch(): IfElseBranch {

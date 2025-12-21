@@ -28,7 +28,7 @@ interface ResolvedCallable {
                     }.reduce { a, b -> unionTypes(a, b) }
                 }
                 is ClassType -> {
-                    val typeArgs = type.typeArgs ?: return type
+                    val typeArgs = type.typeParameters ?: return type
                     val newTypeArgs = typeArgs.map { partType ->
                         resolveGenerics(partType, genericNames, genericValues)
                     }

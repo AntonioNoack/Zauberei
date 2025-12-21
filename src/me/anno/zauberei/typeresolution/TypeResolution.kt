@@ -12,6 +12,7 @@ import me.anno.zauberei.astbuilder.flow.ForLoop
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.WhileLoop
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
+import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.types.Field
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
@@ -145,10 +146,11 @@ object TypeResolution {
                 // do we need to check the body? not really, because it has no effect on the return type
                 exprContainsLambdaWRTReturnType(expr.condition)
             }
-            is ForLoop -> {
-                exprContainsLambdaWRTReturnType(expr.iterable)
+            is ForLoop -> exprContainsLambdaWRTReturnType(expr.iterable)
+            else -> {
+                println("Does (${expr.javaClass.simpleName}) $expr contain a lambda? Assuming no for now...")
+                false
             }
-            else -> TODO("Does $expr contain a lambda?")
         }
     }
 
@@ -229,7 +231,7 @@ object TypeResolution {
         return candidates.first()
     }
 
-    fun findFieldType(base: Type, name: String): Type? {
+    fun findFieldType(base: Type, name: String, generics: List<Type>): Type? {
         // todo field may be generic, inject the generics as needed...
         // todo check extension fields
         if (base is ClassType) {
@@ -255,13 +257,30 @@ object TypeResolution {
                 if (enumValues.any { it.name == name }) {
                     return base.clazz.typeWithoutArgs
                 }
-
                 TODO("find child class")
             }
-            // todo check super classes and interfaces
+
+            // check super classes and interfaces,
+            //  but we need their generics there...
+            // -> interfaces can define the field, but it always needs to be in a class, too, so just check super class
+            val superCall = base.clazz.superCalls.firstOrNull { it.valueParams != null }
+            if (superCall != null) {
+                val superClass = superCall.type as ClassType
+                val superGenerics = superClass.typeParameters ?: emptyList()
+                val genericNames = base.clazz.typeParameters
+                return findFieldType(superClass, name, superGenerics.map { type ->
+                    resolveGenerics(type, genericNames, generics)
+                })
+            }// else might be any, but any has no fields anyway
+
             println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
+            return null
         }
-        TODO("findField($base, $name)")
+        if (base is UnionType && base.types.size == 2 && base.types.contains(NullType)) {
+            val baseType = findFieldType(base.types.first { it != NullType }, name, generics) ?: return null
+            return unionTypes(baseType, NullType)
+        }
+        TODO("findFieldType($base, $name)")
     }
 
     fun findField(
@@ -399,7 +418,7 @@ object TypeResolution {
                     return rightType
                 }
 
-                TODO("$typeParameters x $leftTypeParameters -> ${rightType.clazz.pathStr}<${rightType.typeArgs}>")
+                TODO("$typeParameters x $leftTypeParameters -> ${rightType.clazz.pathStr}<${rightType.typeParameters}>")
             }
             else -> throw NotImplementedError("applyTypeAlias to target $rightType")
         }
@@ -414,8 +433,8 @@ object TypeResolution {
         val alias = scope.typeAlias
         if (alias != null) {
             val newType = applyTypeAlias(typeParameters, scope.typeParameters, alias)
-            println("  mapped ${scope.pathStr}<$typeParameters> via $alias to ${newType.clazz.pathStr}<${newType.typeArgs}>")
-            return findConstructorImpl(newType.clazz, newType.typeArgs, valueParameters)
+            println("  mapped ${scope.pathStr}<$typeParameters> via $alias to ${newType.clazz.pathStr}<${newType.typeParameters}>")
+            return findConstructorImpl(newType.clazz, newType.typeParameters, valueParameters)
         }
 
         for (constructor in scope.constructors) {
@@ -482,8 +501,8 @@ object TypeResolution {
                 val expectedParamArrayType = mvParam.type
                 check(expectedParamArrayType is ClassType)
                 check(expectedParamArrayType.clazz == ArrayType.clazz)
-                check(expectedParamArrayType.typeArgs?.size == 1)
-                val expectedParamEntryType = expectedParamArrayType.typeArgs[0]
+                check(expectedParamArrayType.typeParameters?.size == 1)
+                val expectedParamEntryType = expectedParamArrayType.typeParameters[0]
 
                 // if star, use it as-is
                 val commonType = sortedValueParameters.subList(i, sortedValueParameters.size)

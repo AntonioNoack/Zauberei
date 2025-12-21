@@ -4,7 +4,10 @@ import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.expression.*
-import me.anno.zauberei.types.*
+import me.anno.zauberei.types.Field
+import me.anno.zauberei.types.Scope
+import me.anno.zauberei.types.ScopeType
+import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.LambdaType
 
@@ -64,9 +67,10 @@ fun lambdaTypeToClassType(lambdaType: LambdaType): ClassType {
 fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: List<SubjectWhenCase>): Expression {
     val origin = subject.origin
     val subjectName = scope.generateName("subject")
+    val value = if (subject is AssignmentExpression) subject.newValue else subject
     Field(
         scope, false, true, scope.typeWithoutArgs, subjectName,
-        null, subject, emptyList(), origin
+        null, value, emptyList(), origin
     )
     val subjectV = VariableExpression(subjectName, origin, this)
     val assignment = AssignmentExpression(subjectV, subject)

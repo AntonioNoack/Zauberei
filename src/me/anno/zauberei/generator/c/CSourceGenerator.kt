@@ -214,7 +214,7 @@ object CSourceGenerator {
             // super class as a field
             for (parent in scope.superCalls) {
                 // only primary super instance is needed, the rest should be put into Class
-                if (parent.params == null) continue
+                if (parent.valueParams == null) continue
                 val pt = parent.type as ClassType
                 indent()
                 builder.append("struct ").append(getName(pt.clazz)).append(" superStruct;\n")
