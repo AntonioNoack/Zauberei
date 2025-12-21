@@ -193,6 +193,7 @@ object TypeResolution {
                     val self = func.selfType
                     if (self != null) {
                         val selfScope = typeToScope(self)!!
+                        println("Method-SelfType[${scope.pathStr}]: $self -> $selfScope")
                         return resolveThisType(selfScope)
                     }
                 }

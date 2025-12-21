@@ -70,10 +70,9 @@ class TypeResolutionTest {
 
     @Test
     fun testTypeWithGenerics() {
-        val ArrayListType = standardClasses["ArrayList"]!!
         assertEquals(
             ClassType(
-                ArrayListType,
+                standardClasses["ArrayList"]!!,
                 listOf(ClassType(IntType.clazz, null))
             ),
             testTypeResolution("val tested: ArrayList<Int>")
@@ -104,12 +103,11 @@ class TypeResolutionTest {
 
     @Test
     fun testConstructorsWithGenerics() {
-        val arrayListType = standardClasses["ArrayList"]!!
         defineArrayListConstructors()
 
         assertEquals(
             ClassType(
-                arrayListType,
+                standardClasses["ArrayList"]!!,
                 listOf(ClassType(IntType.clazz, null))
             ),
             testTypeResolution("val tested = ArrayList<Int>(8)")
@@ -156,10 +154,9 @@ class TypeResolutionTest {
     fun testGenericFunction() {
         defineArrayListConstructors()
 
-        val listType = standardClasses["List"]!!
         assertEquals(
             ClassType(
-                listType,
+                standardClasses["List"]!!,
                 listOf(ClassType(IntType.clazz, null))
             ),
             testTypeResolution(
@@ -191,11 +188,50 @@ class TypeResolutionTest {
                 // mark Int as a class (that extends Any)
                 package $stdlib
                 class Int: Any() {
-                    operator fun plus(other: Int): Int// = native("this + other")
-                    operator fun plus(other: Float): Float// = native("(float)this + other")
+                    operator fun plus(other: Int): Int = native("this + other")
+                    operator fun plus(other: Float): Float = native("(float)this + other")
                 }
                 // mark Any as a class
                 class Any()
+            """.trimIndent()
+            )
+        )
+    }
+
+    @Test
+    fun testListReduce() {
+        defineArrayListConstructors()
+
+        assertEquals(
+            ClassType(
+                standardClasses["List"]!!,
+                listOf(ClassType(FloatType.clazz, null))
+            ),
+            testTypeResolution(
+                """
+                fun <V> emptyList(): List<V> = ArrayList<V>(0)
+                fun <V> List<V>.reduce(map: (V, V) -> V): V {
+                    var element = this[0]
+                    for(i in 1 until size) {
+                        element = map(element, this[i])
+                    }
+                    return element
+                }
+                val tested = emptyList<Int>().reduce { a,b -> a + b }
+                
+                // mark Int as a class (that extends Any)
+                package $stdlib
+                class Int: Any() {
+                    operator fun plus(other: Int): Int = native("this + other")
+                    operator fun plus(other: Float): Float = native("(float)this + other")
+                }
+                // mark Any as a class
+                class Any()
+                // give some List-details
+                interface List<V> {
+                    val size: Int
+                    operator fun get(index: Int): V
+                }
             """.trimIndent()
             )
         )
