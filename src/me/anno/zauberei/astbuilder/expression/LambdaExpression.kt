@@ -32,7 +32,8 @@ class LambdaExpression(
                         0 -> emptyList()
                         1 -> {
                             // define 'it'-parameter in the scope
-                            val type = targetLambdaType.parameters[0].type
+                            val param0 = targetLambdaType.parameters[0]
+                            val type = param0.type
                             val autoParamName = "it"
                             println("Inserting $autoParamName into lambda automatically, type: $type")
                             Field(
@@ -40,7 +41,7 @@ class LambdaExpression(
                                 autoParamName, type, null,
                                 emptyList(), origin
                             )
-                            listOf(LambdaVariable(null, autoParamName))
+                            listOf(LambdaVariable(type, autoParamName))
                         }
                         else -> {
                             // instead of throwing, we should probably just return some impossible type or error type...
