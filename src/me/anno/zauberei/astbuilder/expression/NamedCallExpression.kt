@@ -2,6 +2,7 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
+import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.typeresolution.TypeResolution.findFieldType
@@ -16,6 +17,12 @@ class NamedCallExpression(
     val valueParameters: List<NamedParameter>,
     origin: Int
 ) : Expression(origin) {
+
+    init {
+        if (name == "." && valueParameters.size == 1 &&
+            valueParameters[0].value is NamedCallExpression
+        ) throw IllegalStateException("NamedCall-stack must be within base, not in parameter: $this")
+    }
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)
@@ -88,7 +95,7 @@ class NamedCallExpression(
                         parameter.typeParameters, valueParameters
                     )
                 }
-                else -> TODO("dot-operator with $parameter")
+                else -> TODO("dot-operator with $parameter in ${resolveOrigin(origin)}")
             }
         } else {
 

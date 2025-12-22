@@ -60,6 +60,17 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
                 val param = NamedParameter(null, right)
                 val base = NamedCallExpression(left, methodName, emptyList(), listOf(param), right.origin)
                 PrefixExpression(PrefixType.NOT, right.origin, base)
+            } else if (symbol == "." && right is NamedCallExpression) {
+                // todo ideally, this would be handled by association-order...
+                // reorder stack from left to right
+                val leftAndMiddle = NamedCallExpression(
+                    left, ".", emptyList(),
+                    listOf(NamedParameter(null, right.base)), left.origin
+                )
+                NamedCallExpression(
+                    leftAndMiddle, right.name,
+                    right.typeParameters, right.valueParameters, right.origin
+                )
             } else {
                 val methodName = lookupBinaryOp(symbol)
                 val param = NamedParameter(null, right)
