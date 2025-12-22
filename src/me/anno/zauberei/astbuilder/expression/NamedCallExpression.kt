@@ -7,6 +7,7 @@ import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.typeresolution.TypeResolution.findFieldType
 import me.anno.zauberei.typeresolution.TypeResolution.resolveCallType
 import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParams
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 class NamedCallExpression(
@@ -14,8 +15,8 @@ class NamedCallExpression(
     val name: String,
     val typeParameters: List<Type>?,
     val valueParameters: List<NamedParameter>,
-    origin: Int
-) : Expression(base.scope, origin) {
+    scope: Scope, origin: Int
+) : Expression(scope, origin) {
 
     init {
         if (name == "." && valueParameters.size == 1 &&
@@ -33,7 +34,7 @@ class NamedCallExpression(
     override fun clone() = NamedCallExpression(
         base.clone(), name, typeParameters,
         valueParameters.map { NamedParameter(it.name, it.value.clone()) },
-        origin
+        scope, origin
     )
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean {

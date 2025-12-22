@@ -9,7 +9,7 @@ import me.anno.zauberei.types.Scope
 private fun compareTo(left: Expression, right: Expression) =
     NamedCallExpression(
         left, "compareTo", emptyList(),
-        listOf(NamedParameter(null, right)), right.origin
+        listOf(NamedParameter(null, right)), right.scope, right.origin
     )
 
 @Suppress("IntroduceWhenSubject") // this feature is experimental, why is it recommended???
@@ -61,23 +61,31 @@ fun ASTBuilder.binaryOp(
             } else if (symbol.startsWith("!")) {
                 val methodName = lookupBinaryOp(symbol.substring(1))
                 val param = NamedParameter(null, right)
-                val base = NamedCallExpression(left, methodName, emptyList(), listOf(param), right.origin)
+                val base = NamedCallExpression(
+                    left, methodName, emptyList(), listOf(param),
+                    right.scope, right.origin
+                )
                 PrefixExpression(PrefixType.NOT, right.origin, base)
             } else if (symbol == "." && right is NamedCallExpression) {
                 // todo ideally, this would be handled by association-order...
                 // reorder stack from left to right
                 val leftAndMiddle = NamedCallExpression(
                     left, ".", emptyList(),
-                    listOf(NamedParameter(null, right.base)), left.origin
+                    listOf(NamedParameter(null, right.base)),
+                    left.scope, left.origin
                 )
                 NamedCallExpression(
                     leftAndMiddle, right.name,
-                    right.typeParameters, right.valueParameters, right.origin
+                    right.typeParameters, right.valueParameters,
+                    right.scope, right.origin
                 )
             } else {
                 val methodName = lookupBinaryOp(symbol)
                 val param = NamedParameter(null, right)
-                NamedCallExpression(left, methodName, emptyList(), listOf(param), right.origin)
+                NamedCallExpression(
+                    left, methodName, emptyList(), listOf(param),
+                    right.scope, right.origin
+                )
             }
         }
     }

@@ -10,8 +10,7 @@ class WhenCase(val condition: Expression?, val body: Expression) {
     }
 }
 
-@Suppress("FunctionName")
-fun WhenBranchExpression(cases: List<WhenCase>, scope: Scope, origin: Int): Expression {
+fun whenBranchToIfElseChain(cases: List<WhenCase>, scope: Scope, origin: Int): Expression {
     var chain: Expression? = null
     for (i in cases.indices.reversed()) {
         val caseI = cases[i]

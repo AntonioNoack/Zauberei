@@ -24,7 +24,10 @@ fun ASTBuilder.DestructuringForLoop(
             .filter { it.value != "_" }
             .map { (index, name) ->
                 val variable = VariableExpression(name, origin, this, scope)
-                val newValue = NamedCallExpression(fullExpr, "component${index + 1}", emptyList(), emptyList(), origin)
+                val newValue = NamedCallExpression(
+                    fullExpr, "component${index + 1}", emptyList(),
+                    emptyList(), fullExpr.scope, origin
+                )
                 AssignmentExpression(variable, newValue)
             } + body, scope, origin
     )

@@ -9,6 +9,17 @@ import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 class IfElseBranch(val condition: Expression, val ifBranch: Expression, val elseBranch: Expression?) :
     Expression(condition.scope, condition.origin) {
 
+    init {
+        check(ifBranch.scope != elseBranch?.scope)
+        check(ifBranch.scope != condition.scope)
+        check(elseBranch?.scope != condition.scope){
+            "Else and condition somehow have the same scope: ${condition.scope.pathStr}"
+        }
+
+        ifBranch.scope.addCondition(condition, true)
+        elseBranch?.scope?.addCondition(condition, false)
+    }
+
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(condition)
         callback(ifBranch)

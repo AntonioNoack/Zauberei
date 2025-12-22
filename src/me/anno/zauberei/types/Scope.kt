@@ -52,12 +52,12 @@ class Scope(val name: String, val parent: Scope? = null) {
      * for each if/else-chain, these shall be filled in
      * */
     var branchCondition: Expression? = null
-    var branchIsTrue: Boolean = false
+    var branchConditionTrue: Boolean = false
 
-    fun setBranch(condition: Expression, isTrue: Boolean) {
+    fun addCondition(condition: Expression, isTrue: Boolean) {
         check(branchCondition == null)
         branchCondition = condition
-        branchIsTrue = isTrue
+        branchConditionTrue = isTrue
     }
 
     var primaryConstructorScope: Scope? = null
@@ -181,7 +181,6 @@ class Scope(val name: String, val parent: Scope? = null) {
     private fun extractScope(type: Type): Scope {
         return when (type) {
             is ClassType -> type.clazz
-            is Scope -> type
             else -> throw NotImplementedError("$type")
         }
     }

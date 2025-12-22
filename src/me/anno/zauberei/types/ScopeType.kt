@@ -26,4 +26,5 @@ enum class ScopeType {
     // inside expressions
     EXPRESSION,
     WHEN_CASES,
+    WHEN_ELSE
 }

@@ -118,7 +118,17 @@ object TypeResolution {
         field.valueType = fieldType
 
         // todo valueType is just the general type, there might be much more specific information...
+        // todo if the variable is re-assigned, these conditions no longer hold
         println("GeneralFieldType: $fieldType in scope ${scope.pathStr}")
+        var scopeI = scope
+        while (scopeI.fileName == scope.fileName) {
+            val condition = scopeI.branchCondition
+            if (condition != null) {
+                val prefix = if (scopeI.branchConditionTrue) "" else "!"
+                println("  condition: $prefix$condition")
+            }
+            scopeI = scopeI.parent ?: break
+        }
 
         return fieldType
     }
