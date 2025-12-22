@@ -81,7 +81,7 @@ class NamedCallExpression(
             when (val parameter = parameter0.value) {
                 is VariableExpression -> {
                     val fieldName = parameter.name
-                    return findFieldType(baseType, fieldName, emptyList())
+                    return findFieldType(baseType, fieldName, emptyList(), parameter.origin)
                         ?: throw IllegalStateException("Missing $baseType.$fieldName in ${resolveOrigin(origin)}")
                 }
                 is CallExpression -> {

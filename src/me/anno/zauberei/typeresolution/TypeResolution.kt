@@ -217,9 +217,13 @@ object TypeResolution {
         return candidates.first()
     }
 
-    fun findFieldType(base: Type, name: String, generics: List<Type>): Type? {
+    fun findFieldType(
+        base: Type, name: String, generics: List<Type>,
+        origin: Int
+    ): Type? {
         // todo field may be generic, inject the generics as needed...
         // todo check extension fields
+
         if (base is ClassType) {
             val fields = base.clazz.fields
             val field = fields.firstOrNull {
@@ -255,17 +259,19 @@ object TypeResolution {
                 val genericNames = base.clazz.typeParameters
                 return findFieldType(superClass, name, superGenerics.map { type ->
                     resolveGenerics(type, genericNames, generics)
-                })
+                }, origin)
             }// else might be Any, but Any has no fields anyway
 
             println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
             return null
         }
+
         if (base is UnionType && base.types.size == 2 && base.types.contains(NullType)) {
-            val baseType = findFieldType(base.types.first { it != NullType }, name, generics) ?: return null
+            val baseType = findFieldType(base.types.first { it != NullType }, name, generics, origin) ?: return null
             return unionTypes(baseType, NullType)
         }
-        TODO("findFieldType($base, $name)")
+
+        TODO("findFieldType($base, $name) @ ${resolveOrigin(origin)}")
     }
 
     fun findField(
