@@ -2,8 +2,8 @@ package me.anno.zauberei.astbuilder.expression.constants
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
-import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.Types.CharType
 import me.anno.zauberei.types.Types.DoubleType
 import me.anno.zauberei.types.Types.FloatType
@@ -12,8 +12,9 @@ import me.anno.zauberei.types.Types.IntType
 import me.anno.zauberei.types.Types.LongType
 import me.anno.zauberei.types.Types.UIntType
 import me.anno.zauberei.types.Types.ULongType
+import me.anno.zauberei.types.impl.ClassType
 
-class NumberExpression(val value: String, origin: Int) : Expression(origin) {
+class NumberExpression(val value: String, scope: Scope, origin: Int) : Expression(scope, origin) {
 
     init {
         // based on the string content, decide what type this is
@@ -35,8 +36,8 @@ class NumberExpression(val value: String, origin: Int) : Expression(origin) {
             value.endsWith("ul", true) -> ULongType
             value.endsWith("u", true) -> UIntType
             value.endsWith("l", true) -> LongType
-           // value.length <= 3 && value.toByteOrNull() != null -> ByteType
-           // value.length <= 5 && value.toShortOrNull() != null -> ShortType
+            // value.length <= 3 && value.toByteOrNull() != null -> ByteType
+            // value.length <= 5 && value.toShortOrNull() != null -> ShortType
             value.length <= 9 && value.toIntOrNull() != null -> IntType
             else -> LongType
         }
@@ -51,7 +52,7 @@ class NumberExpression(val value: String, origin: Int) : Expression(origin) {
         return resolvedType!!
     }
 
-    override fun clone() = NumberExpression(value, origin)
+    override fun clone() = NumberExpression(value, scope, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
 }

@@ -8,7 +8,7 @@ import me.anno.zauberei.types.Type
 class ForLoop(
     val variableName: String, val variableType: Type?, val iterable: Expression,
     val body: Expression, val label: String?
-) : Expression(iterable.origin) {
+) : Expression(iterable.scope, iterable.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(iterable)

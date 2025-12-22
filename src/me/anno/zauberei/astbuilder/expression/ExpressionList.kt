@@ -2,9 +2,10 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
-class ExpressionList(val list: List<Expression>, origin: Int) : Expression(origin) {
+class ExpressionList(val list: List<Expression>, scope: Scope, origin: Int) : Expression(scope, origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {
         for (i in list.indices) {
             callback(list[i])
@@ -20,7 +21,7 @@ class ExpressionList(val list: List<Expression>, origin: Int) : Expression(origi
         return TypeResolution.resolveType(context, lastExpr)
     }
 
-    override fun clone() = ExpressionList(list.map { it.clone() }, origin)
+    override fun clone() = ExpressionList(list.map { it.clone() }, scope, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean {
         val last = list.lastOrNull() ?: return false

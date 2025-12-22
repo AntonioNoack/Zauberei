@@ -4,11 +4,10 @@ import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.types.Type
-import me.anno.zauberei.types.Types.UnitType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 class IfElseBranch(val condition: Expression, val ifBranch: Expression, val elseBranch: Expression?) :
-    Expression(condition.origin) {
+    Expression(condition.scope, condition.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(condition)

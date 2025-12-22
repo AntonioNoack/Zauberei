@@ -10,8 +10,9 @@ fun DeclarationExpression(
 ): Expression {
     val origin = field.origin
     return if (initialValue != null) {
-        AssignmentExpression(VariableExpression(name, scope, field, origin), initialValue)
+        val name1 = VariableExpression(name, scope, field, scope, origin)
+        AssignmentExpression(name1, initialValue)
     } else {
-        ExpressionList(emptyList(), origin)
+        ExpressionList(emptyList(), scope, origin)
     }
 }

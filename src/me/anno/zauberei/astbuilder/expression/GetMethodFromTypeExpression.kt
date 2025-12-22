@@ -4,7 +4,8 @@ import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
-class GetMethodFromTypeExpression(val base: Scope, val name: String, origin: Int) : Expression(origin) {
+class GetMethodFromTypeExpression(val base: Scope, val name: String, scope: Scope, origin: Int) :
+    Expression(scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String {
@@ -16,6 +17,6 @@ class GetMethodFromTypeExpression(val base: Scope, val name: String, origin: Int
         TODO("Not yet implemented")
     }
 
-    override fun clone() = GetMethodFromTypeExpression(base, name, origin)
+    override fun clone() = GetMethodFromTypeExpression(base, name, scope, origin)
 
 }

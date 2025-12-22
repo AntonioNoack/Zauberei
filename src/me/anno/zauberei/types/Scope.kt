@@ -38,9 +38,27 @@ class Scope(val name: String, val parent: Scope? = null) {
     var typeParameters: List<Parameter> = emptyList()
     var hasTypeParameters = false
 
+    /**
+     * used for type resolution
+     * */
     var imports: List<Import2> = emptyList()
 
+    /**
+     * each object Scope is also one field, and we store that here
+     * */
     var objectField: Field? = null
+
+    /**
+     * for each if/else-chain, these shall be filled in
+     * */
+    var branchCondition: Expression? = null
+    var branchIsTrue: Boolean = false
+
+    fun setBranch(condition: Expression, isTrue: Boolean) {
+        check(branchCondition == null)
+        branchCondition = condition
+        branchIsTrue = isTrue
+    }
 
     var primaryConstructorScope: Scope? = null
     fun getOrCreatePrimConstructorScope(): Scope {

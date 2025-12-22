@@ -1,19 +1,22 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.ASTBuilder
+import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution.findField
 import me.anno.zauberei.typeresolution.TypeResolution.findType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveFieldType
-import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.ClassType
 
-class VariableExpression(val name: String, var owner: Scope?, var field: Field?, origin: Int) : Expression(origin) {
+class VariableExpression(
+    val name: String, var owner: Scope?, var field: Field?,
+    scope: Scope, origin: Int
+) : Expression(scope, origin) {
 
     /**
      * for constructors, so we don't necessarily need to store imports in a scope
@@ -21,20 +24,21 @@ class VariableExpression(val name: String, var owner: Scope?, var field: Field?,
      * */
     var nameAsImport: Scope? = null
 
-    constructor(name: String, origin: Int, astBuilder: ASTBuilder) : this(name, null, null, origin) {
+    constructor(name: String, origin: Int, astBuilder: ASTBuilder, scope: Scope) :
+            this(name, null, null, scope, origin) {
         nameAsImport = astBuilder.imports.firstOrNull { it.name == name }?.path
     }
 
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String = name
 
-    override fun clone() = VariableExpression(name, owner, field, origin)
+    override fun clone() = VariableExpression(name, owner, field, scope, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
 
     override fun resolveType(context: ResolutionContext): Type {
         val field0 = this.field
-        if (field0 != null) return resolveFieldType(field0)
+        if (field0 != null) return resolveFieldType(field0, scope)
 
         val imported = nameAsImport
         if (imported != null) {
@@ -44,7 +48,7 @@ class VariableExpression(val name: String, var owner: Scope?, var field: Field?,
 
         val field = findField(context.codeScope, context.selfScope?.typeWithoutArgs, name)
             ?: findField(langScope, context.selfScope?.typeWithoutArgs, name)
-        if (field != null) return resolveFieldType(field)
+        if (field != null) return resolveFieldType(field, scope)
 
         val type = findType(context.codeScope, context.selfType, name)
         if (type != null) return type

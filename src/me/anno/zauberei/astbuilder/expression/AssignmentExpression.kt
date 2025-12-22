@@ -3,7 +3,8 @@ package me.anno.zauberei.astbuilder.expression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.types.Type
 
-class AssignmentExpression(var variableName: Expression, var newValue: Expression) : Expression(newValue.origin) {
+class AssignmentExpression(var variableName: Expression, var newValue: Expression) :
+    Expression(newValue.scope, newValue.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(variableName)

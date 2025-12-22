@@ -18,7 +18,7 @@ class CallExpression(
     val typeParameters: List<Type>?,
     val valueParameters: List<NamedParameter>,
     origin: Int
-) : Expression(origin) {
+) : Expression(base.scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)

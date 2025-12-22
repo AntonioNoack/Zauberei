@@ -6,7 +6,7 @@ import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.getScope
 import me.anno.zauberei.types.impl.ClassType
 
-class GetClassFromTypeExpression(val base: Scope, origin: Int) : Expression(origin) {
+class GetClassFromTypeExpression(val base: Scope, scope: Scope, origin: Int) : Expression(scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {}
 
@@ -18,6 +18,6 @@ class GetClassFromTypeExpression(val base: Scope, origin: Int) : Expression(orig
         return ClassType(getScope("Class"), listOf(ClassType(base, null)))
     }
 
-    override fun clone() = GetClassFromTypeExpression(base, origin)
+    override fun clone() = GetClassFromTypeExpression(base, scope, origin)
 
 }

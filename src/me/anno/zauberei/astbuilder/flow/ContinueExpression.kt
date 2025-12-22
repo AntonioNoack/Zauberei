@@ -2,9 +2,10 @@ package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
-class ContinueExpression(val label: String?, origin: Int) : Expression(origin) {
+class ContinueExpression(val label: String?, scope: Scope, origin: Int) : Expression(scope, origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String {
         return if (label != null) "continue@$label" else "continue"
@@ -14,7 +15,7 @@ class ContinueExpression(val label: String?, origin: Int) : Expression(origin) {
         return exprHasNoType(context)
     }
 
-    override fun clone() = ContinueExpression(label, origin)
+    override fun clone() = ContinueExpression(label, scope, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false // this has no return type
 }

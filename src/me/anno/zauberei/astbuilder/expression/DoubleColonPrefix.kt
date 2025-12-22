@@ -7,7 +7,8 @@ import me.anno.zauberei.types.Type
 /**
  * ::callMeNow -> type is some lambda
  * */
-class DoubleColonPrefix(val left: Scope, val methodName: String, origin: Int) : Expression(origin) {
+class DoubleColonPrefix(val left: Scope, val methodName: String, scope: Scope, origin: Int) :
+    Expression(scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String {
@@ -19,6 +20,6 @@ class DoubleColonPrefix(val left: Scope, val methodName: String, origin: Int) : 
         TODO("Not yet implemented")
     }
 
-    override fun clone() = DoubleColonPrefix(left, methodName, origin)
+    override fun clone() = DoubleColonPrefix(left, methodName, scope, origin)
 
 }

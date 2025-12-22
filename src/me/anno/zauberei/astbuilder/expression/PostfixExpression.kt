@@ -5,7 +5,7 @@ import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.typeresolution.TypeResolution.removeNullFromType
 import me.anno.zauberei.types.Type
 
-class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int) : Expression(origin) {
+class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int) : Expression(base.scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)

@@ -6,7 +6,7 @@ import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.getScope
 import me.anno.zauberei.types.impl.ClassType
 
-class GetClassFromValueExpression(val type: Expression, origin: Int) : Expression(origin) {
+class GetClassFromValueExpression(val type: Expression, origin: Int) : Expression(type.scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(type)

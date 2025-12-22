@@ -4,7 +4,7 @@ import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.types.Type
 
-class PrefixExpression(val type: PrefixType, origin: Int, val base: Expression) : Expression(origin) {
+class PrefixExpression(val type: PrefixType, origin: Int, val base: Expression) : Expression(base.scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)

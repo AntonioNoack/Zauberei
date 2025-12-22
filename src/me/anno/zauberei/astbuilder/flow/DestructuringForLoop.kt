@@ -1,8 +1,8 @@
 package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.astbuilder.ASTBuilder
-import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.astbuilder.Field
+import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.types.Scope
 
 @Suppress("FunctionName")
@@ -17,16 +17,16 @@ fun ASTBuilder.DestructuringForLoop(
     for (varName in variableNames) {
         Field(scope, false, true, scope.typeWithoutArgs, varName, null, null, emptyList(), origin)
     }
-    val fullExpr = VariableExpression(fullName, origin, this)
+    val fullExpr = VariableExpression(fullName, origin, this, scope)
     val newBody = ExpressionList(
         variableNames
             .withIndex()
             .filter { it.value != "_" }
             .map { (index, name) ->
-                val variable = VariableExpression(name, origin, this)
+                val variable = VariableExpression(name, origin, this, scope)
                 val newValue = NamedCallExpression(fullExpr, "component${index + 1}", emptyList(), emptyList(), origin)
                 AssignmentExpression(variable, newValue)
-            } + body, origin
+            } + body, scope, origin
     )
     return ForLoop(fullName, null, iterable, newBody, label)
 }

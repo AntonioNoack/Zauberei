@@ -1,8 +1,8 @@
 package me.anno.zauberei.astbuilder.expression
 
+import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
-import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.types.LambdaParameter
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
@@ -12,7 +12,7 @@ class LambdaExpression(
     var variables: List<LambdaVariable>?,
     val bodyScope: Scope,
     val body: Expression,
-) : Expression(body.origin) {
+) : Expression(bodyScope, body.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(body)
@@ -73,7 +73,7 @@ class LambdaExpression(
                 // else 'it' is not defined
                 if (variables == null) variables = emptyList()
 
-                val returnType = TypeResolution.resolveType(bodyContext, body,)
+                val returnType = TypeResolution.resolveType(bodyContext, body)
                 return LambdaType(variables!!.map {
                     LambdaParameter(it.name, it.type!!)
                 }, returnType)

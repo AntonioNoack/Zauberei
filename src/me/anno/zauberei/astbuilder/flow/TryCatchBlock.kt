@@ -1,16 +1,13 @@
 package me.anno.zauberei.astbuilder.flow
 
-import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
-class Catch(val param: Parameter, val handler: Expression)
-
 class TryCatchBlock(val tryBody: Expression, val catches: List<Catch>, val finallyExpression: Expression?) :
-    Expression(tryBody.origin) {
+    Expression(tryBody.scope, tryBody.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(tryBody)

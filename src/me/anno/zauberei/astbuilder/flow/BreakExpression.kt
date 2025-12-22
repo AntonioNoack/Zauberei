@@ -2,9 +2,10 @@ package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
-class BreakExpression(val label: String?, origin: Int) : Expression(origin) {
+class BreakExpression(val label: String?, scope: Scope, origin: Int) : Expression(scope, origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String {
         return if (label != null) "break@$label" else "break"
@@ -14,7 +15,7 @@ class BreakExpression(val label: String?, origin: Int) : Expression(origin) {
         return exprHasNoType(context)
     }
 
-    override fun clone() = BreakExpression(label, origin)
+    override fun clone() = BreakExpression(label, scope, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false // has no return type
 }

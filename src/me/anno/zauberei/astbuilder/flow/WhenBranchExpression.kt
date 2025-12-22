@@ -2,6 +2,7 @@ package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.astbuilder.expression.ExpressionList
+import me.anno.zauberei.types.Scope
 
 class WhenCase(val condition: Expression?, val body: Expression) {
     override fun toString(): String {
@@ -10,7 +11,7 @@ class WhenCase(val condition: Expression?, val body: Expression) {
 }
 
 @Suppress("FunctionName")
-fun WhenBranchExpression(cases: List<WhenCase>, origin: Int): Expression {
+fun WhenBranchExpression(cases: List<WhenCase>, scope: Scope, origin: Int): Expression {
     var chain: Expression? = null
     for (i in cases.indices.reversed()) {
         val caseI = cases[i]
@@ -21,5 +22,5 @@ fun WhenBranchExpression(cases: List<WhenCase>, origin: Int): Expression {
             caseI.body
         }
     }
-    return chain ?: ExpressionList(emptyList(), origin)
+    return chain ?: ExpressionList(emptyList(), scope, origin)
 }

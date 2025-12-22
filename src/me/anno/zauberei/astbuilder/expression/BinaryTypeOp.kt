@@ -9,7 +9,8 @@ import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 /**
  * is, !is, as, ?as
  * */
-class BinaryTypeOp(val left: Expression, val op: BinaryTypeOpType, val right: Type, origin: Int) : Expression(origin) {
+class BinaryTypeOp(val left: Expression, val op: BinaryTypeOpType, val right: Type, origin: Int) :
+    Expression(left.scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(left)

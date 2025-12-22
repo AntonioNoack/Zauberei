@@ -8,7 +8,7 @@ import me.anno.zauberei.types.Types.UnitType
  * this.name [+=, *=, /=, ...] right
  * */
 class AssignIfMutableExpr(val left: Expression, val symbol: String, val right: Expression) :
-    Expression(right.origin) {
+    Expression(left.scope, right.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(left)

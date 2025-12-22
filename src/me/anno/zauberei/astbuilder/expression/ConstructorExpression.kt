@@ -9,8 +9,8 @@ class ConstructorExpression(
     val clazz: Scope,
     val typeParams: List<Type>,
     val params: List<Expression>,
-    origin: Int
-) : Expression(origin) {
+    scope: Scope, origin: Int
+) : Expression(scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         for (i in params.indices) {
@@ -26,5 +26,5 @@ class ConstructorExpression(
         return ClassType(clazz, typeParams)
     }
 
-    override fun clone() = ConstructorExpression(clazz, typeParams, params.map { it.clone() }, origin)
+    override fun clone() = ConstructorExpression(clazz, typeParams, params.map { it.clone() }, scope, origin)
 }

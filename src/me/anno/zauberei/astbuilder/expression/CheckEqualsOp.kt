@@ -6,8 +6,9 @@ import me.anno.zauberei.types.Types.BooleanType
 
 class CheckEqualsOp(
     val left: Expression, val right: Expression,
-    val byPointer: Boolean, val negated: Boolean
-) : Expression(left.origin) {
+    val byPointer: Boolean, val negated: Boolean,
+    origin: Int
+) : Expression(left.scope, origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(left)
         callback(right)
@@ -31,5 +32,5 @@ class CheckEqualsOp(
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false // result is always Boolean
 
-    override fun clone() = CheckEqualsOp(left.clone(), right.clone(), byPointer, negated)
+    override fun clone() = CheckEqualsOp(left.clone(), right.clone(), byPointer, negated, origin)
 }

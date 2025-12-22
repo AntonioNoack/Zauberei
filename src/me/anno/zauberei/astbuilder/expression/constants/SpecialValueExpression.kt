@@ -4,11 +4,12 @@ import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution.resolveThisType
 import me.anno.zauberei.typeresolution.TypeResolution.typeToScope
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.impl.NullType
 
-class SpecialValueExpression(val value: SpecialValue, origin: Int) : Expression(origin) {
+class SpecialValueExpression(val value: SpecialValue, scope: Scope, origin: Int) : Expression(scope, origin) {
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String = value.name.lowercase()
     override fun resolveType(context: ResolutionContext): Type {
@@ -23,6 +24,6 @@ class SpecialValueExpression(val value: SpecialValue, origin: Int) : Expression(
         }
     }
 
-    override fun clone() = SpecialValueExpression(value, origin)
+    override fun clone() = SpecialValueExpression(value, scope, origin)
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false // should not have any
 }

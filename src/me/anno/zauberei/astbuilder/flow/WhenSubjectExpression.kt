@@ -2,14 +2,15 @@ package me.anno.zauberei.astbuilder.flow
 
 import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.ASTBuilder
+import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.expression.*
-import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.LambdaType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
+import kotlin.math.sin
 
 class SubjectWhenCase(val conditions: List<SubjectCondition?>, val bodyScope: Scope, val body: Expression) {
     override fun toString(): String {
@@ -38,13 +39,13 @@ class SubjectWhenCase(val conditions: List<SubjectCondition?>, val bodyScope: Sc
 fun buildIsExpr(expr: SubjectCondition, subject: Expression): NamedCallExpression {
     return when (expr.type) {
         is ClassType -> {
-            val typeExpr = GetClassFromTypeExpression(expr.type.clazz, 0)
+            val typeExpr = GetClassFromTypeExpression(expr.type.clazz, subject.scope, subject.origin)
             val param = NamedParameter(null, subject)
             NamedCallExpression(typeExpr, "isInstance", emptyList(), listOf(param), subject.origin)
         }
         is LambdaType -> {
             val type = lambdaTypeToClassType(expr.type)
-            val typeExpr = GetClassFromTypeExpression(type.clazz, 0)
+            val typeExpr = GetClassFromTypeExpression(type.clazz, subject.scope, subject.origin)
             val param = NamedParameter(null, subject)
             NamedCallExpression(typeExpr, "isInstance", emptyList(), listOf(param), subject.origin)
         }
@@ -66,7 +67,7 @@ fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: L
         scope, false, true, scope.typeWithoutArgs, subjectName,
         null, value, emptyList(), origin
     )
-    val subjectV = VariableExpression(subjectName, origin, this)
+    val subjectV = VariableExpression(subjectName, origin, this, scope)
     val assignment = AssignmentExpression(subjectV, subject)
     val cases = cases.map { case ->
         val condition =
@@ -94,5 +95,5 @@ fun ASTBuilder.WhenSubjectExpression(scope: Scope, subject: Expression, cases: L
         }
         WhenCase(condition, case.body)
     }
-    return ExpressionList(listOf(assignment, WhenBranchExpression(cases, origin)), origin)
+    return ExpressionList(listOf(assignment, WhenBranchExpression(cases, subject.scope, origin)), subject.scope, origin)
 }

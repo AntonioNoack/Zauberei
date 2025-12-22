@@ -4,7 +4,7 @@ import me.anno.zauberei.astbuilder.Annotation
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.types.Type
 
-class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Expression(base.origin) {
+class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Expression(base.scope, base.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)

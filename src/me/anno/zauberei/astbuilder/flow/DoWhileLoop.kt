@@ -10,11 +10,13 @@ import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
 @Suppress("FunctionName")
 fun DoWhileLoop(body: Expression, condition: Expression, label: String?): Expression {
     val origin = body.origin
+    val negatedCondition = PrefixExpression(PrefixType.NOT, origin, condition)
+    val breakI = BreakExpression(label, body.scope, origin)
     val newBody = ExpressionList(
         listOf(
             condition,
-            IfElseBranch(PrefixExpression(PrefixType.NOT, origin, condition), BreakExpression(label, origin), null)
-        ), origin
+            IfElseBranch(negatedCondition, breakI, null)
+        ), body.scope, origin
     )
-    return WhileLoop(SpecialValueExpression(SpecialValue.TRUE, origin), newBody, label)
+    return WhileLoop(SpecialValueExpression(SpecialValue.TRUE, body.scope, origin), newBody, label)
 }

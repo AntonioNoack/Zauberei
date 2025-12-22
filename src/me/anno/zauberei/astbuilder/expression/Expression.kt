@@ -2,10 +2,11 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.UnitType
 
-abstract class Expression(val origin: Int) {
+abstract class Expression(val scope: Scope, val origin: Int) {
 
     /**
      * cached for faster future resolution and for checking in from later stages

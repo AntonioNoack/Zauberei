@@ -5,7 +5,7 @@ import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.types.Type
 
 class WhileLoop(val condition: Expression, val body: Expression, val label: String?) :
-    Expression(condition.origin) {
+    Expression(condition.scope, condition.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(condition)

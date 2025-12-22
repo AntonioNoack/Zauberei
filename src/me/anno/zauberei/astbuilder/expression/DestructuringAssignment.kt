@@ -7,7 +7,7 @@ import me.anno.zauberei.types.Type
 class DestructuringAssignment(
     val names: List<String>, val initialValue: Expression,
     val isVar: Boolean, val isLateinit: Boolean
-) : Expression(initialValue.origin) {
+) : Expression(initialValue.scope, initialValue.origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(initialValue)

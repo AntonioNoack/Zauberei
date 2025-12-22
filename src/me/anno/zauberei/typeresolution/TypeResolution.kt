@@ -1,6 +1,7 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile
+import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.astbuilder.Method
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
@@ -8,7 +9,6 @@ import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
-import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
@@ -102,18 +102,26 @@ object TypeResolution {
         }
     }
 
-    fun resolveFieldType(field: Field): Type {
-        if (field.valueType == null) {
-            val context = ResolutionContext(
-                field.declaredScope,
-                field.selfType ?: getSelfType(field.declaredScope),
-                false, null
-            )
-            field.valueType = resolveType(context, field.initialValue!!)
-        }
-        return field.valueType!!
+    fun resolveFieldType(field: Field, scope: Scope): Type {
+        val base = field.selfType ?: getSelfType(field.declaredScope)
+        return resolveFieldType(base, field, scope)
     }
 
+    fun resolveFieldType(base: Type?, field: Field, scope: Scope): Type {
+        val fieldType = field.valueType ?: run {
+            val context = ResolutionContext(
+                field.declaredScope,
+                base, false, null
+            )
+            resolveType(context, field.initialValue!!)
+        }
+        field.valueType = fieldType
+
+        // todo valueType is just the general type, there might be much more specific information...
+        println("GeneralFieldType: $fieldType in scope ${scope.pathStr}")
+
+        return fieldType
+    }
 
     /**
      * resolve the type for a given expression;
@@ -219,28 +227,16 @@ object TypeResolution {
 
     fun findFieldType(
         base: Type, name: String, generics: List<Type>,
-        origin: Int
+        scope: Scope, origin: Int
     ): Type? {
         // todo field may be generic, inject the generics as needed...
         // todo check extension fields
 
         if (base is ClassType) {
             val fields = base.clazz.fields
-            val field = fields.firstOrNull {
-                it.name == name /*&& (it.selfType == null ||
-                        it.selfType == base ||
-                        it.selfType == base.clazz)*/
-            }
-            if (field != null) {
-                if (field.valueType == null) {
-                    val context = ResolutionContext(
-                        field.declaredScope,
-                        base, false, null
-                    )
-                    field.valueType = resolveType(context, field.initialValue!!)
-                }
-                return field.valueType
-            }
+            val field = fields.firstOrNull { it.name == name }
+            if (field != null) return resolveFieldType(base, field, scope)
+
             if (base.clazz.scopeType == ScopeType.ENUM_CLASS) {
                 val enumValues = base.clazz.enumValues
                 if (enumValues.any { it.name == name }) {
@@ -259,7 +255,7 @@ object TypeResolution {
                 val genericNames = base.clazz.typeParameters
                 return findFieldType(superClass, name, superGenerics.map { type ->
                     resolveGenerics(type, genericNames, generics)
-                }, origin)
+                }, scope, origin)
             }// else might be Any, but Any has no fields anyway
 
             println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
@@ -267,7 +263,8 @@ object TypeResolution {
         }
 
         if (base is UnionType && base.types.size == 2 && base.types.contains(NullType)) {
-            val baseType = findFieldType(base.types.first { it != NullType }, name, generics, origin) ?: return null
+            val baseType =
+                findFieldType(base.types.first { it != NullType }, name, generics, scope, origin) ?: return null
             return unionTypes(baseType, NullType)
         }
 

@@ -13,16 +13,19 @@ private fun compareTo(left: Expression, right: Expression) =
     )
 
 @Suppress("IntroduceWhenSubject") // this feature is experimental, why is it recommended???
-fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: Expression): Expression {
+fun ASTBuilder.binaryOp(
+    scope: Scope, left: Expression, symbol: String, right: Expression,
+    origin: Int = left.origin
+): Expression {
     return when (symbol) {
         "<=" -> CompareOp(compareTo(left, right), CompareType.LESS_EQUALS)
         "<" -> CompareOp(compareTo(left, right), CompareType.LESS)
         ">=" -> CompareOp(compareTo(left, right), CompareType.GREATER_EQUALS)
         ">" -> CompareOp(compareTo(left, right), CompareType.GREATER)
-        "==" -> CheckEqualsOp(left, right, byPointer = false, negated = false)
-        "!=" -> CheckEqualsOp(left, right, byPointer = false, negated = true)
-        "===" -> CheckEqualsOp(left, right, byPointer = true, negated = false)
-        "!==" -> CheckEqualsOp(left, right, byPointer = true, negated = true)
+        "==" -> CheckEqualsOp(left, right, byPointer = false, negated = false, origin)
+        "!=" -> CheckEqualsOp(left, right, byPointer = false, negated = true, origin)
+        "===" -> CheckEqualsOp(left, right, byPointer = true, negated = false, origin)
+        "!==" -> CheckEqualsOp(left, right, byPointer = true, negated = true, origin)
         "::" -> {
             fun getBase(): Scope = when {
                 left is VariableExpression -> scope.resolveType(left.name, this) as Scope
@@ -34,13 +37,13 @@ fun ASTBuilder.binaryOp(scope: Scope, left: Expression, symbol: String, right: E
                     left is SpecialValueExpression && left.value == SpecialValue.THIS
             when {
                 leftIsType && right is SpecialValueExpression && right.value == SpecialValue.CLASS -> {
-                    GetClassFromTypeExpression(getBase(), left.origin)
+                    GetClassFromTypeExpression(getBase(), left.scope, left.origin)
                 }
                 right is SpecialValueExpression && right.value == SpecialValue.CLASS -> {
                     GetClassFromValueExpression(left, right.origin)
                 }
                 leftIsType && right is VariableExpression -> {
-                    GetMethodFromTypeExpression(getBase(), right.name, right.origin)
+                    GetMethodFromTypeExpression(getBase(), right.name, right.scope, right.origin)
                 }
                 right is VariableExpression -> {
                     GetMethodFromValueExpression(left, right.name, right.origin)
