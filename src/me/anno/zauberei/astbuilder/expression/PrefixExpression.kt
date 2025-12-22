@@ -18,5 +18,9 @@ class PrefixExpression(val type: PrefixType, origin: Int, val base: Expression) 
         return TypeResolution.resolveType(context, base)
     }
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean {
+        return base.hasLambdaOrUnknownGenericsType()
+    }
+
     override fun clone() = PrefixExpression(type, origin, base.clone())
 }

@@ -175,7 +175,7 @@ object Inheritance {
         }
 
         println(
-            "checking-1: $expectedType vs $actualType " +
+            "checkingEq: $expectedType vs $actualType " +
                     "-> ${expectedType == actualType}"
         )
 

@@ -7,8 +7,8 @@ import me.anno.zauberei.astbuilder.Constructor
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.tokenizer.Tokenizer
 import me.anno.zauberei.typeresolution.TypeResolution
-import me.anno.zauberei.types.*
 import me.anno.zauberei.types.StandardTypes.standardClasses
+import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.Types.CharType
 import me.anno.zauberei.types.Types.DoubleType
@@ -233,6 +233,21 @@ class TypeResolutionTest {
                 }
                 // mark Any as a class
                 class Any()
+            """.trimIndent()
+            )
+        )
+    }
+
+    @Test
+    fun testEmptyListAsParameter() {
+        // todo for this method, we need target-type, too...
+        assertEquals(
+            LongType,
+            testTypeResolution(
+                """
+                fun <V> emptyList(): List<V>
+                fun sum(list: List<Int>): Long
+                val tested = sum(emptyList())               
             """.trimIndent()
             )
         )

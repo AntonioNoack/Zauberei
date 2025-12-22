@@ -41,6 +41,12 @@ class CallExpression(
         valueParameters.map { NamedParameter(it.name, it.value.clone()) }, origin
     )
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean {
+        return typeParameters == null ||
+                base.hasLambdaOrUnknownGenericsType() ||
+                valueParameters.any { it.value.hasLambdaOrUnknownGenericsType() }
+    }
+
     override fun resolveType(context: ResolutionContext): Type {
         val typeParameters = typeParameters
         val valueParameters = resolveValueParams(context, valueParameters)

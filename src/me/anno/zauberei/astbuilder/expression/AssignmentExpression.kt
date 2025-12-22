@@ -19,4 +19,6 @@ class AssignmentExpression(var variableName: Expression, var newValue: Expressio
     }
 
     override fun clone() = AssignmentExpression(variableName.clone(), newValue.clone())
+
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false // this has no return type
 }

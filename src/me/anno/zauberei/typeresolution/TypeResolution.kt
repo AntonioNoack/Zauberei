@@ -1,15 +1,11 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile
+import me.anno.zauberei.astbuilder.Method
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.astbuilder.expression.LambdaExpression
-import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
-import me.anno.zauberei.astbuilder.flow.ForLoop
-import me.anno.zauberei.astbuilder.flow.IfElseBranch
-import me.anno.zauberei.astbuilder.flow.WhileLoop
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.types.Field
@@ -56,15 +52,7 @@ object TypeResolution {
         }
         val scopeSelfType = getSelfType(scope)
         for (method in scope.methods) {
-            if (method.returnType == null) {
-                if (false) println("Resolving ${method.innerScope}.type by ${method.body}")
-                val context = ResolutionContext(
-                    method.innerScope,
-                    method.selfType ?: scopeSelfType,
-                    false, null
-                )
-                method.returnType = resolveType(context, method.body!!)
-            }
+            getMethodReturnType(scopeSelfType, method)
         }
         for (field in scope.fields) {
             if (field.valueType == null && field.initialValue != null) {
@@ -84,6 +72,19 @@ object TypeResolution {
             }
         }
         if (false) println("${scope.fileName}: ${scope.pathStr}, ${scope.fields.size}f, ${scope.methods.size}m, ${scope.code.size}c")
+    }
+
+    fun getMethodReturnType(scopeSelfType: Type?, method: Method): Type? {
+        if (method.returnType == null) {
+            if (false) println("Resolving ${method.innerScope}.type by ${method.body}")
+            val context = ResolutionContext(
+                method.innerScope,
+                method.selfType ?: scopeSelfType,
+                false, null
+            )
+            method.returnType = resolveType(context, method.body!!)
+        }
+        return method.returnType
     }
 
     fun getSelfType(scope: Scope): Type? {
@@ -121,10 +122,7 @@ object TypeResolution {
      *  e.g. List<Int>.map { it * 2 } -> List<Int>.map(Function1<S,T>),
      *  S <= Int, because there is a only a function List<V>.map(Function1<V,R>).
      * */
-    fun resolveType(
-        context: ResolutionContext,
-        expr: Expression,
-    ): Type {
+    fun resolveType(context: ResolutionContext, expr: Expression): Type {
         // if already resolved, just use that type
         val alreadyResolved = expr.resolvedType
         if (alreadyResolved != null) {
@@ -138,36 +136,12 @@ object TypeResolution {
         }
     }
 
-    fun exprContainsLambdaWRTReturnType(expr: Expression?): Boolean {
-        // todo what about listOf("1,2,3").map{it.split(',').map{it.toInt()}}?
-        //  can we somehow hide lambdas? I don't think so...
-        return when (expr) {
-            null -> false
-            is LambdaExpression -> true
-            is NumberExpression -> false
-            is IfElseBranch -> {
-                exprContainsLambdaWRTReturnType(expr.condition) ||
-                        exprContainsLambdaWRTReturnType(expr.ifBranch) ||
-                        exprContainsLambdaWRTReturnType(expr.elseBranch)
-            }
-            is WhileLoop -> {
-                // do we need to check the body? not really, because it has no effect on the return type
-                exprContainsLambdaWRTReturnType(expr.condition)
-            }
-            is ForLoop -> exprContainsLambdaWRTReturnType(expr.iterable)
-            else -> {
-                println("Does (${expr.javaClass.simpleName}) $expr contain a lambda? Assuming no for now...")
-                false
-            }
-        }
-    }
-
     fun resolveValueParams(
         context: ResolutionContext,
         base: List<NamedParameter>
     ): List<ValueParameter> {
         return base.map { param ->
-            if (exprContainsLambdaWRTReturnType(param.value)) {
+            if (param.value.hasLambdaOrUnknownGenericsType()) {
                 ValueParameterWithLambda(param, context)
             } else {
                 val type = resolveType(
@@ -219,11 +193,13 @@ object TypeResolution {
         valueParameters: List<ValueParameter>,
     ): Type {
         println("typeParams: $typeParameters")
+        val targetType = context.targetType
+        val selfType = context.selfType
         val method = constructor
-            ?: findMethod(context.selfScope, true, name, context.selfType, typeParameters, valueParameters)
-            ?: findMethod(context.codeScope, true, name, context.selfType, typeParameters, valueParameters)
-            ?: findMethod(langScope, false, name, context.selfType, typeParameters, valueParameters)
-        val field = findField(context.codeScope, context.selfType, name)
+            ?: findMethod(context.selfScope, true, name, targetType, selfType, typeParameters, valueParameters)
+            ?: findMethod(context.codeScope, true, name, targetType, selfType, typeParameters, valueParameters)
+            ?: findMethod(langScope, false, name, targetType, selfType, typeParameters, valueParameters)
+        val field = findField(context.codeScope, selfType, name)
         val candidates =
             listOfNotNull(method?.getTypeFromCall(), field?.resolveCall()?.getTypeFromCall())
         if (candidates.isEmpty()) {
@@ -346,25 +322,28 @@ object TypeResolution {
      * */
     fun findMethod(
         scope: Scope?, recursive: Boolean, name: String,
-        givenSelfType: Type?, // if inside Companion/Object/Class/Interface, this is defined; else null
+        expectedReturnType: Type?, // sometimes, we know what to expect from the return type
+        expectedSelfType: Type?, // if inside Companion/Object/Class/Interface, this is defined; else null
 
         typeParameters: List<Type>?,
         valueParameters: List<ValueParameter>
     ): ResolvedMethod? {
         var scope = scope ?: return null
         while (true) {
+            val scopeSelfType = getSelfType(scope)
             for (method in scope.methods) {
                 if (method.name != name) continue
                 if (method.typeParameters.isNotEmpty()) {
-                    println("Given $method on $givenSelfType, can we deduct any generics from that?")
+                    println("Given $method on $expectedSelfType, with target $expectedReturnType, can we deduct any generics from that?")
                 }
+                val methodReturnType = if (expectedReturnType != null) {
+                    getMethodReturnType(scopeSelfType, method)
+                } else method.returnType // no resolution invoked
                 val generics = findGenericsForMatch(
-                    givenSelfType,
-                    method.selfType,
-                    method.typeParameters,
-                    method.valueParameters,
-                    typeParameters,
-                    valueParameters
+                    expectedSelfType, method.selfType,
+                    expectedReturnType, methodReturnType,
+                    method.typeParameters, typeParameters,
+                    method.valueParameters, valueParameters
                 ) ?: continue
                 return ResolvedMethod(method, generics)
             }
@@ -458,9 +437,9 @@ object TypeResolution {
             println("  candidate constructor: $constructor")
             val generics = findGenericsForMatch(
                 null, null,
-                constructor.clazz.typeParameters,
-                constructor.valueParameters,
-                typeParameters, valueParameters
+                null, null,
+                constructor.clazz.typeParameters, typeParameters,
+                constructor.valueParameters, valueParameters
             ) ?: continue
             return ResolvedConstructor(constructor, generics)
         }
@@ -470,11 +449,14 @@ object TypeResolution {
     fun findGenericsForMatch(
         expectedSelfType: Type?,
         actualSelfType: Type?,
-        // our method expects these:
+
+        expectedReturnType: Type?, /* null if nothing is expected */
+        actualReturnType: Type?, // can help deducting types
+
         expectedTypeParameters: List<Parameter>,
-        expectedValueParameters: List<Parameter>,
-        // and given are these:
         actualTypeParameters: List<Type>?,
+
+        expectedValueParameters: List<Parameter>,
         actualValueParameters: List<ValueParameter>
     ): List<Type>? { // found generic values for a match
 
@@ -483,8 +465,10 @@ object TypeResolution {
             return null
         }
 
-        println("checking $expectedTypeParameters vs $actualTypeParameters")
-        println("     and $expectedValueParameters vs $actualValueParameters")
+        println("checking types: $expectedTypeParameters vs $actualTypeParameters")
+        println("   and  values: $expectedValueParameters vs $actualValueParameters")
+        println("   and  selves: $expectedSelfType vs $actualSelfType")
+        println("   and returns: $expectedReturnType vs $actualReturnType")
 
         // first match everything by name
         // todo resolve default values... -> could be expanded earlier :)
@@ -531,6 +515,17 @@ object TypeResolution {
             return null
         }
 
+        val matchesReturnType = expectedReturnType == null || isSubTypeOf(
+            expectedReturnType, actualReturnType!!,
+            expectedTypeParameters,
+            resolvedTypes,
+            true, findGenericTypes
+        )
+
+        if (!matchesReturnType) {
+            return null
+        }
+
         for (i in expectedValueParameters.indices) {
             val mvParam = expectedValueParameters[i]
             val vParam = if (mvParam.isVararg) {
@@ -566,7 +561,6 @@ object TypeResolution {
 
         // todo check that the types are compatible; if they are generics, reduce their type appropriately
         // todo handle all remaining parameters by index, last one may be varargs
-
         return resolvedTypes as List<Type>
     }
 

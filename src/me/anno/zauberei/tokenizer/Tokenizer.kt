@@ -272,6 +272,6 @@ class Tokenizer(val src: String, fileName: String) {
             }
             i++
         }
-        check(src[i - 1] == '{')
+        check(src[i - 1] == '}')
     }
 }

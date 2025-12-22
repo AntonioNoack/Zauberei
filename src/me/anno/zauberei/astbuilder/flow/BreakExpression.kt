@@ -15,4 +15,6 @@ class BreakExpression(val label: String?, origin: Int) : Expression(origin) {
     }
 
     override fun clone() = BreakExpression(label, origin)
+
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false // has no return type
 }

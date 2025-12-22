@@ -24,6 +24,8 @@ class LambdaExpression(
 
     override fun clone() = LambdaExpression(variables, bodyScope, body.clone())
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = true
+
     override fun resolveType(context: ResolutionContext): Type {
         println("Handling lambda expression... target: ${context.targetType}")
         when (val targetLambdaType = context.targetType) {

@@ -18,5 +18,9 @@ class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Ex
         return base.resolveType(context)
     }
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean {
+        return base.hasLambdaOrUnknownGenericsType()
+    }
+
     override fun clone() = AnnotatedExpression(annotation, base.clone())
 }

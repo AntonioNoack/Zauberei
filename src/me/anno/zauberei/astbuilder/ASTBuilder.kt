@@ -1653,7 +1653,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return code
     }
 
-    private fun readDestructuring(isVar: Boolean, isLateinit: Boolean): DestructuringExpression {
+    private fun readDestructuring(isVar: Boolean, isLateinit: Boolean): DestructuringAssignment {
         val names = ArrayList<String>()
         pushCall {
             while (i < tokens.size) {
@@ -1668,7 +1668,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             i++ // skip =
             readExpression()
         } else throw IllegalStateException("Expected value for destructuring at ${tokens.err(i)}")
-        return DestructuringExpression(names, value, isVar, isLateinit)
+        return DestructuringAssignment(names, value, isVar, isLateinit)
     }
 
     fun readDeclaration(isVar: Boolean, isLateinit: Boolean = false): Expression {

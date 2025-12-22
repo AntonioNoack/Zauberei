@@ -17,5 +17,7 @@ class CompareOp(val value: Expression, val type: CompareType) : Expression(value
         return BooleanType
     }
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false // return type is always Boolean
+
     override fun clone() = CompareOp(value.clone(), type)
 }

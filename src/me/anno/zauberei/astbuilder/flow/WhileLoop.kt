@@ -22,4 +22,6 @@ class WhileLoop(val condition: Expression, val body: Expression, val label: Stri
 
     override fun clone() = WhileLoop(condition.clone(), body.clone(), label)
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false // this has no return value
+
 }

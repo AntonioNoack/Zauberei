@@ -15,4 +15,6 @@ class ContinueExpression(val label: String?, origin: Int) : Expression(origin) {
     }
 
     override fun clone() = ContinueExpression(label, origin)
+
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false // this has no return type
 }

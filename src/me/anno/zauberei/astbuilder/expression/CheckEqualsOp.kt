@@ -29,5 +29,7 @@ class CheckEqualsOp(
         return BooleanType
     }
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false // result is always Boolean
+
     override fun clone() = CheckEqualsOp(left.clone(), right.clone(), byPointer, negated)
 }

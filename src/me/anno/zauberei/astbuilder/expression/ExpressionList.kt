@@ -22,4 +22,9 @@ class ExpressionList(val list: List<Expression>, origin: Int) : Expression(origi
 
     override fun clone() = ExpressionList(list.map { it.clone() }, origin)
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean {
+        val last = list.lastOrNull() ?: return false
+        return last.hasLambdaOrUnknownGenericsType()
+    }
+
 }

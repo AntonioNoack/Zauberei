@@ -28,4 +28,9 @@ class IfElseBranch(val condition: Expression, val ifBranch: Expression, val else
 
     override fun clone() = IfElseBranch(condition.clone(), ifBranch.clone(), elseBranch?.clone())
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean {
+        return elseBranch != null && // if else is undefined, this has no return type
+                (ifBranch.hasLambdaOrUnknownGenericsType() || elseBranch.hasLambdaOrUnknownGenericsType())
+    }
+
 }

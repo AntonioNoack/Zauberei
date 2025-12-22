@@ -52,4 +52,6 @@ class NumberExpression(val value: String, origin: Int) : Expression(origin) {
     }
 
     override fun clone() = NumberExpression(value, origin)
+
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false
 }

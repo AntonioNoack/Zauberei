@@ -17,6 +17,10 @@ class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int
 
     override fun clone() = PostfixExpression(base.clone(), type, origin)
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean {
+        return base.hasLambdaOrUnknownGenericsType()
+    }
+
     override fun resolveType(context: ResolutionContext): Type {
         return when (type) {
             PostfixType.INCREMENT, PostfixType.DECREMENT -> {

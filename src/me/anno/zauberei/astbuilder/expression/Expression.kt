@@ -35,6 +35,18 @@ abstract class Expression(val origin: Int) {
      * */
     abstract fun clone(): Expression
 
+    /**
+     * returns whether the type of this has a lambda, or some other unknown generics inside;
+     * for lambdas, we need to know, because usually no other type information is available;
+     * for unknown generics, we need them for the return type to be fully known
+     * */
+    open fun hasLambdaOrUnknownGenericsType(): Boolean {
+        // todo what about listOf("1,2,3").map{it.split(',').map{it.toInt()}}?
+        //  can we somehow hide lambdas? I don't think so...
+        System.err.println("Does (${javaClass.simpleName}) $this contain a lambda? Assuming no for now...")
+        return false
+    }
+
     companion object {
         var numExpressionsCreated = 0
             private set

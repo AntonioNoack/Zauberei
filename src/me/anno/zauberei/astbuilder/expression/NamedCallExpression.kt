@@ -30,6 +30,12 @@ class NamedCallExpression(
         origin
     )
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean {
+        return typeParameters == null ||
+                base.hasLambdaOrUnknownGenericsType() ||
+                valueParameters.any { it.value.hasLambdaOrUnknownGenericsType() }
+    }
+
     override fun toString(): String {
         return when {
             typeParameters.isNullOrEmpty() && name == "." &&
