@@ -174,10 +174,12 @@ class TypeResolutionTest {
     }
 
     @Test
-    fun testInferredMapGenerics(){
+    fun testInferredMapGenerics() {
         assertEquals(
-            ClassType(standardClasses["Map"]!!,
-                listOf(StringType, IntType)),
+            ClassType(
+                standardClasses["Map"]!!,
+                listOf(StringType, IntType)
+            ),
             testTypeResolution(
                 """
                 fun <K, V> mapOf(entry: Pair<K,V>): Map<K,V>
@@ -238,30 +240,19 @@ class TypeResolutionTest {
 
     @Test
     fun testListReduce() {
-        defineArrayListConstructors()
-
         assertEquals(
-            ClassType(
-                standardClasses["List"]!!,
-                listOf(ClassType(FloatType.clazz, null))
-            ),
+            IntType,
             testTypeResolution(
                 """
-                fun <V> emptyList(): List<V> = ArrayList<V>(0)
-                fun <V> List<V>.reduce(map: (V, V) -> V): V {
-                    var element = this[0]
-                    for(i in 1 until size) {
-                        element = map(element, this[i])
-                    }
-                    return element
-                }
+                fun <V> emptyList(): List<V>
+                fun <V> List<V>.reduce(map: (V, V) -> V): V
                 val tested = emptyList<Int>().reduce { a,b -> a + b }
                 
                 // mark Int as a class (that extends Any)
                 package $stdlib
                 class Int: Any() {
-                    operator fun plus(other: Int): Int = native("this + other")
-                    operator fun plus(other: Float): Float = native("(float)this + other")
+                    operator fun plus(other: Int): Int
+                    operator fun plus(other: Float): Float
                 }
                 // mark Any as a class
                 class Any()
