@@ -9,7 +9,9 @@ import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveFieldType
 import me.anno.zauberei.types.Field
 import me.anno.zauberei.types.Scope
+import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.impl.ClassType
 
 class VariableExpression(val name: String, var owner: Scope?, var field: Field?, origin: Int) : Expression(origin) {
 
@@ -28,10 +30,22 @@ class VariableExpression(val name: String, var owner: Scope?, var field: Field?,
 
     override fun clone() = VariableExpression(name, owner, field, origin)
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false
+
     override fun resolveType(context: ResolutionContext): Type {
+        val field0 = this.field
+        if (field0 != null) return resolveFieldType(field0)
+
+        val imported = nameAsImport
+        if (imported != null) {
+            val typeParams = if (imported.scopeType == ScopeType.OBJECT) emptyList<Type>() else null
+            return ClassType(imported, typeParams)
+        }
+
         val field = findField(context.codeScope, context.selfScope?.typeWithoutArgs, name)
             ?: findField(langScope, context.selfScope?.typeWithoutArgs, name)
         if (field != null) return resolveFieldType(field)
+
         val type = findType(context.codeScope, context.selfType, name)
         if (type != null) return type
         throw IllegalStateException(

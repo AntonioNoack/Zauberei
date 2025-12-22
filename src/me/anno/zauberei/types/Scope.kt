@@ -40,6 +40,8 @@ class Scope(val name: String, val parent: Scope? = null) {
 
     var imports: List<Import2> = emptyList()
 
+    var objectField: Field? = null
+
     var primaryConstructorScope: Scope? = null
     fun getOrCreatePrimConstructorScope(): Scope {
         return primaryConstructorScope ?: run {

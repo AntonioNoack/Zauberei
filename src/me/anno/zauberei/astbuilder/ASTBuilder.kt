@@ -182,6 +182,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     }
 
     private fun readObject() {
+        val origin = origin(i)
         val name = if (tokens.equals(++i, TokenType.NAME)) {
             tokens.toString(i++)
         } else if (keywords.remove("companion")) {
@@ -190,8 +191,16 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         keywords.add("object")
         val keywords = packKeywords()
 
-        readSuperCalls(currPackage.getOrPut(name, tokens.fileName, ScopeType.OBJECT), true)
+        val scope = currPackage.getOrPut(name, tokens.fileName, ScopeType.OBJECT)
+        readSuperCalls(scope, true)
         readClassBody(name, keywords, ScopeType.OBJECT)
+
+        scope.objectField = Field(
+            scope, false, true, null,
+            "__instance__",
+            ClassType(scope, emptyList()),
+            /* todo should we set initialValue? */ null, emptyList(), origin
+        )
     }
 
     private fun readSuperCalls(clazz: Scope, needsEntry: Boolean) {

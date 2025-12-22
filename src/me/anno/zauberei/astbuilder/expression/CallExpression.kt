@@ -19,10 +19,6 @@ class CallExpression(
     origin: Int
 ) : Expression(origin) {
 
-    init {
-        println("Created CallExpression($base, $typeParameters, $valueParameters)")
-    }
-
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(base)
         for (i in valueParameters.indices) {

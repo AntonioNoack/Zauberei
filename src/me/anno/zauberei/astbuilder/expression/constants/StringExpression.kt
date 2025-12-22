@@ -20,4 +20,6 @@ class StringExpression(val value: String, origin: Int) : Expression(origin) {
 
     override fun clone() = StringExpression(value, origin)
 
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false
+
 }

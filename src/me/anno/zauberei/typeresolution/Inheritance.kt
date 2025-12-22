@@ -65,7 +65,9 @@ object Inheritance {
         // todo compare scope, too
         val typeParamIdx = expectedTypeParams.indexOfFirst { it.name == expectedType.name }
         if (typeParamIdx == -1) {
-            System.err.println("Missing generic parameter ${expectedType.name}, ignoring it")
+            if (insertMode != InsertMode.WEAK) {
+                System.err.println("Missing generic parameter ${expectedType.name}, ignoring it")
+            }// else can be safely ignored ;)
             return true
         }
 
@@ -202,7 +204,7 @@ object Inheritance {
                 return true
             }
 
-            println("classType of $expectedType: ${expectedType.clazz.scopeType}")
+            // println("classType of $expectedType: ${expectedType.clazz.scopeType}")
             return when (expectedType.clazz.scopeType) {
                 ScopeType.INTERFACE -> {
                     TODO("check super interfaces of $actualType for $expectedType")
@@ -250,7 +252,13 @@ object Inheritance {
             }
         }
 
-        TODO("Is $actualType a $expectedType?, $expectedTypeParams, $actualTypeParameters")
+        if (insertMode == InsertMode.READ_ONLY) {
+            if (expectedType is GenericType || actualType is GenericType) {
+                return false
+            }
+        }
+
+        TODO("Is $actualType a $expectedType?, $expectedTypeParams, $actualTypeParameters [$insertMode]")
     }
 
 }

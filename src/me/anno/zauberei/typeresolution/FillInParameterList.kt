@@ -36,4 +36,10 @@ class FillInParameterList(override val size: Int) : List<Type?> {
     override fun listIterator(index: Int): ListIterator<Type?> = types.asList().listIterator(index)
     override fun subList(fromIndex: Int, toIndex: Int): List<Type?> = types.asList().subList(fromIndex, toIndex)
 
+    override fun toString(): String {
+        return indices.joinToString(", ", "[", "]") { idx ->
+            "(${if (isStrong[idx]) "s" else "w"})${types[idx]}"
+        }
+    }
+
 }

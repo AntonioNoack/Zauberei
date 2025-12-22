@@ -296,8 +296,19 @@ object TypeResolution {
     fun findField(scope: Scope?, recursive: Boolean, name: String): Field? {
         var scope = scope
         while (scope != null) {
+
+            if (scope.scopeType == ScopeType.OBJECT && scope.name == name) {
+                return scope.objectField!!
+            }
+
+            val child = scope.children.firstOrNull { it.name == name }
+            if (child != null && child.scopeType == ScopeType.OBJECT) {
+                return child.objectField!!
+            }
+
             val match = scope.fields.firstOrNull { it.name == name }
             if (match != null) return match
+
             scope = if (recursive && scope.parent?.fileName == scope.fileName) {
                 scope.parent
             } else null
@@ -503,7 +514,7 @@ object TypeResolution {
 
         val findGenericTypes = actualTypeParameters == null
 
-        println("Checking method-match, self-types: $expectedSelfType vs $actualSelfType")
+        // println("Checking method-match, self-types: $expectedSelfType vs $actualSelfType")
         val matchesSelfType = expectedSelfType == null || isSubTypeOf(
             expectedSelfType, actualSelfType!!,
             expectedTypeParameters,
@@ -512,13 +523,13 @@ object TypeResolution {
         )
 
         if (!matchesSelfType) {
-            println("selfType-mismatch: $actualSelfType !is $expectedSelfType")
+            // println("selfType-mismatch: $actualSelfType !is $expectedSelfType")
             return null
         }
 
         // todo this should only be executed sometimes...
         //  missing generic parameters can be temporarily inserted...
-        println("matchesReturnType($expectedReturnType vs $actualReturnType)")
+        // println("matchesReturnType($expectedReturnType vs $actualReturnType)")
         val matchesReturnType = expectedReturnType == null || actualReturnType == null ||
                 isSubTypeOf(
                     expectedReturnType,
@@ -529,7 +540,7 @@ object TypeResolution {
                 )
 
         if (!matchesReturnType) {
-            println("returnType-mismatch: $actualReturnType !is $expectedReturnType")
+            // println("returnType-mismatch: $actualReturnType !is $expectedReturnType")
             return null
         }
 

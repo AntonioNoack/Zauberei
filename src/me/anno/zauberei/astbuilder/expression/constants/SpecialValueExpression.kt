@@ -24,4 +24,5 @@ class SpecialValueExpression(val value: SpecialValue, origin: Int) : Expression(
     }
 
     override fun clone() = SpecialValueExpression(value, origin)
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false // should not have any
 }

@@ -8,21 +8,27 @@ interface List<V> {
     operator fun get(index: Int): V
     val size: Int
 
-    fun withIndex(): List<IndexedValue<V>> {
-        return List(size) {
-            IndexedValue(it, this[it])
-        }
-    }
+}
 
-    fun filter(predicate: (V) -> Boolean): List<V> {
-        val result = ArrayList<V>(size)
-        for (e in this) {
-            if (predicate(e)) {
-                result.add(e)
-            }
-        }
-        return result
+fun <V> List<V>.withIndex(): List<IndexedValue<V>> {
+    return List(size) {
+        IndexedValue(it, this[it])
     }
+}
+
+inline fun <V> List<V>.filter(predicate: (V) -> Boolean): List<V> {
+    val result = ArrayList<V>(size)
+    for (i in indices) {
+        val element = this[i]
+        if (predicate(element)) {
+            result.add(element)
+        }
+    }
+    return result
+}
+
+inline fun <V, R> List<V>.mapIndexed(transform: (Int, V) -> Int): List<R> {
+    return List<R>(size) { transform(it, this[it]) }
 }
 
 data class IndexedValue<V>(val index: Int, val value: V)
@@ -50,7 +56,7 @@ class ArrayList<V>(capacity: Int) : MutableList<V> {
     }
 
     fun add(element: V): Boolean {
-        if(size == content.size) {
+        if (size == content.size) {
             val newSize = max(16, content.size * 2)
             content = content.copyOf(newSize)
         }
