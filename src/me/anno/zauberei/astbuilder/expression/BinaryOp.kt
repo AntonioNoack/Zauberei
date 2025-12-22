@@ -28,7 +28,7 @@ fun ASTBuilder.binaryOp(
         "!==" -> CheckEqualsOp(left, right, byPointer = true, negated = true, origin)
         "::" -> {
             fun getBase(): Scope = when {
-                left is VariableExpression -> scope.resolveType(left.name, this) as Scope
+                // left is VariableExpression -> scope.resolveType(left.name, this) as Scope
                 left is SpecialValueExpression && left.value == SpecialValue.THIS -> scope
                 else -> throw NotImplementedError("GetBase($left::$right at ${tokens.err(i)})")
             }

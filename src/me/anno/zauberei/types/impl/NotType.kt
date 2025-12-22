@@ -4,6 +4,10 @@ import me.anno.zauberei.types.Type
 
 class NotType(val type: Type) : Type() {
 
+    init {
+        check(type !is NotType)
+    }
+
     override fun toString(): String {
         return "NotType($type)"
     }

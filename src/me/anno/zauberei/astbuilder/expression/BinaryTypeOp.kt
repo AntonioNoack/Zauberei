@@ -22,7 +22,7 @@ class BinaryTypeOp(val left: Expression, val op: BinaryTypeOpType, val right: Ty
 
     override fun resolveType(context: ResolutionContext): Type {
         return when (op) {
-            BinaryTypeOpType.INSTANCEOF -> BooleanType
+            BinaryTypeOpType.INSTANCEOF, BinaryTypeOpType.NOT_INSTANCEOF -> BooleanType
             BinaryTypeOpType.CAST_OR_CRASH -> right
             BinaryTypeOpType.CAST_OR_NULL -> unionTypes(right, NullType)
         }

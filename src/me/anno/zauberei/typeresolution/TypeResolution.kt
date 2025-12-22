@@ -6,17 +6,18 @@ import me.anno.zauberei.astbuilder.Method
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
+import me.anno.zauberei.astbuilder.expression.BinaryTypeOp
+import me.anno.zauberei.astbuilder.expression.BinaryTypeOpType
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.astbuilder.expression.VariableExpression
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.ArrayType
-import me.anno.zauberei.types.impl.ClassType
-import me.anno.zauberei.types.impl.GenericType
-import me.anno.zauberei.types.impl.NullType
-import me.anno.zauberei.types.impl.UnionType
+import me.anno.zauberei.types.impl.*
+import me.anno.zauberei.types.impl.AndType.Companion.andTypes
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 /**
@@ -108,7 +109,7 @@ object TypeResolution {
     }
 
     fun resolveFieldType(base: Type?, field: Field, scope: Scope): Type {
-        val fieldType = field.valueType ?: run {
+        var fieldType = field.valueType ?: run {
             val context = ResolutionContext(
                 field.declaredScope,
                 base, false, null
@@ -120,12 +121,40 @@ object TypeResolution {
         // todo valueType is just the general type, there might be much more specific information...
         // todo if the variable is re-assigned, these conditions no longer hold
         println("GeneralFieldType: $fieldType in scope ${scope.pathStr}")
+
         var scopeI = scope
         while (scopeI.fileName == scope.fileName) {
             val condition = scopeI.branchCondition
             if (condition != null) {
+
                 val prefix = if (scopeI.branchConditionTrue) "" else "!"
                 println("  condition: $prefix$condition")
+
+                // decide based on conditionType...
+                //  might be inside complex combinations of and, or and not with other conditions...
+                var conditionType = when (condition) {
+                    is BinaryTypeOp -> {
+                        val name = condition.left as? VariableExpression
+                        val type = condition.right
+                        if (name?.name == field.name) { // todo check if field is actually the same
+                            when (condition.op) {
+                                BinaryTypeOpType.INSTANCEOF -> type
+                                BinaryTypeOpType.NOT_INSTANCEOF -> NotType(type)
+                                else -> null
+                            }
+                        } else null
+                    }
+                    else -> null
+                }
+
+                if (conditionType != null) {
+                    if (!scopeI.branchConditionTrue) {
+                        conditionType =
+                            if (conditionType is NotType) conditionType.type
+                            else NotType(conditionType)
+                    }
+                    fieldType = andTypes(fieldType, conditionType)
+                }
             }
             scopeI = scopeI.parent ?: break
         }
