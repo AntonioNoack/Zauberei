@@ -142,7 +142,7 @@ object TypeResolution {
     ): List<ValueParameter> {
         return base.map { param ->
             if (param.value.hasLambdaOrUnknownGenericsType()) {
-                ValueParameterWithLambda(param, context)
+                IncompleteValueParameter(param, context)
             } else {
                 val type = resolveType(
                     /* no lambda contained -> doesn't matter */
@@ -209,7 +209,7 @@ object TypeResolution {
             println("code-scope methods[${codeScope.pathStr}.'$name']: ${codeScope.methods.filter { it.name == name }}")
             println("lang-scope methods[${langScope.pathStr}.'$name']: ${langScope.methods.filter { it.name == name }}")
             throw IllegalStateException(
-                "Could not resolve base '$name'<$typeParameters>($valueParameters) " +
+                "Could not resolve base $selfScope.'$name'<$typeParameters>($valueParameters) " +
                         "in ${resolveOrigin(expr.origin)}, scopes: ${codeScope.pathStr}"
             )
         }
@@ -499,7 +499,7 @@ object TypeResolution {
             }
 
         val resolvedTypes = actualTypeParameters
-            ?: ArrayList(List(expectedTypeParameters.size) { null })
+            ?: FillInParameterList(expectedTypeParameters.size)
 
         val findGenericTypes = actualTypeParameters == null
 
@@ -508,21 +508,28 @@ object TypeResolution {
             expectedSelfType, actualSelfType!!,
             expectedTypeParameters,
             resolvedTypes,
-            true, findGenericTypes
+            if (findGenericTypes) InsertMode.STRONG else InsertMode.READ_ONLY
         )
 
         if (!matchesSelfType) {
+            println("selfType-mismatch: $actualSelfType !is $expectedSelfType")
             return null
         }
 
-        val matchesReturnType = expectedReturnType == null || isSubTypeOf(
-            expectedReturnType, actualReturnType!!,
-            expectedTypeParameters,
-            resolvedTypes,
-            true, findGenericTypes
-        )
+        // todo this should only be executed sometimes...
+        //  missing generic parameters can be temporarily inserted...
+        println("matchesReturnType($expectedReturnType vs $actualReturnType)")
+        val matchesReturnType = expectedReturnType == null || actualReturnType == null ||
+                isSubTypeOf(
+                    expectedReturnType,
+                    actualReturnType,
+                    expectedTypeParameters,
+                    resolvedTypes,
+                    if (findGenericTypes) InsertMode.WEAK else InsertMode.READ_ONLY,
+                )
 
         if (!matchesReturnType) {
+            println("returnType-mismatch: $actualReturnType !is $expectedReturnType")
             return null
         }
 
@@ -550,7 +557,7 @@ object TypeResolution {
                     mvParam, vParam,
                     expectedTypeParameters,
                     resolvedTypes,
-                    findGenericTypes
+                    if (findGenericTypes) InsertMode.STRONG else InsertMode.READ_ONLY
                 )
             ) {
                 val type = vParam.getType(mvParam.type)

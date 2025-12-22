@@ -4,7 +4,7 @@ import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.typeresolution.TypeResolution.resolveType
 import me.anno.zauberei.types.Type
 
-class ValueParameterWithLambda(
+class IncompleteValueParameter(
     val param: NamedParameter,
     val context: ResolutionContext,
 ) : ValueParameter(param.name) {

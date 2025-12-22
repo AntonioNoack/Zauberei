@@ -6,7 +6,6 @@ import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.AnyType
 import me.anno.zauberei.types.impl.*
-import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 /**
  * Check if one type inherits from another, incl. generic checks.
@@ -18,7 +17,7 @@ object Inheritance {
         actual: ValueParameter,
         expectedTypeParams: List<Parameter>,
         actualTypeParameters: List<Type?>,
-        findGenericTypes: Boolean
+        insertMode: InsertMode
     ): Boolean {
         val expectedType = resolveGenerics(
             expected.type,
@@ -32,7 +31,7 @@ object Inheritance {
             expectedType,
             actual.getType(expectedType),
             expectedTypeParams, actualTypeParameters,
-            true, findGenericTypes
+            insertMode
         )
     }
 
@@ -41,8 +40,7 @@ object Inheritance {
         actualType: Type,
         expectedTypeParams: List<Parameter>,
         actualTypeParameters: List<Type?>,
-        insertTypes: Boolean,
-        findGenericTypes: Boolean
+        insertMode: InsertMode,
     ): Boolean {
         println("checking $actualType instanceOf $expectedType")
         val result = isSubTypeOfImpl(
@@ -50,47 +48,43 @@ object Inheritance {
             actualType,
             expectedTypeParams,
             actualTypeParameters,
-            insertTypes,
-            findGenericTypes
+            insertMode,
         )
         println("got $result for $actualType instanceOf $expectedType")
         return result
     }
 
-    private fun checkGenericInsert(
+    private fun tryInsertGenericType(
         expectedType: GenericType,
         actualType: Type,
         expectedTypeParams: List<Parameter>,
         actualTypeParameters: List<Type?>,
-        findGenericTypes: Boolean
+        insertMode: InsertMode
     ): Boolean {
-        if (findGenericTypes) {
-            val typeParamIdx = expectedTypeParams.indexOfFirst { it.name == expectedType.name }
-            actualTypeParameters as MutableList<Type?>
 
-            val oldActualTypeParam = actualTypeParameters[typeParamIdx]
-            val expectedTypeParam = expectedTypeParams[typeParamIdx]
-            if (!isSubTypeOf( // check bounds of expectedTypeParam
-                    expectedTypeParam.type,
-                    actualType,
-                    expectedTypeParams,
-                    actualTypeParameters,
-                    insertTypes = false,
-                    findGenericTypes = false
-                )
-            ) return false
-
-            val newTypeParam = if (oldActualTypeParam != null) {
-                unionTypes(oldActualTypeParam, actualType)
-            } else {
-                actualType
-            }
-
-            actualTypeParameters[typeParamIdx] = newTypeParam
-            println("Found Type: [$typeParamIdx,'${expectedType.name}'] = ${actualTypeParameters[typeParamIdx]}")
+        // todo compare scope, too
+        val typeParamIdx = expectedTypeParams.indexOfFirst { it.name == expectedType.name }
+        if (typeParamIdx == -1) {
+            System.err.println("Missing generic parameter ${expectedType.name}, ignoring it")
             return true
+        }
 
-        } else TODO("Is $actualType a $expectedType?, $expectedTypeParams, $actualTypeParameters")
+        actualTypeParameters as FillInParameterList
+
+        val expectedTypeParam = expectedTypeParams[typeParamIdx]
+        if (!isSubTypeOf(
+                // check bounds of expectedTypeParam
+                expectedTypeParam.type,
+                actualType,
+                expectedTypeParams,
+                actualTypeParameters,
+                InsertMode.READ_ONLY,
+            )
+        ) return false
+
+        actualTypeParameters.union(typeParamIdx, actualType, insertMode == InsertMode.STRONG)
+        println("Found Type: [$typeParamIdx,'${expectedType.name}'] = ${actualTypeParameters[typeParamIdx]}")
+        return true
     }
 
     private fun isSubTypeOfImpl(
@@ -98,8 +92,7 @@ object Inheritance {
         actualType: Type,
         expectedTypeParams: List<Parameter>,
         actualTypeParameters: List<Type?>,
-        insertTypes: Boolean,
-        findGenericTypes: Boolean
+        insertMode: InsertMode,
     ): Boolean {
 
         if (expectedType == actualType) return true
@@ -112,19 +105,17 @@ object Inheritance {
                     expectedType, allActual,
                     expectedTypeParams,
                     actualTypeParameters,
-                    false,
-                    findGenericTypes
+                    InsertMode.READ_ONLY,
                 )
             }
-            if (t0 || !insertTypes) return t0
+            if (t0 || insertMode == InsertMode.READ_ONLY) return t0
             // then, try with inserting new types
             return actualType.types.all { allActual ->
                 isSubTypeOf(
                     expectedType, allActual,
                     expectedTypeParams,
                     actualTypeParameters,
-                    true,
-                    findGenericTypes
+                    insertMode,
                 )
             }
         }
@@ -136,38 +127,38 @@ object Inheritance {
                     anyExpected, actualType,
                     expectedTypeParams,
                     actualTypeParameters,
-                    false,
-                    findGenericTypes
+                    InsertMode.READ_ONLY
                 )
             }
-            if (t0 || !insertTypes) return t0
+            if (t0 || insertMode == InsertMode.READ_ONLY) return t0
             // then, try with inserting new types
             return expectedType.types.any { anyExpected ->
                 isSubTypeOf(
                     anyExpected, actualType,
                     expectedTypeParams,
                     actualTypeParameters,
-                    true,
-                    findGenericTypes
+                    insertMode
                 )
             }
         }
 
-        if (expectedType is GenericType) {
-            return checkGenericInsert(
-                expectedType, actualType,
-                expectedTypeParams, actualTypeParameters,
-                findGenericTypes
-            )
-        }
+        if (insertMode != InsertMode.READ_ONLY) {
+            if (expectedType is GenericType) {
+                return tryInsertGenericType(
+                    expectedType, actualType,
+                    expectedTypeParams, actualTypeParameters,
+                    insertMode,
+                )
+            }
 
-        if (actualType is GenericType) {
-            return checkGenericInsert(
-                // does this work with just swapping them???
-                actualType, expectedType,
-                expectedTypeParams, actualTypeParameters,
-                findGenericTypes
-            )
+            if (actualType is GenericType) {
+                return tryInsertGenericType(
+                    // does this work with just swapping them???
+                    actualType, expectedType,
+                    expectedTypeParams, actualTypeParameters,
+                    insertMode,
+                )
+            }
         }
 
         if ((expectedType == NullType) != (actualType == NullType)) {
@@ -202,7 +193,7 @@ object Inheritance {
                         if (!isSubTypeOf(
                                 expectedType, actualType,
                                 expectedTypeParams, actualTypeParameters,
-                                insertTypes, findGenericTypes
+                                insertMode,
                             )
                         ) return false
                     }
@@ -229,8 +220,7 @@ object Inheritance {
                         superType,
                         expectedTypeParams,
                         actualTypeParameters,
-                        insertTypes,
-                        findGenericTypes
+                        insertMode,
                     )
                 }
             }
@@ -249,13 +239,13 @@ object Inheritance {
                 //  -> this needs to be flipped
                 actualType.returnType, expectedType.returnType,
                 expectedTypeParams, actualTypeParameters,
-                insertTypes, findGenericTypes
+                insertMode,
             ) && expectedType.parameters.indices.all { paramIndex ->
                 isSubTypeOf(
                     expectedType.parameters[paramIndex].type,
                     actualType.parameters[paramIndex].type,
                     expectedTypeParams, actualTypeParameters,
-                    insertTypes, findGenericTypes
+                    insertMode,
                 )
             }
         }

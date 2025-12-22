@@ -240,7 +240,6 @@ class TypeResolutionTest {
 
     @Test
     fun testEmptyListAsParameter() {
-        // todo for this method, we need target-type, too...
         assertEquals(
             LongType,
             testTypeResolution(
@@ -248,6 +247,24 @@ class TypeResolutionTest {
                 fun <V> emptyList(): List<V>
                 fun sum(list: List<Int>): Long
                 val tested = sum(emptyList())               
+            """.trimIndent()
+            )
+        )
+    }
+
+    @Test
+    fun testTwoStackedGenericReturnTypes() {
+        assertEquals(
+            ClassType(
+                standardClasses["Map"]!!,
+                listOf(IntType, FloatType)
+            ),
+            testTypeResolution(
+                """
+                infix fun <F,S> F.to(s: S): Pair<F,S>
+                fun <K,V> mapOf(vararg entries: Pair<K,V>): Map<K,V>
+                
+                val tested = mapOf(1 to 2f)   
             """.trimIndent()
             )
         )
