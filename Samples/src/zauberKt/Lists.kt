@@ -27,8 +27,12 @@ inline fun <V> List<V>.filter(predicate: (V) -> Boolean): List<V> {
     return result
 }
 
-inline fun <V, R> List<V>.mapIndexed(transform: (Int, V) -> Int): List<R> {
+inline fun <V, R> List<V>.mapIndexed(transform: (Int, V) -> R): List<R> {
     return List<R>(size) { transform(it, this[it]) }
+}
+
+inline fun <V, R> List<V>.map(transform: (V) -> R): List<R> {
+    return List<R>(size) { transform(this[it]) }
 }
 
 data class IndexedValue<V>(val index: Int, val value: V)

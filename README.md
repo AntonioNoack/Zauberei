@@ -73,7 +73,7 @@ Total Progress: 0.5 %
 - C++ bindings for FileIO, OpenGL, native libraries, ...: 0% of 3%
 - Automatically colored asynchronous Methods: 0% of 3%
 - Fixed-Point numbers: 0% of 3%
-- Lambdas: 0% of 3%
+- Lambdas: 20% of 3%
 - Garbage Collector: 0% of 2%
 - Multithreading and Parallel GC: 0% of 5%
 - Completely Immutable Objects: 0% of 3%

@@ -178,9 +178,10 @@ object Inheritance {
             if (expectedType.clazz == actualType.clazz) {
                 val actualGenerics = actualType.typeParameters
                 val expectedGenerics = expectedType.typeParameters
-                val actualSize = actualGenerics?.size ?: if (actualType.hasSufficientTypeParameters()) 0 else -1
-                val expectedSize = expectedGenerics?.size ?: if (expectedType.hasSufficientTypeParameters()) 0 else -1
-                println("Class vs Class, $actualSize vs $expectedSize")
+                val sufficient = actualType.classHasNoTypeParams()
+                val actualSize = actualGenerics?.size ?: if (sufficient) 0 else -1
+                val expectedSize = expectedGenerics?.size ?: if (sufficient) 0 else -1
+                println("Class vs Class (${actualType.clazz.name}), $actualSize vs $expectedSize")
 
                 if (actualSize != expectedSize) {
                     println("Mismatch in generic count :(")

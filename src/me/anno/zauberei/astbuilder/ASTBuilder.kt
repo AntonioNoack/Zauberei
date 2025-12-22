@@ -195,6 +195,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         readSuperCalls(scope, true)
         readClassBody(name, keywords, ScopeType.OBJECT)
 
+        scope.hasTypeParameters = true // no type-params are supported
         scope.objectField = Field(
             scope, false, true, null,
             "__instance__",

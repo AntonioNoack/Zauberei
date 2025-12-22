@@ -4,6 +4,7 @@ import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution.findConstructor
+import me.anno.zauberei.typeresolution.TypeResolution.findMethod
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveCallType
 import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParams
@@ -55,11 +56,18 @@ class CallExpression(
             }
             is VariableExpression -> {
                 val name = base.name
+                println("Find call '$name' with nameAsImport=${base.nameAsImport}")
                 // findConstructor(selfScope, false, name, typeParameters, valueParameters)
                 val constructor =
                     findConstructor(base.nameAsImport, false, name, typeParameters, valueParameters)
                         ?: findConstructor(context.codeScope, true, name, typeParameters, valueParameters)
                         ?: findConstructor(langScope, false, name, typeParameters, valueParameters)
+                        ?: findMethod(
+                            base.nameAsImport?.parent, false, name,
+                            context.targetType,
+                            base.nameAsImport?.parent?.typeWithoutArgs,
+                            typeParameters, valueParameters
+                        )
                 return resolveCallType(
                     context, this, name, constructor,
                     typeParameters, valueParameters

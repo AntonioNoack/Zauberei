@@ -188,7 +188,7 @@ object TypeResolution {
         context: ResolutionContext,
         expr: Expression,
         name: String,
-        constructor: ResolvedConstructor?,
+        constructor: ResolvedCallable?,
         typeParameters: List<Type>?,
         valueParameters: List<ValueParameter>,
     ): Type {
@@ -209,7 +209,7 @@ object TypeResolution {
             println("code-scope methods[${codeScope.pathStr}.'$name']: ${codeScope.methods.filter { it.name == name }}")
             println("lang-scope methods[${langScope.pathStr}.'$name']: ${langScope.methods.filter { it.name == name }}")
             throw IllegalStateException(
-                "Could not resolve base $selfScope.'$name'<$typeParameters>($valueParameters) " +
+                "Could not resolve base ${selfScope?.pathStr}.'$name'<$typeParameters>($valueParameters) " +
                         "in ${resolveOrigin(expr.origin)}, scopes: ${codeScope.pathStr}"
             )
         }

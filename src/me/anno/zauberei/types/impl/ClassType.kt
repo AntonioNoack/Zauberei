@@ -22,12 +22,8 @@ class ClassType(val clazz: Scope, val typeParameters: List<Type>?) : Type() {
 
     private fun typeParamsOrEmpty() = typeParameters ?: emptyList()
 
-    private fun classHasNoTypeParams(): Boolean {
+    fun classHasNoTypeParams(): Boolean {
         return clazz.hasTypeParameters && clazz.typeParameters.isEmpty()
-    }
-
-    fun hasSufficientTypeParameters(): Boolean {
-        return typeParameters != null || classHasNoTypeParams()
     }
 
     override fun toString(): String {
