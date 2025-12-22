@@ -7,7 +7,7 @@ import me.anno.zauberei.typeresolution.TypeResolution.findField
 import me.anno.zauberei.typeresolution.TypeResolution.findType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveFieldType
-import me.anno.zauberei.types.Field
+import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type

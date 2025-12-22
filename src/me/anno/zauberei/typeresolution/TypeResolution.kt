@@ -8,7 +8,7 @@ import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
-import me.anno.zauberei.types.Field
+import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type

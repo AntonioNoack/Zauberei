@@ -17,9 +17,7 @@ class IfElseBranch(val condition: Expression, val ifBranch: Expression, val else
     }
 
     override fun resolveType(context: ResolutionContext): Type {
-        if (elseBranch == null && !context.allowTypeless)
-            throw IllegalStateException("Expected type, but found if without else")
-        if (elseBranch == null) return UnitType
+        if (elseBranch == null) return exprHasNoType(context)
         // targetLambdaType stays the same
         val ifType = TypeResolution.resolveType(context, ifBranch)
         val elseType = TypeResolution.resolveType(context, elseBranch)

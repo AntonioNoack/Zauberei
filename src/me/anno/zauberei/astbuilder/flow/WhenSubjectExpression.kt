@@ -4,7 +4,7 @@ import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.expression.*
-import me.anno.zauberei.types.Field
+import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.impl.ClassType

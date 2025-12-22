@@ -1,6 +1,6 @@
 package me.anno.zauberei.astbuilder.expression
 
-import me.anno.zauberei.types.Field
+import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.types.Scope
 
 @Suppress("FunctionName")

@@ -1,6 +1,8 @@
-package me.anno.zauberei.types
+package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.types.Scope
+import me.anno.zauberei.types.Type
 
 class Field(
     val declaredScope: Scope,
@@ -25,6 +27,8 @@ class Field(
     init {
         declaredScope.addField(this)
     }
+
+    val specificTypes = ArrayList<ScopedFieldType>()
 
     override fun toString(): String {
         return "Field($selfType.$name=$initialValue)"
