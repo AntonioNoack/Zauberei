@@ -210,8 +210,6 @@ class TypeResolutionTest {
 
     @Test
     fun testGenericsMap() {
-        defineArrayListConstructors()
-
         assertEquals(
             ClassType(
                 standardClasses["List"]!!,
@@ -219,17 +217,15 @@ class TypeResolutionTest {
             ),
             testTypeResolution(
                 """
-                fun <V> emptyList(): List<V> = ArrayList<V>(0)
-                fun <V,R> List<V>.map(map: (V) -> R): List<R> {
-                    return List(size) { map(this[it]) }
-                }
+                fun <V> emptyList(): List<V>
+                fun <V,R> List<V>.map(map: (V) -> R): List<R>
                 val tested = emptyList<Int>().map { it + 1f }
                 
                 // mark Int as a class (that extends Any)
                 package $stdlib
                 class Int: Any() {
-                    operator fun plus(other: Int): Int = native("this + other")
-                    operator fun plus(other: Float): Float = native("(float)this + other")
+                    operator fun plus(other: Int): Int
+                    operator fun plus(other: Float): Float
                 }
                 // mark Any as a class
                 class Any()

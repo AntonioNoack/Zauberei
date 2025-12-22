@@ -28,6 +28,9 @@ class LambdaExpression(
 
     override fun resolveType(context: ResolutionContext): Type {
         println("Handling lambda expression... target: ${context.targetType}")
+        val bodyContext = context
+            .withCodeScope(bodyScope)
+            .withTargetType(null)
         when (val targetLambdaType = context.targetType) {
             is LambdaType -> {
                 // automatically add it...
@@ -58,7 +61,7 @@ class LambdaExpression(
 
                 val resolvedReturnType = if (targetLambdaType.returnType.containsGenerics()) {
                     // we need to inspect the contents
-                    TypeResolution.resolveType(context.withCodeScope(bodyScope), body)
+                    TypeResolution.resolveType(bodyContext, body)
                 } else targetLambdaType.returnType // trust-me-bro
                 val parameters = variables!!.mapIndexed { index, param ->
                     val type = param.type ?: targetLambdaType.parameters[index].type
@@ -70,13 +73,7 @@ class LambdaExpression(
                 // else 'it' is not defined
                 if (variables == null) variables = emptyList()
 
-                val returnType = TypeResolution.resolveType(
-                    context
-                        .withCodeScope(bodyScope)
-                        .withTargetType(null),
-                    body,
-                )
-
+                val returnType = TypeResolution.resolveType(bodyContext, body,)
                 return LambdaType(variables!!.map {
                     LambdaParameter(it.name, it.type!!)
                 }, returnType)
