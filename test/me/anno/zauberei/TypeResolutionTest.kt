@@ -151,6 +151,44 @@ class TypeResolutionTest {
     }
 
     @Test
+    fun testSimpleInferredGenerics() {
+        val listClass = standardClasses["List"]!!
+        assertEquals(
+            ClassType(listClass, listOf(IntType)),
+            testTypeResolution(
+                """
+                fun <V> listOf(v: V): List<V>
+                val tested = listOf(0)
+            """.trimIndent()
+            )
+        )
+        assertEquals(
+            ClassType(listClass, listOf(StringType)),
+            testTypeResolution(
+                """
+                fun <V> listOf(v: V): List<V>
+                val tested = listOf("Hello World!")
+            """.trimIndent()
+            )
+        )
+    }
+
+    @Test
+    fun testInferredMapGenerics(){
+        assertEquals(
+            ClassType(standardClasses["Map"]!!,
+                listOf(StringType, IntType)),
+            testTypeResolution(
+                """
+                fun <K, V> mapOf(entry: Pair<K,V>): Map<K,V>
+                infix fun <F,S> F.to(other: S): Pair<F,S>
+                val tested = mapOf("" to 0)
+            """.trimIndent()
+            )
+        )
+    }
+
+    @Test
     fun testGenericFunction() {
         defineArrayListConstructors()
 
