@@ -77,8 +77,8 @@ class ExtensionTest {
             IntType,
             TypeResolutionTest.Companion.testTypeResolution(
                 """
-                class Impl(): Func
                 interface Func
+                class Impl(): Func
                 fun Func.get() = 0
                 
                 val tested = Impl().get()

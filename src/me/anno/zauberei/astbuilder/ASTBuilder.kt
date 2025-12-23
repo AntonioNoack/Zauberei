@@ -84,11 +84,13 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return path
     }
 
-    fun readTypePath(): Type {
+    fun readTypePath(selfType: Type?): Type {
         check(tokens.equals(i, TokenType.NAME))
         val name0 = tokens.toString(i++)
         var path = genericParams.last()[name0]
-            ?: currPackage.resolveType(name0, this)
+            ?: currPackage.resolveTypeOrNull(name0, this)
+            ?: (selfType as? ClassType)?.clazz?.resolveType(name0, this)
+            ?: throw IllegalStateException("Unresolved type '$name0' in $currPackage/$selfType at ${tokens.err(i - 1)}")
         while (tokens.equals(i, ".") && tokens.equals(i + 1, TokenType.NAME)) {
             path = (path as ClassType).clazz.getOrPut(tokens.toString(i + 1), null).typeWithoutArgs
             i += 2 // skip period and name
@@ -272,7 +274,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
                 val origin = origin(i)
                 val name = tokens.toString(i++)
-                val typeParams = readTypeParams()
+                val typeParams = readTypeParams(null)
                 val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
                     pushCall { readParamExpressions() }
                 } else emptyList()
@@ -307,7 +309,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val keywords = packKeywords()
         val valueType = if (tokens.equals(i, ":")) {
             i++
-            readType()
+            readType(selfType)
         } else null
 
         val initialValue = if (tokens.equals(i, "=")) {
@@ -428,7 +430,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         // optional return type
         var returnType = if (tokens.equals(i, ":")) {
             i++ // skip :
-            readType()
+            readType(selfType)
         } else null
 
         val extraConditions = readWhereConditions()
@@ -482,7 +484,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             check(tokens.equals(i, "this") || tokens.equals(i, "super"))
             val origin = origin(i)
             val name = tokens.toString(i++)
-            val typeParams = readTypeParams()
+            val typeParams = readTypeParams(null)
             val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
                 pushCall { readParamExpressions() }
             } else emptyList()
@@ -637,7 +639,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             i += 2
         }
         check(tokens.equals(i, TokenType.NAME))
-        val path = readTypePath()
+        val path = readTypePath(null)
         val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
             pushCall { readParamExpressions() }
         } else emptyList()
@@ -895,7 +897,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             tokens.equals(i, TokenType.NAME) -> {
                 val origin = origin(i)
                 val namePath = tokens.toString(i++)
-                val typeArgs = readTypeParams()
+                val typeArgs = readTypeParams(null)
                 if (
                     tokens.equals(i, TokenType.OPEN_CALL) &&
                     tokens.isSameLine(i - 1, i)
@@ -1277,7 +1279,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return true
     }
 
-    fun readType(): Type {
+    fun readType(selfType: Type? = null): Type {
 
         if (tokens.equals(i, "*")) {
             i++
@@ -1289,26 +1291,26 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             if (tokens.equals(endI + 1, "->")) {
                 val parameters = pushCall { readLambdaParameter() }
                 i = endI + 2 // skip ) and ->
-                val returnType = readType()
+                val returnType = readType(selfType)
                 return LambdaType(parameters, returnType)
             } else {
-                val baseType = pushCall { readType() }
+                val baseType = pushCall { readType(selfType) }
                 val isNullable = consumeNullable()
                 return if (isNullable) typeOrNull(baseType) else baseType
             }
         }
 
-        val path = readTypePath() // e.g. ArrayList
+        val path = readTypePath(selfType) // e.g. ArrayList
         val subType = if (tokens.equals(i, ".") && tokens.equals(i + 1, "(")) {
             i++ // skip ., and then read lambda subtype
-            readType()
+            readType(selfType)
             TODO(
                 "We somehow need to support types like Map<K,V>.Iterator<J>, where Iterator is an inner class... " +
                         "or we just forbid inner classes"
             )
         } else null
 
-        val typeArgs = readTypeParams()
+        val typeArgs = readTypeParams(selfType)
         val isNullable = consumeNullable()
         val baseType =
             if (path is ClassType) ClassType(path.clazz, typeArgs)
@@ -1323,7 +1325,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return isNullable
     }
 
-    fun readTypeParams(): List<Type>? {
+    fun readTypeParams(selfType: Type?): List<Type>? {
         if (i < tokens.size) {
             if (debug) println("checking for type-args, ${tokens.err(i)}, ${isTypeArgsStartingHere(i)}")
         }
@@ -1340,7 +1342,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             // todo store these (?)
             if (tokens.equals(i, "in")) i++
             if (tokens.equals(i, "out")) i++
-            args.add(readType()) // recursive type
+            args.add(readType(selfType)) // recursive type
             when {
                 tokens.equals(i, TokenType.COMMA) -> i++
                 tokens.equals(i, ">") -> {

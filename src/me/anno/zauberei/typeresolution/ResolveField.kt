@@ -168,7 +168,7 @@ object ResolveField {
 
     fun resolveFieldType(base: Type?, field: Field, scope: Scope, targetType: Type?): Type {
         println("InitialType[${field.declaredScope}.${field.name}]: ${field.valueType}")
-        val fieldType0 = if (targetType == null) field.valueType else null
+        val fieldType0 = field.valueType // if (targetType == null) field.valueType else null
         var fieldType = fieldType0 ?: run {
             val context = ResolutionContext(field.declaredScope, base, false, targetType)
             val initialValue = field.initialValue
@@ -176,9 +176,10 @@ object ResolveField {
             when {
                 initialValue != null -> resolveType(context, initialValue)
                 getter != null -> resolveType(context, getter)
-                else -> throw IllegalStateException("Missing initial value or getter for $field")
+                else -> throw IllegalStateException("Missing initial value or getter for type resolution of $field")
             }
         }
+
         if (targetType == null) {
             field.valueType = fieldType
         }
