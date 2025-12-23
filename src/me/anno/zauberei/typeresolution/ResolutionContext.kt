@@ -35,4 +35,8 @@ class ResolutionContext(
     fun withCodeScope(newCodeScope: Scope): ResolutionContext {
         return ResolutionContext(newCodeScope, selfType, allowTypeless, targetType)
     }
+
+    override fun toString(): String {
+        return "ResolutionContext(code=$codeScope, selfType=$selfType, allowTypeless=$allowTypeless, targetType=$targetType)"
+    }
 }

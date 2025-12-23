@@ -27,9 +27,9 @@ class ClassType(val clazz: Scope, val typeParameters: List<Type>?) : Type() {
     }
 
     override fun toString(): String {
-        val className = clazz.name
+        val className = if (clazz.name == "Companion") clazz.pathStr else clazz.name
         var asString = className
-        if (!((typeParameters != null && typeParameters.isEmpty()))) {
+        if (typeParameters == null || typeParameters.isNotEmpty()) {
             asString += typeParameters?.joinToString(",", "<", ">") ?: "<?>"
         }// else we know it's empty, because it's defined as such
         return asString

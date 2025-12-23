@@ -17,6 +17,6 @@ class IncompleteValueParameter(
     }
 
     override fun toString(): String {
-        return "ValueParameterWithLambda(name=$name,)"
+        return "IncompleteValueParameter(name=$name,context=$context)"
     }
 }
