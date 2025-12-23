@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.impl.NullType
@@ -9,8 +10,8 @@ import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 /**
  * is, !is, as, ?as
  * */
-class BinaryTypeOp(val left: Expression, val op: BinaryTypeOpType, val right: Type, origin: Int) :
-    Expression(left.scope, origin) {
+class ExprTypeOp(val left: Expression, val op: ExprTypeOpType, val right: Type, scope: Scope, origin: Int) :
+    Expression(scope, origin) {
 
     override fun forEachExpr(callback: (Expression) -> Unit) {
         callback(left)
@@ -22,13 +23,13 @@ class BinaryTypeOp(val left: Expression, val op: BinaryTypeOpType, val right: Ty
 
     override fun resolveType(context: ResolutionContext): Type {
         return when (op) {
-            BinaryTypeOpType.INSTANCEOF, BinaryTypeOpType.NOT_INSTANCEOF -> BooleanType
-            BinaryTypeOpType.CAST_OR_CRASH -> right
-            BinaryTypeOpType.CAST_OR_NULL -> unionTypes(right, NullType)
+            ExprTypeOpType.INSTANCEOF, ExprTypeOpType.NOT_INSTANCEOF -> BooleanType
+            ExprTypeOpType.CAST_OR_CRASH -> right
+            ExprTypeOpType.CAST_OR_NULL -> unionTypes(right, NullType)
         }
     }
 
     override fun clone(): Expression {
-        return BinaryTypeOp(left.clone(), op, right, origin)
+        return ExprTypeOp(left.clone(), op, right, scope, origin)
     }
 }

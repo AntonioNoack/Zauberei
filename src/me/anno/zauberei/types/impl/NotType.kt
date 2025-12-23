@@ -8,6 +8,8 @@ class NotType(val type: Type) : Type() {
         check(type !is NotType)
     }
 
+    override fun not(): Type = type
+
     override fun toString(): String {
         return "NotType($type)"
     }

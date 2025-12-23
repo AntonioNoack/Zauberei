@@ -1490,11 +1490,12 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 fun readRHS(): Expression =
                     readExpression(if (op.assoc == Assoc.LEFT) op.precedence + 1 else op.precedence)
 
+                val scope = currPackage
                 expr = when (symbol) {
-                    "as" -> BinaryTypeOp(expr, BinaryTypeOpType.CAST_OR_CRASH, readType(), origin)
-                    "as?" -> BinaryTypeOp(expr, BinaryTypeOpType.CAST_OR_NULL, readType(), origin)
-                    "is" -> BinaryTypeOp(expr, BinaryTypeOpType.INSTANCEOF, readType(), origin)
-                    "!is" -> BinaryTypeOp(expr, BinaryTypeOpType.NOT_INSTANCEOF, readType(), origin)
+                    "as" -> ExprTypeOp(expr, ExprTypeOpType.CAST_OR_CRASH, readType(), scope, origin)
+                    "as?" -> ExprTypeOp(expr, ExprTypeOpType.CAST_OR_NULL, readType(), scope, origin)
+                    "is" -> ExprTypeOp(expr, ExprTypeOpType.INSTANCEOF, readType(), scope, origin)
+                    "!is" -> ExprTypeOp(expr, ExprTypeOpType.NOT_INSTANCEOF, readType(), scope, origin)
                     "." -> {
                         if (tokens.equals(i, TokenType.NAME) &&
                             tokens.equals(i + 1, TokenType.SYMBOL) &&

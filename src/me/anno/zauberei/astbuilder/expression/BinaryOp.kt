@@ -22,10 +22,12 @@ fun ASTBuilder.binaryOp(
         "<" -> CompareOp(compareTo(left, right), CompareType.LESS)
         ">=" -> CompareOp(compareTo(left, right), CompareType.GREATER_EQUALS)
         ">" -> CompareOp(compareTo(left, right), CompareType.GREATER)
-        "==" -> CheckEqualsOp(left, right, byPointer = false, negated = false, origin)
-        "!=" -> CheckEqualsOp(left, right, byPointer = false, negated = true, origin)
-        "===" -> CheckEqualsOp(left, right, byPointer = true, negated = false, origin)
-        "!==" -> CheckEqualsOp(left, right, byPointer = true, negated = true, origin)
+        "==" -> CheckEqualsOp(left, right, byPointer = false, negated = false, scope, origin)
+        "!=" -> CheckEqualsOp(left, right, byPointer = false, negated = true, scope, origin)
+        "===" -> CheckEqualsOp(left, right, byPointer = true, negated = false, scope, origin)
+        "!==" -> CheckEqualsOp(left, right, byPointer = true, negated = true, scope, origin)
+        "&&" -> ShortcutExpression(left, ShortcutOperator.AND, right, scope, origin)
+        "||" -> ShortcutExpression(left, ShortcutOperator.OR, right, scope, origin)
         "::" -> {
             fun getBase(): Scope = when {
                 // left is VariableExpression -> scope.resolveType(left.name, this) as Scope
@@ -101,8 +103,6 @@ fun lookupBinaryOp(symbol: String): String {
         ".." -> "rangeTo"
         "..<" -> "rangeUntil"
         "in" -> "contains"
-        "&&" -> "shortcutAnd"
-        "||" -> "shortcutOr"
         ".", ".?", "?:" -> symbol
         else -> {
             println("unknown binary op: $symbol")

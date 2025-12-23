@@ -6,8 +6,8 @@ import me.anno.zauberei.astbuilder.Method
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
-import me.anno.zauberei.astbuilder.expression.BinaryTypeOp
-import me.anno.zauberei.astbuilder.expression.BinaryTypeOpType
+import me.anno.zauberei.astbuilder.expression.ExprTypeOp
+import me.anno.zauberei.astbuilder.expression.ExprTypeOpType
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.astbuilder.expression.VariableExpression
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
@@ -133,13 +133,20 @@ object TypeResolution {
                 // decide based on conditionType...
                 //  might be inside complex combinations of and, or and not with other conditions...
                 var conditionType = when (condition) {
-                    is BinaryTypeOp -> {
-                        val name = condition.left as? VariableExpression
+                    is ExprTypeOp -> {
+                        println("  -> ExprTypeOf(${condition.left})")
+                        var nameExpr = condition.left as? VariableExpression
                         val type = condition.right
-                        if (name?.name == field.name) { // todo check if field is actually the same
+                        var matchesName = false
+                        while (!matchesName && nameExpr != null) { // todo check if field is actually the same
+                            matchesName = nameExpr.name == field.name
+                            nameExpr = nameExpr.field?.initialValue as? VariableExpression
+                            println("  -> ExprTypeOf/i($nameExpr)")
+                        }
+                        if (matchesName) {
                             when (condition.op) {
-                                BinaryTypeOpType.INSTANCEOF -> type
-                                BinaryTypeOpType.NOT_INSTANCEOF -> NotType(type)
+                                ExprTypeOpType.INSTANCEOF -> type
+                                ExprTypeOpType.NOT_INSTANCEOF -> type.not()
                                 else -> null
                             }
                         } else null
@@ -149,15 +156,16 @@ object TypeResolution {
 
                 if (conditionType != null) {
                     if (!scopeI.branchConditionTrue) {
-                        conditionType =
-                            if (conditionType is NotType) conditionType.type
-                            else NotType(conditionType)
+                        conditionType = conditionType.not()
                     }
                     fieldType = andTypes(fieldType, conditionType)
-                }
+                    println("  -> $fieldType (via $conditionType)")
+                } else println("  -> condition not yet supported")
             }
             scopeI = scopeI.parent ?: break
         }
+
+        println("SpecializedFieldType: $fieldType")
 
         return fieldType
     }
@@ -270,44 +278,49 @@ object TypeResolution {
     ): Type? {
         // todo field may be generic, inject the generics as needed...
         // todo check extension fields
+        return when (base) {
+            NullType, is NotType -> null
+            is ClassType -> {
+                val fields = base.clazz.fields
+                val field = fields.firstOrNull { it.name == name }
+                if (field != null) return resolveFieldType(base, field, scope)
 
-        if (base is ClassType) {
-            val fields = base.clazz.fields
-            val field = fields.firstOrNull { it.name == name }
-            if (field != null) return resolveFieldType(base, field, scope)
-
-            if (base.clazz.scopeType == ScopeType.ENUM_CLASS) {
-                val enumValues = base.clazz.enumValues
-                if (enumValues.any { it.name == name }) {
-                    return base.clazz.typeWithoutArgs
+                if (base.clazz.scopeType == ScopeType.ENUM_CLASS) {
+                    val enumValues = base.clazz.enumValues
+                    if (enumValues.any { it.name == name }) {
+                        return base.clazz.typeWithoutArgs
+                    }
+                    TODO("find child class")
                 }
-                TODO("find child class")
+
+                // check super classes and interfaces,
+                //  but we need their generics there...
+                // -> interfaces can define the field, but it always needs to be in a class, too, so just check super class
+                val superCall = base.clazz.superCalls.firstOrNull { it.valueParams != null }
+                if (superCall != null) {
+                    val superClass = superCall.type as ClassType
+                    val superGenerics = superClass.typeParameters ?: emptyList()
+                    val genericNames = base.clazz.typeParameters
+                    return findFieldType(superClass, name, superGenerics.map { type ->
+                        resolveGenerics(type, genericNames, generics)
+                    }, scope, origin)
+                }// else might be Any, but Any has no fields anyway
+
+                println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
+                null
             }
-
-            // check super classes and interfaces,
-            //  but we need their generics there...
-            // -> interfaces can define the field, but it always needs to be in a class, too, so just check super class
-            val superCall = base.clazz.superCalls.firstOrNull { it.valueParams != null }
-            if (superCall != null) {
-                val superClass = superCall.type as ClassType
-                val superGenerics = superClass.typeParameters ?: emptyList()
-                val genericNames = base.clazz.typeParameters
-                return findFieldType(superClass, name, superGenerics.map { type ->
-                    resolveGenerics(type, genericNames, generics)
-                }, scope, origin)
-            }// else might be Any, but Any has no fields anyway
-
-            println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
-            return null
+            is UnionType -> {
+                val baseTypes =
+                    base.types.mapNotNull { subType -> findFieldType(subType, name, generics, scope, origin) }
+                baseTypes.reduceOrNull { a, b -> unionTypes(a, b) } // union or and?
+            }
+            is AndType -> {
+                val baseTypes =
+                    base.types.mapNotNull { subType -> findFieldType(subType, name, generics, scope, origin) }
+                baseTypes.reduceOrNull { a, b -> unionTypes(a, b) }
+            }
+            else -> throw NotImplementedError("findFieldType($base, $name) @ ${resolveOrigin(origin)}")
         }
-
-        if (base is UnionType && base.types.size == 2 && base.types.contains(NullType)) {
-            val baseType =
-                findFieldType(base.types.first { it != NullType }, name, generics, scope, origin) ?: return null
-            return unionTypes(baseType, NullType)
-        }
-
-        TODO("findFieldType($base, $name) @ ${resolveOrigin(origin)}")
     }
 
     fun findField(

@@ -291,12 +291,10 @@ class Scope(val name: String, val parent: Scope? = null) {
     }
 
     private var nextAnonymousName = 0
-
     fun generateName(prefix: String): String {
         return "$$prefix${nextAnonymousName++}"
     }
 
-    override fun toString(): String {
-        return "Scope($pathStr)"
-    }
+    override fun toString(): String = pathStr
+
 }
