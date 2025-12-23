@@ -285,25 +285,18 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
     var lastField: Field? = null
 
-    private fun readVarValInClass(isVar: Boolean) {
-        i++
+    private fun readFieldInClass(isVar: Boolean) {
+        val origin = origin(i++)// skip var/val
+
+        val fieldScope = currPackage // todo is this fine??
+        val typeParameters = readTypeParameterDeclarations(fieldScope)
+        val selfType = readFieldOrMethodSelfType(typeParameters, fieldScope)
+            ?: getSelfType(fieldScope)
+
         check(tokens.equals(i, TokenType.NAME))
-        var ownerType: Type? = null
-        val origin = origin(i)
-        var name = tokens.toString(i++)
+        val name = tokens.toString(i++)
+
         val keywords = packKeywords()
-
-        if (tokens.equals(i, ".")) {
-            check(tokens.equals(++i, TokenType.NAME))
-            ownerType = currPackage.resolveType(name, this)
-            name = tokens.toString(i++)
-        } else if (tokens.equals(i, "?.")) {
-            check(tokens.equals(++i, TokenType.NAME))
-            ownerType = currPackage.resolveType(name, this)
-            ownerType = typeOrNull(ownerType)
-            name = tokens.toString(i++)
-        }
-
         val valueType = if (tokens.equals(i, ":")) {
             i++
             readType()
@@ -319,9 +312,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             DelegateExpression(readExpression())
         } else null
 
-        if (ownerType == null) ownerType = getSelfType(currPackage)
         val field = Field(
-            currPackage, isVar, !isVar, ownerType,
+            currPackage, isVar, !isVar, selfType,
             name, valueType, initialValue, keywords, origin
         )
         if (debug) println("read field $name: $valueType = $initialValue")
@@ -339,7 +331,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return currPackage.getOrPut(name1, tokens.fileName, ScopeType.METHOD)
     }
 
-    private fun readMethodSelfType(typeParameters: List<Parameter>, functionScope: Scope): Type? {
+    private fun readFieldOrMethodSelfType(typeParameters: List<Parameter>, functionScope: Scope): Type? {
         if (tokens.equals(i + 1, ".") ||
             tokens.equals(i + 1, "<") ||
             tokens.equals(i + 1, "?.")
@@ -406,7 +398,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val typeParameters = readTypeParameterDeclarations(methodScope)
 
         check(tokens.equals(i, TokenType.NAME))
-        val selfType = readMethodSelfType(typeParameters, methodScope)
+        val selfType = readFieldOrMethodSelfType(typeParameters, methodScope)
             ?: getSelfType(methodScope)
 
         check(tokens.equals(i, TokenType.NAME))
@@ -548,8 +540,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 tokens.equals(i, "interface") -> readInterface()
                 tokens.equals(i, "constructor") -> readConstructor()
                 tokens.equals(i, "typealias") -> readTypeAlias()
-                tokens.equals(i, "var") -> readVarValInClass(true)
-                tokens.equals(i, "val") -> readVarValInClass(false)
+                tokens.equals(i, "var") -> readFieldInClass(true)
+                tokens.equals(i, "val") -> readFieldInClass(false)
                 tokens.equals(i, "init") -> {
                     check(tokens.equals(++i, TokenType.OPEN_BLOCK))
                     pushBlock(currPackage.getOrCreatePrimConstructorScope()) {

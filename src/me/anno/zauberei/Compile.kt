@@ -120,6 +120,8 @@ object Compile {
         val t3 = System.nanoTime()
         println("Took ${(t3 - t2) * 1e-6f} ms Parsing AST")
 
+        // todo when all expressions are parsed, we can replace names with being method names / specific fields
+
         if (false) printPackages(root, 0)
 
         // todo we should expand all methods with default-values here

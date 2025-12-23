@@ -6,8 +6,40 @@ fun <V> emptyList(): List<V> = Array(0)
 
 interface List<V> {
     operator fun get(index: Int): V
-    val size: Int
 
+    val size: Int
+    fun isEmpty(): Boolean
+}
+
+fun List<*>.indices(): IntRange {
+    return 0 until size
+}
+
+fun <V> List<V>.firstOrNull(): V? {
+    return if (isEmpty()) null else this[0]
+}
+
+fun <V> List<V>.firstOrNull(predicate: (V) -> Boolean): V? {
+    for (i in indices) {
+        val element = this[i]
+        if (predicate(element)) return element
+    }
+    return null
+}
+
+val List<*>.lastIndex: Int
+    get() = size - 1
+
+fun <V> List<V>.lastOrNull(): V? {
+    return if (isEmpty()) null else this[lastIndex]
+}
+
+fun <V> List<V>.lastOrNull(predicate: (V) -> Boolean): V? {
+    for (i in indices.reversed()) {
+        val element = this[i]
+        if (predicate(element)) return element
+    }
+    return null
 }
 
 fun <V> List<V>.withIndex(): List<IndexedValue<V>> {
@@ -39,6 +71,7 @@ data class IndexedValue<V>(val index: Int, val value: V)
 
 interface MutableList<V> : List<V> {
     operator fun set(index: Int, value: V): V
+    fun add(element: V): Boolean
 }
 
 class ArrayList<V>(capacity: Int) : MutableList<V> {
@@ -59,7 +92,7 @@ class ArrayList<V>(capacity: Int) : MutableList<V> {
         return prev
     }
 
-    fun add(element: V): Boolean {
+    override fun add(element: V): Boolean {
         if (size == content.size) {
             val newSize = max(16, content.size * 2)
             content = content.copyOf(newSize)
