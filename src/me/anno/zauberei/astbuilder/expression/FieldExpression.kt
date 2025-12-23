@@ -14,5 +14,5 @@ class FieldExpression(
     override fun toString(): String = field.toString()
     override fun clone() = FieldExpression(field, scope, origin)
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
-    override fun resolveType(context: ResolutionContext): Type = resolveFieldType(field, scope)
+    override fun resolveType(context: ResolutionContext): Type = resolveFieldType(field, scope, context.targetType)
 }

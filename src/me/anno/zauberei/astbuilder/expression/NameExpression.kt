@@ -1,18 +1,14 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.ASTBuilder
-import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
-import me.anno.zauberei.astbuilder.expression.NameExpression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution.findField
 import me.anno.zauberei.typeresolution.TypeResolution.findType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveFieldType
 import me.anno.zauberei.types.Scope
-import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
-import me.anno.zauberei.types.impl.ClassType
 
 class NameExpression(
     val name: String,
@@ -37,7 +33,7 @@ class NameExpression(
     override fun resolveType(context: ResolutionContext): Type {
         val field = findField(context.codeScope, context.selfScope?.typeWithoutArgs, name)
             ?: findField(langScope, context.selfScope?.typeWithoutArgs, name)
-        if (field != null) return resolveFieldType(field, scope)
+        if (field != null) return resolveFieldType(field, scope, context.targetType)
 
         val type = findType(context.codeScope, context.selfType, name)
         if (type != null) return type

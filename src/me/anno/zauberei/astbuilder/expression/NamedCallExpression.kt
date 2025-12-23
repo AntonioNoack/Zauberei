@@ -70,7 +70,7 @@ class NamedCallExpression(
 
     override fun resolveType(context: ResolutionContext): Type {
         val baseType = TypeResolution.resolveType(
-            /* targetLambdaType seems not deductible */
+            /* targetLambdaType seems not easily deductible */
             context.withTargetType(null),
             base,
         )
@@ -81,8 +81,10 @@ class NamedCallExpression(
             when (val parameter = parameter0.value) {
                 is NameExpression -> {
                     val fieldName = parameter.name
-                    return findFieldType(baseType, fieldName, emptyList(), parameter.scope, parameter.origin)
-                        ?: throw IllegalStateException("Missing $baseType.$fieldName in ${resolveOrigin(origin)}")
+                    return findFieldType(
+                        baseType, fieldName, emptyList(),
+                        parameter.scope, parameter.origin, context.targetType
+                    ) ?: throw IllegalStateException("Missing $baseType.$fieldName in ${resolveOrigin(origin)}")
                 }
                 is CallExpression -> {
                     val baseName = parameter.base as NameExpression

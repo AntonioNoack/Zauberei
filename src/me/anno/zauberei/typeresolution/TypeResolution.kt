@@ -102,15 +102,16 @@ object TypeResolution {
         }
     }
 
-    fun resolveFieldType(field: Field, scope: Scope): Type {
+    fun resolveFieldType(field: Field, scope: Scope, targetType: Type?): Type {
         val base = field.selfType ?: getSelfType(field.declaredScope)
-        return resolveFieldType(base, field, scope)
+        return resolveFieldType(base, field, scope, targetType)
     }
 
-    fun resolveFieldType(base: Type?, field: Field, scope: Scope): Type {
+    fun resolveFieldType(base: Type?, field: Field, scope: Scope, targetType: Type?): Type {
         println("InitialType[${field.declaredScope}.${field.name}]: ${field.valueType}")
-        var fieldType = field.valueType ?: run {
-            val context = ResolutionContext(field.declaredScope, base, false, null)
+        val fieldType0 = if (targetType == null) field.valueType else null
+        var fieldType = fieldType0 ?: run {
+            val context = ResolutionContext(field.declaredScope, base, false, targetType)
             val initialValue = field.initialValue
             val getter = field.getterExpr
             when {
@@ -119,7 +120,9 @@ object TypeResolution {
                 else -> throw IllegalStateException("Missing initial value or getter for $field")
             }
         }
-        field.valueType = fieldType
+        if (targetType == null) {
+            field.valueType = fieldType
+        }
 
         // todo valueType is just the general type, there might be much more specific information...
         // todo if the variable is re-assigned, these conditions no longer hold
@@ -210,7 +213,7 @@ object TypeResolution {
         val contextWithoutTargetType = context.withTargetType(null)
         return base.map { param ->
             if (param.value.hasLambdaOrUnknownGenericsType()) {
-                IncompleteValueParameter(param, contextWithoutTargetType)
+                UnderdefinedValueParameter(param, contextWithoutTargetType)
             } else {
                 val type = resolveType(contextWithoutTargetType, param.value)
                 ValueParameterImpl(param.name, type)
@@ -308,7 +311,7 @@ object TypeResolution {
 
     fun findExtensionField(
         base: ClassType, name: String, generics: List<Type>,
-        scope: Scope, origin: Int, recursive: Boolean
+        scope: Scope
     ): Field? {
         var scope = scope
         while (true) {
@@ -316,8 +319,7 @@ object TypeResolution {
                 .firstOrNull { it.matches(base, name, generics) }
             if (field != null) return field
 
-            scope = scope.parentIfSameFile(recursive)
-                ?: return null
+            scope = scope.parentIfSameFile ?: return null
         }
     }
 
@@ -355,8 +357,8 @@ object TypeResolution {
         // scopes to check:
         //  - langScope
         //  - codeScope (same file)
-        val type = findExtensionField(base, name, generics, codeScope, origin, true)
-            ?: findExtensionField(base, name, generics, langScope, origin, false)
+        val type = findExtensionField(base, name, generics, codeScope)
+            ?: findExtensionField(base, name, generics, langScope)
         if (type != null) return type
 
         println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
@@ -365,7 +367,8 @@ object TypeResolution {
 
     fun findFieldType(
         base: Type, name: String, generics: List<Type>,
-        codeScope: Scope, origin: Int
+        codeScope: Scope, origin: Int,
+        targetType: Type?
     ): Type? {
         // todo field may be generic, inject the generics as needed...
         // todo check extension fields
@@ -373,26 +376,26 @@ object TypeResolution {
             NullType, is NotType -> null
             is ClassType -> {
                 val field = findField(base, name, generics, codeScope, origin)
-                if (field != null) {
-                    return resolveFieldType(field, codeScope)
-                }
+                if (field != null) return resolveFieldType(field, codeScope, targetType)
 
                 println("No field matched: ${base.clazz.pathStr}.$name")
                 null
             }
             is UnionType -> {
-                val baseTypes =
-                    base.types.mapNotNull { subType -> findFieldType(subType, name, generics, codeScope, origin) }
-                baseTypes.reduceOrNull { a, b -> unionTypes(a, b) } // union or and?
+                base.types.mapNotNull { subType ->
+                    findFieldType(subType, name, generics, codeScope, origin, targetType)
+                }.reduceUnionOrNull() // union or and?
             }
             is AndType -> {
-                val baseTypes =
-                    base.types.mapNotNull { subType -> findFieldType(subType, name, generics, codeScope, origin) }
-                baseTypes.reduceOrNull { a, b -> unionTypes(a, b) }
+                base.types.mapNotNull { subType ->
+                    findFieldType(subType, name, generics, codeScope, origin, targetType)
+                }.reduceUnionOrNull()
             }
             else -> throw NotImplementedError("findFieldType($base, $name) @ ${resolveOrigin(origin)}")
         }
     }
+
+    fun List<Type>.reduceUnionOrNull(): Type? = reduceOrNull { a, b -> unionTypes(a, b) }
 
     fun findField(
         scope: Scope, // 2nd, recursive as long as fileName == parentScope.fileName
@@ -435,8 +438,7 @@ object TypeResolution {
             val match = scope.fields.firstOrNull { it.name == name }
             if (match != null) return match
 
-            scope = scope.parentIfSameFile(recursive)
-                ?: return null
+            scope = scope.parentIfSameFile ?: return null
         }
     }
 
@@ -445,7 +447,7 @@ object TypeResolution {
         while (true) {
             val match = scope.children.firstOrNull { it.name == name }
             if (match != null) return ClassType(match, null)
-            scope = scope.parentIfSameFile(recursive) ?: return null
+            scope = scope.parentIfSameFile ?: return null
         }
     }
 
@@ -480,7 +482,7 @@ object TypeResolution {
                 return ResolvedMethod(method, generics)
             }
 
-            scope = scope.parentIfSameFile(recursive) ?: return null
+            scope = scope.parentIfSameFile ?: return null
         }
     }
 
@@ -520,7 +522,7 @@ object TypeResolution {
                 )
             }
 
-            scope = scope.parentIfSameFile(recursive) ?: return null
+            scope = scope.parentIfSameFile ?: return null
         }
     }
 
