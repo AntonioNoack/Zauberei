@@ -293,4 +293,30 @@ class TypeResolutionTest {
             )
         )
     }
+
+    @Test
+    fun testListsAreNotConfused() {
+        assertEquals(
+            ClassType(standardClasses["List"]!!, listOf(FloatType)),
+            testTypeResolution(
+                """
+                fun <V> listOf(v: V): List<V>
+                fun intsToFloats(v: List<Int>): List<Float>
+                
+                val tested = intsToFloats(listOf(1))
+            """.trimIndent()
+            )
+        )
+        assertEquals(
+            ClassType(standardClasses["List"]!!, listOf(FloatType)),
+            testTypeResolution(
+                """
+                fun listOf(v: Int): List<Int>
+                fun intsToFloats(v: List<Int>): List<Float>
+                
+                val tested = intsToFloats(listOf(1))
+            """.trimIndent()
+            )
+        )
+    }
 }

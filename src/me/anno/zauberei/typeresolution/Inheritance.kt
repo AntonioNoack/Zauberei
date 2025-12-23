@@ -50,7 +50,7 @@ object Inheritance {
             actualTypeParameters,
             insertMode,
         )
-        println("got $result for $actualType instanceOf $expectedType")
+        println("  got $result for $actualType instanceOf $expectedType")
         return result
     }
 

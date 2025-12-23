@@ -7,7 +7,7 @@ import me.anno.zauberei.typeresolution.TypeResolution.findConstructor
 import me.anno.zauberei.typeresolution.TypeResolution.findMethod
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveCallType
-import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParams
+import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParameters
 import me.anno.zauberei.types.Type
 
 /**
@@ -46,7 +46,7 @@ class CallExpression(
 
     override fun resolveType(context: ResolutionContext): Type {
         val typeParameters = typeParameters
-        val valueParameters = resolveValueParams(context, valueParameters)
+        val valueParameters = resolveValueParameters(context, valueParameters)
         println("Resolving call: ${base}<${typeParameters ?: "?"}>($valueParameters)")
         // todo base can be a constructor, field or a method
         // todo find the best matching candidate...

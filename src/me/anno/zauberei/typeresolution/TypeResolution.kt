@@ -61,11 +61,10 @@ object TypeResolution {
                 println("fieldSelfType: ${field.selfType}")
                 println("scopeSelfType: $scopeSelfType")
                 //try {
-                val context = ResolutionContext(
-                    field.declaredScope, field.selfType ?: scopeSelfType,
-                    false, null
-                )
+                val selfType = field.selfType ?: scopeSelfType
+                val context = ResolutionContext(field.declaredScope, selfType, false, null)
                 field.valueType = resolveType(context, field.initialValue)
+                println("Resolved $field to ${field.valueType}")
                 /*} catch (e: Throwable) {
                     e.printStackTrace()
                     // continue anyway for now
@@ -109,18 +108,23 @@ object TypeResolution {
     }
 
     fun resolveFieldType(base: Type?, field: Field, scope: Scope): Type {
+        println("InitialType[${field.name}]: ${field.valueType}")
         var fieldType = field.valueType ?: run {
-            val context = ResolutionContext(
-                field.declaredScope,
-                base, false, null
-            )
+            val context = ResolutionContext(field.declaredScope, base, false, null)
             resolveType(context, field.initialValue!!)
         }
         field.valueType = fieldType
 
         // todo valueType is just the general type, there might be much more specific information...
         // todo if the variable is re-assigned, these conditions no longer hold
-        println("GeneralFieldType: $fieldType in scope ${scope.pathStr}")
+        println("GeneralFieldType[${field.name}]: $fieldType in scope ${scope.pathStr}")
+
+        // todo remove debug check when it works
+        if (field.name == "valueParameters" && fieldType is ClassType &&
+            (fieldType.typeParameters?.getOrNull(0) as? ClassType)?.clazz?.name == "NamedParameter"
+        ) {
+            throw IllegalStateException("Field ${field.name} should be List<ValueParameter>, not List<NamedParameter>")
+        }
 
         var scopeI = scope
         while (scopeI.fileName == scope.fileName) {
@@ -165,7 +169,7 @@ object TypeResolution {
             scopeI = scopeI.parent ?: break
         }
 
-        println("SpecializedFieldType: $fieldType")
+        println("SpecializedFieldType[${field.name}]: $fieldType")
 
         return fieldType
     }
@@ -191,19 +195,17 @@ object TypeResolution {
         }
     }
 
-    fun resolveValueParams(
+    fun resolveValueParameters(
         context: ResolutionContext,
         base: List<NamedParameter>
     ): List<ValueParameter> {
+        // target-type does not apply to parameters
+        val contextWithoutTargetType = context.withTargetType(null)
         return base.map { param ->
             if (param.value.hasLambdaOrUnknownGenericsType()) {
-                IncompleteValueParameter(param, context)
+                IncompleteValueParameter(param, contextWithoutTargetType)
             } else {
-                val type = resolveType(
-                    /* no lambda contained -> doesn't matter */
-                    context.withTargetType(null),
-                    param.value,
-                )
+                val type = resolveType(contextWithoutTargetType, param.value)
                 ValueParameterImpl(param.name, type)
             }
         }
@@ -264,7 +266,7 @@ object TypeResolution {
             println("code-scope methods[${codeScope.pathStr}.'$name']: ${codeScope.methods.filter { it.name == name }}")
             println("lang-scope methods[${langScope.pathStr}.'$name']: ${langScope.methods.filter { it.name == name }}")
             throw IllegalStateException(
-                "Could not resolve base ${selfScope?.pathStr}.'$name'<$typeParameters>($valueParameters) " +
+                "Could not resolve method ${selfScope?.pathStr}.'$name'<$typeParameters>($valueParameters) " +
                         "in ${resolveOrigin(expr.origin)}, scopes: ${codeScope.pathStr}"
             )
         }
@@ -632,9 +634,8 @@ object TypeResolution {
             }
         }
 
-        // todo check that the types are compatible; if they are generics, reduce their type appropriately
-        // todo handle all remaining parameters by index, last one may be varargs
-        return resolvedTypes as List<Type>
+        val immutableList = if (resolvedTypes is FillInParameterList) resolvedTypes.types.asList() else resolvedTypes
+        return immutableList as List<Type>
     }
 
     /**

@@ -6,7 +6,7 @@ import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.typeresolution.TypeResolution.findFieldType
 import me.anno.zauberei.typeresolution.TypeResolution.resolveCallType
-import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParams
+import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParameters
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
@@ -88,7 +88,7 @@ class NamedCallExpression(
                     val baseName = parameter.base as VariableExpression
                     val constructor = null
                     // todo for lambdas, baseType must be known for their type to be resolved
-                    val valueParameters = resolveValueParams(context, parameter.valueParameters)
+                    val valueParameters = resolveValueParameters(context, parameter.valueParameters)
                     return resolveCallType(
                         context.withSelfType(baseType),
                         this, baseName.name, constructor,
@@ -105,7 +105,7 @@ class NamedCallExpression(
                 base,
             )
             // todo type-args may be needed for type resolution
-            val valueParameters = resolveValueParams(context, valueParameters)
+            val valueParameters = resolveValueParameters(context, valueParameters)
 
             val constructor = null
             return resolveCallType(

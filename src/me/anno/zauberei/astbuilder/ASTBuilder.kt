@@ -568,6 +568,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     if (tokens.equals(i, ":")) {
                         i++
                         field.valueType = readType()
+                        println("Defined lastField $field as ${field.valueType}")
                     }
 
                     when {
