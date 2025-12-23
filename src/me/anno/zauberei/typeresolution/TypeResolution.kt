@@ -111,7 +111,13 @@ object TypeResolution {
         println("InitialType[${field.declaredScope}.${field.name}]: ${field.valueType}")
         var fieldType = field.valueType ?: run {
             val context = ResolutionContext(field.declaredScope, base, false, null)
-            resolveType(context, field.initialValue!!)
+            val initialValue = field.initialValue
+            val getter = field.getterExpr
+            when {
+                initialValue != null -> resolveType(context, initialValue)
+                getter != null -> resolveType(context, getter)
+                else -> throw IllegalStateException("Missing initial value or getter for $field")
+            }
         }
         field.valueType = fieldType
 
@@ -275,51 +281,113 @@ object TypeResolution {
         return candidates.first()
     }
 
+    private fun findFieldBySuperClass(
+        base: ClassType, name: String, generics: List<Type>,
+        scope: Scope, origin: Int, superClass: ClassType
+    ): Field? {
+        val superGenerics = superClass.typeParameters ?: emptyList()
+        val genericNames = base.clazz.typeParameters
+        return findField(superClass, name, superGenerics.map { type ->
+            resolveGenerics(type, genericNames, generics)
+        }, scope, origin)
+    }
+
+    private fun Field.matches(
+        expectedSelfType: ClassType,
+        fieldName: String,
+        generics: List<Type>
+    ): Boolean {
+        return name == fieldName &&
+                selfType != null &&
+                isSubTypeOf(
+                    expectedSelfType, selfType,
+                    expectedSelfType.clazz.typeParameters, generics,
+                    InsertMode.READ_ONLY
+                )
+    }
+
+    fun findExtensionField(
+        base: ClassType, name: String, generics: List<Type>,
+        scope: Scope, origin: Int, recursive: Boolean
+    ): Field? {
+        var scope = scope
+        while (true) {
+            val field = scope.fields
+                .firstOrNull { it.matches(base, name, generics) }
+            if (field != null) return field
+
+            scope = scope.parentIfSameFile(recursive)
+                ?: return null
+        }
+    }
+
+    fun findField(
+        base: ClassType, name: String, generics: List<Type>,
+        codeScope: Scope, origin: Int
+    ): Field? {
+        // todo field may be generic, inject the generics as needed...
+        // todo check extension fields
+
+        val fields = base.clazz.fields
+        val field = fields.firstOrNull { it.matches(base, name, generics) }
+        if (field != null) return field
+
+        if (base.clazz.scopeType == ScopeType.ENUM_CLASS) {
+            val enumValues = base.clazz.enumValues
+            val enumValue = enumValues.firstOrNull { it.name == name }
+            if (enumValue != null) {
+                return enumValue.scope.objectField!!
+            }
+        }
+
+        // check super classes and interfaces,
+        //  but we need their generics there...
+        // -> interfaces can define the field, but it always needs to be in a class, too, so just check super class
+        val superCalls = base.clazz.superCalls
+        for (i in superCalls.indices) {
+            val superClass = superCalls[i].type as ClassType
+            val bySuper = findFieldBySuperClass(base, name, generics, codeScope, origin, superClass)
+            if (bySuper != null) return bySuper
+        }
+
+        // we must also check related scopes for extension fields;
+        // since we check super calls recursively, it is fine to only check for type-equals;
+        // scopes to check:
+        //  - langScope
+        //  - codeScope (same file)
+        val type = findExtensionField(base, name, generics, codeScope, origin, true)
+            ?: findExtensionField(base, name, generics, langScope, origin, false)
+        if (type != null) return type
+
+        println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
+        return null
+    }
+
     fun findFieldType(
         base: Type, name: String, generics: List<Type>,
-        scope: Scope, origin: Int
+        codeScope: Scope, origin: Int
     ): Type? {
         // todo field may be generic, inject the generics as needed...
         // todo check extension fields
         return when (base) {
             NullType, is NotType -> null
             is ClassType -> {
-                val fields = base.clazz.fields
-                val field = fields.firstOrNull { it.name == name }
-                if (field != null) return resolveFieldType(base, field, scope)
-
-                if (base.clazz.scopeType == ScopeType.ENUM_CLASS) {
-                    val enumValues = base.clazz.enumValues
-                    if (enumValues.any { it.name == name }) {
-                        return base.clazz.typeWithoutArgs
-                    }
-                    TODO("find child class")
+                val field = findField(base, name, generics, codeScope, origin)
+                if (field != null) {
+                    return resolveFieldType(field, codeScope)
                 }
 
-                // check super classes and interfaces,
-                //  but we need their generics there...
-                // -> interfaces can define the field, but it always needs to be in a class, too, so just check super class
-                val superCall = base.clazz.superCalls.firstOrNull { it.valueParams != null }
-                if (superCall != null) {
-                    val superClass = superCall.type as ClassType
-                    val superGenerics = superClass.typeParameters ?: emptyList()
-                    val genericNames = base.clazz.typeParameters
-                    return findFieldType(superClass, name, superGenerics.map { type ->
-                        resolveGenerics(type, genericNames, generics)
-                    }, scope, origin)
-                }// else might be Any, but Any has no fields anyway
-
-                println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
+                println("No field matched: ${base.clazz.pathStr}.$name")
                 null
             }
             is UnionType -> {
                 val baseTypes =
-                    base.types.mapNotNull { subType -> findFieldType(subType, name, generics, scope, origin) }
+                    base.types.mapNotNull { subType -> findFieldType(subType, name, generics, codeScope, origin) }
                 baseTypes.reduceOrNull { a, b -> unionTypes(a, b) } // union or and?
             }
             is AndType -> {
                 val baseTypes =
-                    base.types.mapNotNull { subType -> findFieldType(subType, name, generics, scope, origin) }
+                    base.types.mapNotNull { subType -> findFieldType(subType, name, generics, codeScope, origin) }
                 baseTypes.reduceOrNull { a, b -> unionTypes(a, b) }
             }
             else -> throw NotImplementedError("findFieldType($base, $name) @ ${resolveOrigin(origin)}")
@@ -352,8 +420,8 @@ object TypeResolution {
     }
 
     fun findField(scope: Scope?, recursive: Boolean, name: String): Field? {
-        var scope = scope
-        while (scope != null) {
+        var scope = scope ?: return null
+        while (true) {
 
             if (scope.scopeType == ScopeType.OBJECT && scope.name == name) {
                 return scope.objectField!!
@@ -367,23 +435,18 @@ object TypeResolution {
             val match = scope.fields.firstOrNull { it.name == name }
             if (match != null) return match
 
-            scope = if (recursive && scope.parent?.fileName == scope.fileName) {
-                scope.parent
-            } else null
+            scope = scope.parentIfSameFile(recursive)
+                ?: return null
         }
-        return null
     }
 
     fun findType(scope: Scope?, recursive: Boolean, name: String): ClassType? {
-        var scope = scope
-        while (scope != null) {
+        var scope = scope ?: return null
+        while (true) {
             val match = scope.children.firstOrNull { it.name == name }
             if (match != null) return ClassType(match, null)
-            scope = if (recursive && scope.parent?.fileName == scope.fileName) {
-                scope.parent
-            } else null
+            scope = scope.parentIfSameFile(recursive) ?: return null
         }
-        return null
     }
 
     /**
@@ -417,7 +480,7 @@ object TypeResolution {
                 return ResolvedMethod(method, generics)
             }
 
-            scope = nextCheckedScope(scope, recursive) ?: return null
+            scope = scope.parentIfSameFile(recursive) ?: return null
         }
     }
 
@@ -457,18 +520,10 @@ object TypeResolution {
                 )
             }
 
-            scope = nextCheckedScope(scope, recursive) ?: return null
+            scope = scope.parentIfSameFile(recursive) ?: return null
         }
     }
 
-    private fun nextCheckedScope(scope: Scope, recursive: Boolean): Scope? {
-        return if (recursive &&
-            scope.scopeType != ScopeType.PACKAGE &&
-            scope.scopeType != null
-        ) {
-            scope.parent
-        } else null
-    }
 
     fun applyTypeAlias(
         typeParameters: List<Type>?,
@@ -662,6 +717,7 @@ object TypeResolution {
                 while (list[index] != null) index++
                 list[index] = valueParam
             }
+            check(list.none { it == null })
             list.toList() as List<ValueParameter>
         } else valueParameters
     }

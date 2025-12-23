@@ -1,10 +1,10 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.impl.ClassType
 
 class SuperCall(
-    val type: Type,
+    val type: ClassType,
     val valueParams: List<NamedParameter>?,
     val delegate: Expression?
 )

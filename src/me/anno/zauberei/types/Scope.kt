@@ -295,6 +295,15 @@ class Scope(val name: String, val parent: Scope? = null) {
         return "$$prefix${nextAnonymousName++}"
     }
 
+    fun parentIfSameFile(recursive: Boolean): Scope? {
+        return if (recursive &&
+            scopeType != ScopeType.PACKAGE &&
+            scopeType != null
+        ) {
+            parent
+        } else null
+    }
+
     override fun toString(): String = pathStr
 
 }

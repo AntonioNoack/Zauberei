@@ -245,8 +245,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         return -1
     }
 
-    private fun readClassBody(name: String, keywords: List<String>, scopeType: ScopeType) {
-        currPackage.getOrPut(name, tokens.fileName, scopeType).keywords.addAll(keywords)
+    private fun readClassBody(name: String, keywords: List<String>, scopeType: ScopeType): Scope {
+        val scope = currPackage.getOrPut(name, tokens.fileName, scopeType)
+        scope.keywords.addAll(keywords)
+
         if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
             pushBlock(scopeType, name) {
                 if ("enum" in keywords) {
@@ -256,6 +258,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 readFileLevel()
             }
         }
+        return scope
     }
 
     private fun readEnumBody(): Int {
@@ -266,17 +269,22 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 // read enum value
                 readAnnotations()
                 check(tokens.equals(i, TokenType.NAME))
+
                 val origin = origin(i)
                 val name = tokens.toString(i++)
                 val typeParams = readTypeParams()
                 val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
                     pushCall { readParamExpressions() }
                 } else emptyList()
-                if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
-                    readClassBody(name, emptyList(), ScopeType.ENUM_ENTRY_CLASS)
-                }
 
-                currPackage.enumValues.add(EnumEntry(name, typeParams, params, origin))
+                val scope = readClassBody(name, emptyList(), ScopeType.ENUM_ENTRY_CLASS)
+                val entry = EnumEntry(name, typeParams, params, scope, origin)
+                scope.objectField = Field(
+                    currPackage, false, true, null,
+                    name, currPackage.typeWithoutArgs, null, emptyList(), origin
+                )
+
+                currPackage.enumValues.add(entry)
                 readComma()
             }
         }
@@ -957,7 +965,9 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     }
 
     private fun readSuperCall(): SuperCall {
-        val type = readType()
+        val i0 = i
+        val type = readType() as? ClassType
+            ?: throw IllegalStateException("SuperType must be a ClassType, at ${tokens.err(i0)}")
 
         val valueParams = if (tokens.equals(i, TokenType.OPEN_CALL)) {
             pushCall { readParamExpressions() }
