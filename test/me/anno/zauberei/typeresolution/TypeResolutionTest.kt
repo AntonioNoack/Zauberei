@@ -1,12 +1,10 @@
-package me.anno.zauberei
+package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile.root
-import me.anno.zauberei.Compile.stdlib
 import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.Constructor
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.tokenizer.Tokenizer
-import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.types.StandardTypes.standardClasses
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.BooleanType
@@ -108,7 +106,7 @@ class TypeResolutionTest {
     }
 
     @Test
-    fun testConstructorWithParam() {
+    fun testConstructorWithParameter() {
         val intArrayType = standardClasses["IntArray"]!!
         // we need to define the constructor without any args
         val constructors = intArrayType.constructors

@@ -1,11 +1,10 @@
-package me.anno.zauberei
+package me.anno.zauberei.typeresolution
 
-import me.anno.zauberei.TypeResolutionTest.Companion.testTypeResolution
 import me.anno.zauberei.types.Types.IntType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class ExtensionTypeResolutionTest {
+class ExtensionTest {
 
     // todo also check accessing class methods and fields from an extension scope
     // todo also check shadowing over outer and class scope... which one does Kotlin choose?
@@ -14,7 +13,7 @@ class ExtensionTypeResolutionTest {
     fun testExtensionMethods() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 class Impl()
                 fun Impl.get() = 0
@@ -29,7 +28,7 @@ class ExtensionTypeResolutionTest {
     fun testExtensionFields() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 class Impl()
                 val Impl.value get() = 0
@@ -44,7 +43,7 @@ class ExtensionTypeResolutionTest {
     fun testExtensionMethodsOnSuperClass() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 class Super()
                 class Impl(): Super()
@@ -60,7 +59,7 @@ class ExtensionTypeResolutionTest {
     fun testExtensionFieldsOnSuperClass() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 class Super()
                 class Impl(): Super()
@@ -76,7 +75,7 @@ class ExtensionTypeResolutionTest {
     fun testExtensionMethodsOnInterfaces() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 class Impl(): Func
                 interface Func
@@ -92,7 +91,7 @@ class ExtensionTypeResolutionTest {
     fun testExtensionFieldOnInterfaces() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 interface Func
                 class Impl(): Func
@@ -108,7 +107,7 @@ class ExtensionTypeResolutionTest {
     fun testUnderdefinedExtensionMethodsByMethod() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 class Impl()
                 fun <V> Impl.get(): List<V>
@@ -125,7 +124,7 @@ class ExtensionTypeResolutionTest {
     fun testUnderdefinedExtensionFieldsByField() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 class Impl()
                 val <V> Impl.value: List<V>
@@ -142,7 +141,7 @@ class ExtensionTypeResolutionTest {
     fun testUnderdefinedExtensionMethodsByClass() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 class Impl<V>()
                 fun Impl.get(): List<V> = emptyList()
@@ -160,7 +159,7 @@ class ExtensionTypeResolutionTest {
     fun testUnderdefinedExtensionFieldsByClass() {
         assertEquals(
             IntType,
-            testTypeResolution(
+            TypeResolutionTest.Companion.testTypeResolution(
                 """
                 class Impl<V>()
                 val Impl.value: List<V>
