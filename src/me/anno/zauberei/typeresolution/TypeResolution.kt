@@ -5,19 +5,18 @@ import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.astbuilder.Method
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
-import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.ExprTypeOp
 import me.anno.zauberei.astbuilder.expression.ExprTypeOpType
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.astbuilder.expression.FieldExpression
-import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
-import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
-import me.anno.zauberei.types.Types.ArrayType
-import me.anno.zauberei.types.impl.*
 import me.anno.zauberei.types.impl.AndType.Companion.andTypes
+import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.GenericType
+import me.anno.zauberei.types.impl.NullType
+import me.anno.zauberei.types.impl.UnionType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 /**
@@ -251,163 +250,13 @@ object TypeResolution {
         } else type
     }
 
-    fun resolveCallType(
-        context: ResolutionContext,
-        expr: Expression,
-        name: String,
-        constructor: ResolvedCallable?,
-        typeParameters: List<Type>?,
-        valueParameters: List<ValueParameter>,
-    ): Type {
-        println("typeParams: $typeParameters")
-        val targetType = context.targetType
-        val selfType = context.selfType
-        val method = constructor
-            ?: findMethod(context.selfScope, true, name, targetType, selfType, typeParameters, valueParameters)
-            ?: findMethod(context.codeScope, true, name, targetType, selfType, typeParameters, valueParameters)
-            ?: findMethod(langScope, false, name, targetType, selfType, typeParameters, valueParameters)
-        val field = findField(context.codeScope, selfType, name)
-        val candidates =
-            listOfNotNull(method?.getTypeFromCall(), field?.resolveCall()?.getTypeFromCall())
-        if (candidates.isEmpty()) {
-            val selfScope = context.selfScope
-            val codeScope = context.codeScope
-            println("self-scope methods[${selfScope?.pathStr}.'$name']: ${selfScope?.methods?.filter { it.name == name }}")
-            println("code-scope methods[${codeScope.pathStr}.'$name']: ${codeScope.methods.filter { it.name == name }}")
-            println("lang-scope methods[${langScope.pathStr}.'$name']: ${langScope.methods.filter { it.name == name }}")
-            throw IllegalStateException(
-                "Could not resolve method ${selfScope?.pathStr}.'$name'<$typeParameters>($valueParameters) " +
-                        "in ${resolveOrigin(expr.origin)}, scopes: ${codeScope.pathStr}"
-            )
-        }
-        if (candidates.size > 1) throw IllegalStateException("Cannot have both a method and a type with the same name '$name': $candidates")
-        return candidates.first()
-    }
-
-    private fun findFieldBySuperClass(
-        base: ClassType, name: String, generics: List<Type>,
-        scope: Scope, origin: Int, superClass: ClassType
-    ): Field? {
-        val superGenerics = superClass.typeParameters ?: emptyList()
-        val genericNames = base.clazz.typeParameters
-        return findField(superClass, name, superGenerics.map { type ->
-            resolveGenerics(type, genericNames, generics)
-        }, scope, origin)
-    }
-
-    private fun Field.matches(
-        expectedSelfType: ClassType,
-        fieldName: String,
-        generics: List<Type>
-    ): Boolean {
-        return name == fieldName &&
-                selfType != null &&
-                isSubTypeOf(
-                    expectedSelfType, selfType,
-                    expectedSelfType.clazz.typeParameters, generics,
-                    InsertMode.READ_ONLY
-                )
-    }
-
-    fun findExtensionField(
-        base: ClassType, name: String, generics: List<Type>,
-        scope: Scope
-    ): Field? {
-        var scope = scope
-        while (true) {
-            val field = scope.fields
-                .firstOrNull { it.matches(base, name, generics) }
-            if (field != null) return field
-
-            scope = scope.parentIfSameFile ?: return null
-        }
-    }
-
-    fun findField(
-        base: ClassType, name: String, generics: List<Type>,
-        codeScope: Scope, origin: Int
-    ): Field? {
-        // todo field may be generic, inject the generics as needed...
-        // todo check extension fields
-
-        val fields = base.clazz.fields
-        val field = fields.firstOrNull { it.matches(base, name, generics) }
-        if (field != null) return field
-
-        if (base.clazz.scopeType == ScopeType.ENUM_CLASS) {
-            val enumValues = base.clazz.enumValues
-            val enumValue = enumValues.firstOrNull { it.name == name }
-            if (enumValue != null) {
-                return enumValue.scope.objectField!!
-            }
-        }
-
-        // check super classes and interfaces,
-        //  but we need their generics there...
-        // -> interfaces can define the field, but it always needs to be in a class, too, so just check super class
-        val superCalls = base.clazz.superCalls
-        for (i in superCalls.indices) {
-            val superClass = superCalls[i].type as ClassType
-            val bySuper = findFieldBySuperClass(base, name, generics, codeScope, origin, superClass)
-            if (bySuper != null) return bySuper
-        }
-
-        // we must also check related scopes for extension fields;
-        // since we check super calls recursively, it is fine to only check for type-equals;
-        // scopes to check:
-        //  - langScope
-        //  - codeScope (same file)
-        val type = findExtensionField(base, name, generics, codeScope)
-            ?: findExtensionField(base, name, generics, langScope)
-        if (type != null) return type
-
-        println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
-        return null
-    }
-
-    fun findFieldType(
-        base: Type, name: String, generics: List<Type>,
-        codeScope: Scope, origin: Int,
-        targetType: Type?
-    ): Type? {
-        // todo field may be generic, inject the generics as needed...
-        // todo check extension fields
-        return when (base) {
-            NullType, is NotType -> null
-            is ClassType -> {
-                val field = findField(base, name, generics, codeScope, origin)
-                if (field != null) return resolveFieldType(field, codeScope, targetType)
-
-                println("No field matched: ${base.clazz.pathStr}.$name")
-                null
-            }
-            is UnionType -> {
-                base.types.mapNotNull { subType ->
-                    findFieldType(subType, name, generics, codeScope, origin, targetType)
-                }.reduceUnionOrNull() // union or and?
-            }
-            is AndType -> {
-                base.types.mapNotNull { subType ->
-                    findFieldType(subType, name, generics, codeScope, origin, targetType)
-                }.reduceUnionOrNull()
-            }
-            else -> throw NotImplementedError("findFieldType($base, $name) @ ${resolveOrigin(origin)}")
-        }
-    }
-
     fun List<Type>.reduceUnionOrNull(): Type? = reduceOrNull { a, b -> unionTypes(a, b) }
-
-    fun findField(
-        scope: Scope, // 2nd, recursive as long as fileName == parentScope.fileName
-        selfScope: Type?, // 1st, surface-level only
-        name: String
-    ): Field? = findField(typeToScope(selfScope), false, name) ?: findField(scope, true, name)
 
     fun findType(
         scope: Scope, // 2nd, recursive as long as fileName == parentScope.fileName
         selfScope: Type?, // 1st, surface-level only
         name: String
-    ): ClassType? = findType(typeToScope(selfScope), false, name) ?: findType(scope, true, name)
+    ): ClassType? = findType(typeToScope(selfScope), name) ?: findType(scope, name)
 
     fun Field.resolveCall(): ResolvedField {
         return ResolvedField(this)
@@ -422,27 +271,7 @@ object TypeResolution {
         }
     }
 
-    fun findField(scope: Scope?, recursive: Boolean, name: String): Field? {
-        var scope = scope ?: return null
-        while (true) {
-
-            if (scope.scopeType == ScopeType.OBJECT && scope.name == name) {
-                return scope.objectField!!
-            }
-
-            val child = scope.children.firstOrNull { it.name == name }
-            if (child != null && child.scopeType == ScopeType.OBJECT) {
-                return child.objectField!!
-            }
-
-            val match = scope.fields.firstOrNull { it.name == name }
-            if (match != null) return match
-
-            scope = scope.parentIfSameFile ?: return null
-        }
-    }
-
-    fun findType(scope: Scope?, recursive: Boolean, name: String): ClassType? {
+    fun findType(scope: Scope?, name: String): ClassType? {
         var scope = scope ?: return null
         while (true) {
             val match = scope.children.firstOrNull { it.name == name }
@@ -450,82 +279,6 @@ object TypeResolution {
             scope = scope.parentIfSameFile ?: return null
         }
     }
-
-    /**
-     * finds a method, returns the method and any inserted type parameters
-     * */
-    fun findMethod(
-        scope: Scope?, recursive: Boolean, name: String,
-        expectedReturnType: Type?, // sometimes, we know what to expect from the return type
-        expectedSelfType: Type?, // if inside Companion/Object/Class/Interface, this is defined; else null
-
-        typeParameters: List<Type>?,
-        valueParameters: List<ValueParameter>
-    ): ResolvedMethod? {
-        var scope = scope ?: return null
-        while (true) {
-            val scopeSelfType = getSelfType(scope)
-            for (method in scope.methods) {
-                if (method.name != name) continue
-                if (method.typeParameters.isNotEmpty()) {
-                    println("Given $method on $expectedSelfType, with target $expectedReturnType, can we deduct any generics from that?")
-                }
-                val methodReturnType = if (expectedReturnType != null) {
-                    getMethodReturnType(scopeSelfType, method)
-                } else method.returnType // no resolution invoked
-                val generics = findGenericsForMatch(
-                    expectedSelfType, method.selfType,
-                    expectedReturnType, methodReturnType,
-                    method.typeParameters, typeParameters,
-                    method.valueParameters, valueParameters
-                ) ?: continue
-                return ResolvedMethod(method, generics)
-            }
-
-            scope = scope.parentIfSameFile ?: return null
-        }
-    }
-
-    fun findConstructor(
-        scope: Scope?, recursive: Boolean, name: String,
-        typeParameters: List<Type>?,
-        valueParameters: List<ValueParameter>
-    ): ResolvedConstructor? {
-        var scope = scope ?: return null
-        while (true) {
-            println("Searching constructors '$name' in ${scope.pathStr}, type: ${scope.scopeType}")
-            if (scope.name == name) {
-                val found = findConstructorImpl(scope, typeParameters, valueParameters)
-                if (found != null) return found
-            } else if (scope.scopeType == ScopeType.PACKAGE) {
-                println("  ${scope.pathStr} is a package, looking inside")
-                for (child in scope.children) {
-                    if (child.name == name) {
-                        val constructor = findConstructor(
-                            child, false, name,
-                            typeParameters, valueParameters
-                        )
-                        println("  constructor candidate for $name: $constructor")
-                        if (constructor != null) {
-                            return constructor
-                        }
-                    }
-                }
-            }
-
-            val bestImport = scope.imports.firstOrNull { it.direct && it.name == name }
-                ?: scope.imports.firstOrNull { !it.direct && it.name == name }
-            if (bestImport != null) {
-                return findConstructor(
-                    bestImport.target, false, bestImport.target.name,
-                    typeParameters, valueParameters
-                )
-            }
-
-            scope = scope.parentIfSameFile ?: return null
-        }
-    }
-
 
     fun applyTypeAlias(
         typeParameters: List<Type>?,
@@ -546,181 +299,4 @@ object TypeResolution {
         }
     }
 
-    fun findConstructorImpl(
-        scope: Scope?,
-        typeParameters: List<Type>?,
-        valueParameters: List<ValueParameter>
-    ): ResolvedConstructor? {
-        val scope = scope ?: return null
-        val alias = scope.typeAlias
-        if (alias != null) {
-            val newType = applyTypeAlias(typeParameters, scope.typeParameters, alias)
-            println("  mapped ${scope.pathStr}<$typeParameters> via $alias to ${newType.clazz.pathStr}<${newType.typeParameters}>")
-            return findConstructorImpl(newType.clazz, newType.typeParameters, valueParameters)
-        }
-
-        for (constructor in scope.constructors) {
-            println("  candidate constructor: $constructor")
-            val generics = findGenericsForMatch(
-                null, null,
-                null, null,
-                constructor.clazz.typeParameters, typeParameters,
-                constructor.valueParameters, valueParameters
-            ) ?: continue
-            return ResolvedConstructor(constructor, generics)
-        }
-        return null
-    }
-
-    fun findGenericsForMatch(
-        expectedSelfType: Type?,
-        actualSelfType: Type?,
-
-        expectedReturnType: Type?, /* null if nothing is expected */
-        actualReturnType: Type?, // can help deducting types
-
-        expectedTypeParameters: List<Parameter>,
-        actualTypeParameters: List<Type>?,
-
-        expectedValueParameters: List<Parameter>,
-        actualValueParameters: List<ValueParameter>
-    ): List<Type>? { // found generic values for a match
-
-        // todo objects don't need actualSelfType, if properly in scope or imported...
-        if ((expectedSelfType != null) != (actualSelfType != null)) {
-            return null
-        }
-
-        println("checking types: $expectedTypeParameters vs $actualTypeParameters")
-        println("   and  values: $expectedValueParameters vs $actualValueParameters")
-        println("   and  selves: $expectedSelfType vs $actualSelfType")
-        println("   and returns: $expectedReturnType vs $actualReturnType")
-
-        // first match everything by name
-        // todo resolve default values... -> could be expanded earlier :)
-        // todo resolve varargs...
-
-        val isVararg = expectedValueParameters.lastOrNull()?.isVararg == true
-        if (isVararg) {
-            if (expectedValueParameters.size > actualValueParameters.size) {
-                println("param-size too low")
-                return null
-            }
-        } else {
-            if (expectedValueParameters.size != actualValueParameters.size) {
-                println("param-size mismatch: expected ${expectedValueParameters.size}, but got ${actualValueParameters.size}")
-                return null
-            }
-        }
-
-        if (actualTypeParameters != null && actualTypeParameters.size != expectedTypeParameters.size) {
-            println("type-param-size mismatch: expected ${expectedTypeParameters.size}, but got ${actualTypeParameters.size}")
-            return null
-        }
-
-        val sortedValueParameters = resolveNamedParameters(expectedValueParameters, actualValueParameters)
-            ?: run {
-                println("param-name mismatch")
-                return null
-            }
-
-        val resolvedTypes = actualTypeParameters
-            ?: FillInParameterList(expectedTypeParameters.size)
-
-        val findGenericTypes = actualTypeParameters == null
-
-        // println("Checking method-match, self-types: $expectedSelfType vs $actualSelfType")
-        val matchesSelfType = expectedSelfType == null || isSubTypeOf(
-            expectedSelfType, actualSelfType!!,
-            expectedTypeParameters,
-            resolvedTypes,
-            if (findGenericTypes) InsertMode.STRONG else InsertMode.READ_ONLY
-        )
-
-        if (!matchesSelfType) {
-            // println("selfType-mismatch: $actualSelfType !is $expectedSelfType")
-            return null
-        }
-
-        // todo this should only be executed sometimes...
-        //  missing generic parameters can be temporarily inserted...
-        // println("matchesReturnType($expectedReturnType vs $actualReturnType)")
-        val matchesReturnType = expectedReturnType == null || actualReturnType == null ||
-                isSubTypeOf(
-                    expectedReturnType,
-                    actualReturnType,
-                    expectedTypeParameters,
-                    resolvedTypes,
-                    if (findGenericTypes) InsertMode.WEAK else InsertMode.READ_ONLY,
-                )
-
-        if (!matchesReturnType) {
-            // println("returnType-mismatch: $actualReturnType !is $expectedReturnType")
-            return null
-        }
-
-        for (i in expectedValueParameters.indices) {
-            val mvParam = expectedValueParameters[i]
-            val vParam = if (mvParam.isVararg) {
-
-                val expectedParamArrayType = mvParam.type
-                check(expectedParamArrayType is ClassType)
-                check(expectedParamArrayType.clazz == ArrayType.clazz)
-                check(expectedParamArrayType.typeParameters?.size == 1)
-                // todo we might need to replace generics here...
-                val expectedParamEntryType = expectedParamArrayType.typeParameters[0]
-
-                // if star, use it as-is
-                val commonType = sortedValueParameters.subList(i, sortedValueParameters.size)
-                    .map { it.getType(expectedParamEntryType) }
-                    .reduce { a, b -> unionTypes(a, b) }
-                val joinedType = ClassType(ArrayType.clazz, listOf(commonType))
-                ValueParameterImpl(null, joinedType)
-            } else {
-                sortedValueParameters[i]
-            }
-            if (!isSubTypeOf(
-                    mvParam, vParam,
-                    expectedTypeParameters,
-                    resolvedTypes,
-                    if (findGenericTypes) InsertMode.STRONG else InsertMode.READ_ONLY
-                )
-            ) {
-                val type = vParam.getType(mvParam.type)
-                println("type mismatch: $type is not always a ${mvParam.type}")
-                return null
-            }
-        }
-
-        val immutableList = if (resolvedTypes is FillInParameterList) resolvedTypes.types.asList() else resolvedTypes
-        return immutableList as List<Type>
-    }
-
-    /**
-     * Change the order of value parameters if needed.
-     * execution order must remain unchanged!
-     * */
-    private fun resolveNamedParameters(
-        methodValueParameters: List<Parameter>,
-        valueParameters: List<ValueParameter>
-    ): List<ValueParameter>? {
-        return if (valueParameters.any { it.name != null }) {
-            val list = arrayOfNulls<ValueParameter>(valueParameters.size)
-            for (valueParam in valueParameters) {
-                val name = valueParam.name ?: continue
-                val index = methodValueParameters.indexOfFirst { it.name == name }
-                if (index < 0) return null
-                check(list[index] == null)
-                list[index] = valueParam
-            }
-            var index = 0
-            for (valueParam in valueParameters) {
-                if (valueParam.name != null) continue
-                while (list[index] != null) index++
-                list[index] = valueParam
-            }
-            check(list.none { it == null })
-            list.toList() as List<ValueParameter>
-        } else valueParameters
-    }
 }

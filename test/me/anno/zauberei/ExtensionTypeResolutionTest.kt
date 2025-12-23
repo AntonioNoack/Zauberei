@@ -7,10 +7,8 @@ import org.junit.jupiter.api.Test
 
 class ExtensionTypeResolutionTest {
 
-    // todo also check methods and fields without underlying any obvious class (class is package)
     // todo also check accessing class methods and fields from an extension scope
-
-    // todo also check under-defined extension fields/methods, so those, that need ResolutionContext.targetType
+    // todo also check shadowing over outer and class scope... which one does Kotlin choose?
 
     @Test
     fun testExtensionMethods() {
