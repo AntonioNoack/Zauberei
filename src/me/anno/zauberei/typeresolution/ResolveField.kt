@@ -2,16 +2,21 @@ package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
+import me.anno.zauberei.astbuilder.expression.ExprTypeOp
+import me.anno.zauberei.astbuilder.expression.ExprTypeOpType
+import me.anno.zauberei.astbuilder.expression.FieldExpression
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
+import me.anno.zauberei.typeresolution.TypeResolution.getSelfType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.reduceUnionOrNull
-import me.anno.zauberei.typeresolution.TypeResolution.resolveFieldType
+import me.anno.zauberei.typeresolution.TypeResolution.resolveType
 import me.anno.zauberei.typeresolution.TypeResolution.typeToScope
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.AndType
+import me.anno.zauberei.types.impl.AndType.Companion.andTypes
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.NotType
 import me.anno.zauberei.types.impl.NullType
@@ -154,6 +159,88 @@ object ResolveField {
                     expectedSelfType.clazz.typeParameters, generics,
                     InsertMode.READ_ONLY
                 )
+    }
+
+    fun resolveFieldType(field: Field, scope: Scope, targetType: Type?): Type {
+        val base = field.selfType ?: getSelfType(field.declaredScope)
+        return resolveFieldType(base, field, scope, targetType)
+    }
+
+    fun resolveFieldType(base: Type?, field: Field, scope: Scope, targetType: Type?): Type {
+        println("InitialType[${field.declaredScope}.${field.name}]: ${field.valueType}")
+        val fieldType0 = if (targetType == null) field.valueType else null
+        var fieldType = fieldType0 ?: run {
+            val context = ResolutionContext(field.declaredScope, base, false, targetType)
+            val initialValue = field.initialValue
+            val getter = field.getterExpr
+            when {
+                initialValue != null -> resolveType(context, initialValue)
+                getter != null -> resolveType(context, getter)
+                else -> throw IllegalStateException("Missing initial value or getter for $field")
+            }
+        }
+        if (targetType == null) {
+            field.valueType = fieldType
+        }
+
+        // todo valueType is just the general type, there might be much more specific information...
+        // todo if the variable is re-assigned, these conditions no longer hold
+        println("GeneralFieldType[${field.declaredScope}.${field.name}]: $fieldType in scope ${scope.pathStr}")
+
+        // todo remove debug check when it works
+        if (field.declaredScope.name == "/ disable if case /" &&
+            field.name == "valueParameters" && fieldType is ClassType &&
+            (fieldType.typeParameters?.getOrNull(0) as? ClassType)?.clazz?.name == "NamedParameter"
+        ) {
+            throw IllegalStateException("Field ${field.name} should be List<ValueParameter>, not List<NamedParameter>")
+        }
+
+        var scopeI = scope
+        while (scopeI.fileName == scope.fileName) {
+            val condition = scopeI.branchCondition
+            if (condition != null) {
+
+                val prefix = if (scopeI.branchConditionTrue) "" else "!"
+                println("  condition: $prefix$condition")
+
+                // decide based on conditionType...
+                //  might be inside complex combinations of and, or and not with other conditions...
+                var conditionType = when (condition) {
+                    is ExprTypeOp -> {
+                        println("  -> ExprTypeOf(${condition.left})")
+                        var nameExpr = condition.left as? FieldExpression
+                        val type = condition.right
+                        var matchesName = false
+                        while (!matchesName && nameExpr != null) { // todo check if field is actually the same
+                            matchesName = nameExpr.field.name == field.name
+                            nameExpr = nameExpr.field.initialValue as? FieldExpression
+                            println("  -> ExprTypeOf/i($nameExpr)")
+                        }
+                        if (matchesName) {
+                            when (condition.op) {
+                                ExprTypeOpType.INSTANCEOF -> type
+                                ExprTypeOpType.NOT_INSTANCEOF -> type.not()
+                                else -> null
+                            }
+                        } else null
+                    }
+                    else -> null
+                }
+
+                if (conditionType != null) {
+                    if (!scopeI.branchConditionTrue) {
+                        conditionType = conditionType.not()
+                    }
+                    fieldType = andTypes(fieldType, conditionType)
+                    println("  -> $fieldType (via $conditionType)")
+                } else println("  -> condition not yet supported")
+            }
+            scopeI = scopeI.parent ?: break
+        }
+
+        println("SpecializedFieldType[${field.declaredScope}.${field.name}]: $fieldType")
+
+        return fieldType
     }
 
 }

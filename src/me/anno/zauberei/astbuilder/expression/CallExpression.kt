@@ -3,10 +3,10 @@ package me.anno.zauberei.astbuilder.expression
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.typeresolution.ResolutionContext
-import me.anno.zauberei.typeresolution.TypeResolution.findConstructor
-import me.anno.zauberei.typeresolution.TypeResolution.findMethod
+import me.anno.zauberei.typeresolution.ResolveMethod.findConstructor
+import me.anno.zauberei.typeresolution.ResolveMethod.findMethod
+import me.anno.zauberei.typeresolution.ResolveMethod.resolveCallType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
-import me.anno.zauberei.typeresolution.TypeResolution.resolveCallType
 import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParameters
 import me.anno.zauberei.types.Type
 
@@ -58,8 +58,8 @@ class CallExpression(
                 val name = base.name
                 println("Find call '$name' with nameAsImport=null")
                 // findConstructor(selfScope, false, name, typeParameters, valueParameters)
-                val constructor = findConstructor(context.codeScope, true, name, typeParameters, valueParameters)
-                        ?: findConstructor(langScope, false, name, typeParameters, valueParameters)
+                val constructor = findConstructor(context.codeScope, name, typeParameters, valueParameters)
+                    ?: findConstructor(langScope, name, typeParameters, valueParameters)
                 return resolveCallType(
                     context, this, name, constructor,
                     typeParameters, valueParameters
@@ -70,11 +70,11 @@ class CallExpression(
                 println("Find call '$name' with nameAsImport=${base.nameAsImport}")
                 // findConstructor(selfScope, false, name, typeParameters, valueParameters)
                 val constructor =
-                    findConstructor(base.nameAsImport, false, name, typeParameters, valueParameters)
-                       // ?: findConstructor(context.codeScope, true, name, typeParameters, valueParameters)
-                       // ?: findConstructor(langScope, false, name, typeParameters, valueParameters)
+                    findConstructor(base.nameAsImport, name, typeParameters, valueParameters)
+                    // ?: findConstructor(context.codeScope, true, name, typeParameters, valueParameters)
+                    // ?: findConstructor(langScope, false, name, typeParameters, valueParameters)
                         ?: findMethod(
-                            base.nameAsImport.parent, false, name,
+                            base.nameAsImport.parent, name,
                             context.targetType,
                             base.nameAsImport.parent?.typeWithoutArgs,
                             typeParameters, valueParameters

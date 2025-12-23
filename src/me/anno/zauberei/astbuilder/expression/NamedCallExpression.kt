@@ -3,9 +3,9 @@ package me.anno.zauberei.astbuilder.expression
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.typeresolution.ResolveField.findFieldType
+import me.anno.zauberei.typeresolution.ResolveMethod.resolveCallType
 import me.anno.zauberei.typeresolution.TypeResolution
-import me.anno.zauberei.typeresolution.TypeResolution.findFieldType
-import me.anno.zauberei.typeresolution.TypeResolution.resolveCallType
 import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParameters
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type

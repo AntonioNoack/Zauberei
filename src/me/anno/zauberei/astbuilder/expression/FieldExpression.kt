@@ -2,7 +2,7 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.typeresolution.ResolutionContext
-import me.anno.zauberei.typeresolution.TypeResolution.resolveFieldType
+import me.anno.zauberei.typeresolution.ResolveField.resolveFieldType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 

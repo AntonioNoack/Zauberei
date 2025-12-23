@@ -1,15 +1,16 @@
 package me.anno.zauberei.typeresolution
 
+import me.anno.zauberei.astbuilder.Method
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolveField.findField
 import me.anno.zauberei.typeresolution.TypeResolution.applyTypeAlias
-import me.anno.zauberei.typeresolution.TypeResolution.getMethodReturnType
 import me.anno.zauberei.typeresolution.TypeResolution.getSelfType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveCall
+import me.anno.zauberei.typeresolution.TypeResolution.resolveType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
@@ -18,6 +19,9 @@ import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 object ResolveMethod {
+
+    // todo we should probably automatically detect underdefined methods (fields), and mark them as such,
+    //  so we can the under-defined mechanism for methods (fields) that don't need it
 
     /**
      * finds a method, returns the method and any inserted type parameters
@@ -303,6 +307,19 @@ object ResolveMethod {
             check(list.none { it == null })
             list.toList() as List<ValueParameter>
         } else valueParameters
+    }
+
+    fun getMethodReturnType(scopeSelfType: Type?, method: Method): Type? {
+        if (method.returnType == null) {
+            if (false) println("Resolving ${method.innerScope}.type by ${method.body}")
+            val context = ResolutionContext(
+                method.innerScope,
+                method.selfType ?: scopeSelfType,
+                false, null
+            )
+            method.returnType = resolveType(context, method.body!!)
+        }
+        return method.returnType
     }
 
 }
