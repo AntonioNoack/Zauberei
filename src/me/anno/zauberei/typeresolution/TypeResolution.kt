@@ -9,7 +9,7 @@ import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.ExprTypeOp
 import me.anno.zauberei.astbuilder.expression.ExprTypeOpType
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.astbuilder.expression.VariableExpression
+import me.anno.zauberei.astbuilder.expression.FieldExpression
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.types.Scope
@@ -108,7 +108,7 @@ object TypeResolution {
     }
 
     fun resolveFieldType(base: Type?, field: Field, scope: Scope): Type {
-        println("InitialType[${field.name}]: ${field.valueType}")
+        println("InitialType[${field.declaredScope}.${field.name}]: ${field.valueType}")
         var fieldType = field.valueType ?: run {
             val context = ResolutionContext(field.declaredScope, base, false, null)
             resolveType(context, field.initialValue!!)
@@ -117,10 +117,11 @@ object TypeResolution {
 
         // todo valueType is just the general type, there might be much more specific information...
         // todo if the variable is re-assigned, these conditions no longer hold
-        println("GeneralFieldType[${field.name}]: $fieldType in scope ${scope.pathStr}")
+        println("GeneralFieldType[${field.declaredScope}.${field.name}]: $fieldType in scope ${scope.pathStr}")
 
         // todo remove debug check when it works
-        if (field.name == "valueParameters" && fieldType is ClassType &&
+        if (field.declaredScope.name == "/ disable if case /" &&
+            field.name == "valueParameters" && fieldType is ClassType &&
             (fieldType.typeParameters?.getOrNull(0) as? ClassType)?.clazz?.name == "NamedParameter"
         ) {
             throw IllegalStateException("Field ${field.name} should be List<ValueParameter>, not List<NamedParameter>")
@@ -139,12 +140,12 @@ object TypeResolution {
                 var conditionType = when (condition) {
                     is ExprTypeOp -> {
                         println("  -> ExprTypeOf(${condition.left})")
-                        var nameExpr = condition.left as? VariableExpression
+                        var nameExpr = condition.left as? FieldExpression
                         val type = condition.right
                         var matchesName = false
                         while (!matchesName && nameExpr != null) { // todo check if field is actually the same
-                            matchesName = nameExpr.name == field.name
-                            nameExpr = nameExpr.field?.initialValue as? VariableExpression
+                            matchesName = nameExpr.field.name == field.name
+                            nameExpr = nameExpr.field.initialValue as? FieldExpression
                             println("  -> ExprTypeOf/i($nameExpr)")
                         }
                         if (matchesName) {
@@ -169,7 +170,7 @@ object TypeResolution {
             scopeI = scopeI.parent ?: break
         }
 
-        println("SpecializedFieldType[${field.name}]: $fieldType")
+        println("SpecializedFieldType[${field.declaredScope}.${field.name}]: $fieldType")
 
         return fieldType
     }

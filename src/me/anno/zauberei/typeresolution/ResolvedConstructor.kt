@@ -9,4 +9,8 @@ class ResolvedConstructor(val constructor: Constructor, val generics: List<Type>
         return if (generics.isEmpty()) constructor.clazz.typeWithoutArgs
         else ClassType(constructor.clazz, generics)
     }
+
+    override fun toString(): String {
+        return "ResolvedConstructor(constructor=$constructor, generics=$generics)"
+    }
 }

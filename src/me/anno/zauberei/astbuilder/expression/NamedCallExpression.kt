@@ -48,12 +48,12 @@ class NamedCallExpression(
             typeParameters.isNullOrEmpty() && name == "." &&
                     valueParameters.size == 1 &&
                     when (valueParameters[0].value) {
-                        is VariableExpression,
+                        is NameExpression,
                         is CallExpression,
                         is NamedCallExpression -> true
                         else -> false
                     } -> {
-                if (base is VariableExpression) {
+                if (base is NameExpression) {
                     "$base.${valueParameters[0].value}"
                 } else {
                     "($base).${valueParameters[0].value}"
@@ -79,13 +79,13 @@ class NamedCallExpression(
             val parameter0 = valueParameters[0]
             check(parameter0.name == null)
             when (val parameter = parameter0.value) {
-                is VariableExpression -> {
+                is NameExpression -> {
                     val fieldName = parameter.name
                     return findFieldType(baseType, fieldName, emptyList(), parameter.scope, parameter.origin)
                         ?: throw IllegalStateException("Missing $baseType.$fieldName in ${resolveOrigin(origin)}")
                 }
                 is CallExpression -> {
-                    val baseName = parameter.base as VariableExpression
+                    val baseName = parameter.base as NameExpression
                     val constructor = null
                     // todo for lambdas, baseType must be known for their type to be resolved
                     val valueParameters = resolveValueParameters(context, parameter.valueParameters)

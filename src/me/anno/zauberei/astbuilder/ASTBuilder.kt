@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.*
+import me.anno.zauberei.astbuilder.expression.NameExpression.Companion.nameExpression
 import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValue
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
@@ -485,7 +486,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
                 pushCall { readParamExpressions() }
             } else emptyList()
-            val base = VariableExpression(name, origin, this, clazz)
+            val base = nameExpression(name, origin, this, clazz)
             CallExpression(base, typeParams, params, origin + 1)
         } else null
 
@@ -910,10 +911,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                         }"
                     )
                     val args = pushCall { readParamExpressions() }
-                    val base = VariableExpression(namePath, origin, this, currPackage)
+                    val base = nameExpression(namePath, origin, this, currPackage)
                     CallExpression(base, typeArgs, args, origin + 1)
                 } else {
-                    VariableExpression(namePath, origin, this, currPackage)
+                    nameExpression(namePath, origin, this, currPackage)
                 }
             }
             tokens.equals(i, TokenType.OPEN_CALL) -> {
@@ -1521,7 +1522,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                                 // +=, -=, *=, /=, ...
                                 val originI = origin(i)
                                 val symbol = tokens.toString(i++)
-                                val expr1 = VariableExpression(name, originI, this, currPackage)
+                                val expr1 = nameExpression(name, originI, this, currPackage)
                                 val param1 = NamedParameter(null, expr1)
                                 val left = NamedCallExpression(
                                     expr, ".", null,
@@ -1746,6 +1747,6 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             name, type, value, emptyList(), origin
         )
 
-        return DeclarationExpression(currPackage, name, value, field)
+        return DeclarationExpression(currPackage, value, field)
     }
 }

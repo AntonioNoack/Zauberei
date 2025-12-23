@@ -9,4 +9,8 @@ class ResolvedField(val field: Field) : ResolvedCallable {
         //  luckily, there is only a single method, but unfortunately, we need the call parameters...
         TODO("Not yet implemented")
     }
+
+    override fun toString(): String {
+        return "ResolvedField(field=$field)"
+    }
 }

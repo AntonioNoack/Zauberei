@@ -5,13 +5,13 @@ import me.anno.zauberei.types.Scope
 
 @Suppress("FunctionName")
 fun DeclarationExpression(
-    scope: Scope, name: String, initialValue: Expression?,
+    scope: Scope, initialValue: Expression?,
     field: Field
 ): Expression {
     val origin = field.origin
     return if (initialValue != null) {
-        val name1 = VariableExpression(name, scope, field, scope, origin)
-        AssignmentExpression(name1, initialValue)
+        val variableName = FieldExpression(field, scope, origin)
+        AssignmentExpression(variableName, initialValue)
     } else {
         ExpressionList(emptyList(), scope, origin)
     }

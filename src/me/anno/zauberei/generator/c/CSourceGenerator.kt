@@ -2,7 +2,7 @@ package me.anno.zauberei.generator.c
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.astbuilder.expression.ExpressionList
-import me.anno.zauberei.astbuilder.expression.VariableExpression
+import me.anno.zauberei.astbuilder.expression.NameExpression
 import me.anno.zauberei.astbuilder.flow.IfElseBranch
 import me.anno.zauberei.astbuilder.flow.ReturnExpression
 import me.anno.zauberei.astbuilder.flow.WhileLoop
@@ -172,7 +172,7 @@ object CSourceGenerator {
                             builder.append("return;\n")
                         }
                     }
-                    is VariableExpression -> {
+                    is NameExpression -> {
                         builder.append(expr.name)
                     }
                     else -> {

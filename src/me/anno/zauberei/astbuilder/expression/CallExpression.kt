@@ -54,18 +54,29 @@ class CallExpression(
             is NamedCallExpression if base.name == "." -> {
                 TODO("Find method/field ${base}($valueParameters)")
             }
-            is VariableExpression -> {
+            is NameExpression -> {
                 val name = base.name
+                println("Find call '$name' with nameAsImport=null")
+                // findConstructor(selfScope, false, name, typeParameters, valueParameters)
+                val constructor = findConstructor(context.codeScope, true, name, typeParameters, valueParameters)
+                        ?: findConstructor(langScope, false, name, typeParameters, valueParameters)
+                return resolveCallType(
+                    context, this, name, constructor,
+                    typeParameters, valueParameters
+                )
+            }
+            is ImportedExpression -> {
+                val name = base.nameAsImport.name
                 println("Find call '$name' with nameAsImport=${base.nameAsImport}")
                 // findConstructor(selfScope, false, name, typeParameters, valueParameters)
                 val constructor =
                     findConstructor(base.nameAsImport, false, name, typeParameters, valueParameters)
-                        ?: findConstructor(context.codeScope, true, name, typeParameters, valueParameters)
-                        ?: findConstructor(langScope, false, name, typeParameters, valueParameters)
+                       // ?: findConstructor(context.codeScope, true, name, typeParameters, valueParameters)
+                       // ?: findConstructor(langScope, false, name, typeParameters, valueParameters)
                         ?: findMethod(
-                            base.nameAsImport?.parent, false, name,
+                            base.nameAsImport.parent, false, name,
                             context.targetType,
-                            base.nameAsImport?.parent?.typeWithoutArgs,
+                            base.nameAsImport.parent?.typeWithoutArgs,
                             typeParameters, valueParameters
                         )
                 return resolveCallType(

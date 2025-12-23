@@ -8,4 +8,8 @@ class ResolvedMethod(val method: Method, val generics: List<Type>) : ResolvedCal
     override fun getTypeFromCall(): Type {
         return resolveGenerics(method.returnType!!, method.typeParameters, generics)
     }
+
+    override fun toString(): String {
+        return "ResolvedMethod(method=$method, generics=$generics)"
+    }
 }

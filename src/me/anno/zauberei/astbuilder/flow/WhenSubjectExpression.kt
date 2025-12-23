@@ -9,6 +9,7 @@ import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.LambdaType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
+import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 class SubjectWhenCase(val conditions: List<SubjectCondition?>, val conditionScope: Scope, val body: Expression) {
 
@@ -37,9 +38,7 @@ fun ASTBuilder.whenSubjectToIfElseChain(scope: Scope, subject: Expression, cases
         null, value, emptyList(), origin
     )
 
-    val subjectExpr = VariableExpression(subjectName, origin, this, scope)
-    subjectExpr.field = field
-
+    val subjectExpr = FieldExpression(field, scope, origin)
     val assignment = AssignmentExpression(subjectExpr, subject)
     val cases = cases.map { case ->
         val condition =
@@ -50,8 +49,12 @@ fun ASTBuilder.whenSubjectToIfElseChain(scope: Scope, subject: Expression, cases
         //  then join them together, and insert a field with more specific type...
         if (case.conditions.all { it != null && it.subjectConditionType == SubjectConditionType.INSTANCEOF }) {
             val fieldName = when (subject) {
-                is AssignmentExpression -> (subject.variableName as VariableExpression).name
-                is VariableExpression -> subject.name
+                is AssignmentExpression -> when (val name = subject.variableName) {
+                    is NameExpression -> name.name
+                    is FieldExpression -> name.field.name /* todo in this case, we can reuse the field, I think */
+                    else -> throw NotImplementedException()
+                }
+                is NameExpression -> subject.name
                 else -> null
             }
             if (fieldName != null) {
@@ -66,7 +69,7 @@ fun ASTBuilder.whenSubjectToIfElseChain(scope: Scope, subject: Expression, cases
             }
         }
         if (condition != null) {
-            check(condition.scope == case.conditionScope){
+            check(condition.scope == case.conditionScope) {
                 "Expected condition to have ${case.conditionScope}, but got ${condition.scope}, " +
                         "conditions: ${case.conditions}"
             }
