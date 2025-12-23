@@ -9,7 +9,7 @@ class PackageScopeTest {
     fun testPackageScopeField() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 val value = 0
                 val tested = value
@@ -22,7 +22,7 @@ class PackageScopeTest {
     fun testPackageScopeMethod() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun method() = 0
                 val tested = method()

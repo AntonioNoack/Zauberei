@@ -13,7 +13,7 @@ class ExtensionTest {
     fun testExtensionMethods() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 class Impl()
                 fun Impl.get() = 0
@@ -28,7 +28,7 @@ class ExtensionTest {
     fun testExtensionFields() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 class Impl()
                 val Impl.value get() = 0
@@ -43,7 +43,7 @@ class ExtensionTest {
     fun testExtensionMethodsOnSuperClass() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 class Super()
                 class Impl(): Super()
@@ -59,7 +59,7 @@ class ExtensionTest {
     fun testExtensionFieldsOnSuperClass() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 class Super()
                 class Impl(): Super()
@@ -75,7 +75,7 @@ class ExtensionTest {
     fun testExtensionMethodsOnInterfaces() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 interface Func
                 class Impl(): Func
@@ -91,7 +91,7 @@ class ExtensionTest {
     fun testExtensionFieldOnInterfaces() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 interface Func
                 class Impl(): Func
@@ -107,7 +107,7 @@ class ExtensionTest {
     fun testUnderdefinedExtensionMethodsByMethod() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 class Impl()
                 fun <V> Impl.get(): List<V>
@@ -124,7 +124,7 @@ class ExtensionTest {
     fun testUnderdefinedExtensionFieldsByField() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 class Impl()
                 val <V> Impl.value: List<V>
@@ -141,7 +141,7 @@ class ExtensionTest {
     fun testUnderdefinedExtensionMethodsByClass() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 class Impl<V>()
                 fun Impl.get(): List<V> = emptyList()
@@ -159,7 +159,7 @@ class ExtensionTest {
     fun testUnderdefinedExtensionFieldsByClass() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 class Impl<V>()
                 val Impl.value: List<V>

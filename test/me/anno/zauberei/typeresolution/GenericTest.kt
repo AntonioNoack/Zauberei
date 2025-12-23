@@ -19,20 +19,20 @@ class GenericTest {
                 standardClasses["ArrayList"]!!,
                 listOf(ClassType(IntType.clazz, null))
             ),
-            TypeResolutionTest.Companion.testTypeResolution("val tested: ArrayList<Int>")
+            TypeResolutionTest.testTypeResolution("val tested: ArrayList<Int>")
         )
     }
 
     @Test
     fun testConstructorsWithGenerics() {
-        TypeResolutionTest.Companion.defineArrayListConstructors()
+        TypeResolutionTest.defineArrayListConstructors()
 
         assertEquals(
             ClassType(
                 standardClasses["ArrayList"]!!,
                 listOf(ClassType(IntType.clazz, null))
             ),
-            TypeResolutionTest.Companion.testTypeResolution("val tested = ArrayList<Int>(8)")
+            TypeResolutionTest.testTypeResolution("val tested = ArrayList<Int>(8)")
         )
     }
 
@@ -41,7 +41,7 @@ class GenericTest {
         val listClass = standardClasses["List"]!!
         assertEquals(
             ClassType(listClass, listOf(IntType)),
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun <V> listOf(v: V): List<V>
                 val tested = listOf(0)
@@ -50,7 +50,7 @@ class GenericTest {
         )
         assertEquals(
             ClassType(listClass, listOf(StringType)),
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun <V> listOf(v: V): List<V>
                 val tested = listOf("Hello World!")
@@ -66,7 +66,7 @@ class GenericTest {
                 standardClasses["Map"]!!,
                 listOf(StringType, IntType)
             ),
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun <K, V> mapOf(entry: Pair<K,V>): Map<K,V>
                 infix fun <F,S> F.to(other: S): Pair<F,S>
@@ -78,14 +78,14 @@ class GenericTest {
 
     @Test
     fun testGenericFunction() {
-        TypeResolutionTest.Companion.defineArrayListConstructors()
+        TypeResolutionTest.defineArrayListConstructors()
 
         assertEquals(
             ClassType(
                 standardClasses["List"]!!,
                 listOf(ClassType(IntType.clazz, null))
             ),
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun <V> emptyList(): List<V> = ArrayList<V>(0)
                 val tested = emptyList<Int>()
@@ -101,7 +101,7 @@ class GenericTest {
                 standardClasses["List"]!!,
                 listOf(ClassType(FloatType.clazz, null))
             ),
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun <V> emptyList(): List<V>
                 fun <V,R> List<V>.map(map: (V) -> R): List<R>
@@ -124,7 +124,7 @@ class GenericTest {
     fun testEmptyListAsParameter() {
         assertEquals(
             LongType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun <V> emptyList(): List<V>
                 fun sum(list: List<Int>): Long
@@ -141,7 +141,7 @@ class GenericTest {
                 standardClasses["Map"]!!,
                 listOf(IntType, FloatType)
             ),
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 infix fun <F,S> F.to(s: S): Pair<F,S>
                 fun <K,V> mapOf(vararg entries: Pair<K,V>): Map<K,V>
@@ -156,7 +156,7 @@ class GenericTest {
     fun testListReduce() {
         assertEquals(
             IntType,
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun <V> emptyList(): List<V>
                 fun <V> List<V>.reduce(map: (V, V) -> V): V
@@ -184,7 +184,7 @@ class GenericTest {
     fun testListsAreNotConfused() {
         assertEquals(
             ClassType(standardClasses["List"]!!, listOf(FloatType)),
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun <V> listOf(v: V): List<V>
                 fun intsToFloats(v: List<Int>): List<Float>
@@ -195,7 +195,7 @@ class GenericTest {
         )
         assertEquals(
             ClassType(standardClasses["List"]!!, listOf(FloatType)),
-            TypeResolutionTest.Companion.testTypeResolution(
+            TypeResolutionTest.testTypeResolution(
                 """
                 fun listOf(v: Int): List<Int>
                 fun intsToFloats(v: List<Int>): List<Float>
