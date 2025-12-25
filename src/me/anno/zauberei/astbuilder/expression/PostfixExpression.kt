@@ -3,6 +3,7 @@ package me.anno.zauberei.astbuilder.expression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.typeresolution.TypeResolution.removeNullFromType
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int) : Expression(base.scope, origin) {
@@ -15,7 +16,7 @@ class PostfixExpression(val base: Expression, val type: PostfixType, origin: Int
         return "$base${type.symbol}"
     }
 
-    override fun clone() = PostfixExpression(base.clone(), type, origin)
+    override fun clone(scope: Scope) = PostfixExpression(base.clone(scope), type, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean {
         return base.hasLambdaOrUnknownGenericsType()

@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 /**
@@ -19,6 +20,6 @@ class GetMethodFromValueExpression(val base: Expression, val name: String, origi
         TODO("Not yet implemented")
     }
 
-    override fun clone() = GetMethodFromValueExpression(base.clone(), name, origin)
+    override fun clone(scope: Scope) = GetMethodFromValueExpression(base.clone(scope), name, origin)
 
 }

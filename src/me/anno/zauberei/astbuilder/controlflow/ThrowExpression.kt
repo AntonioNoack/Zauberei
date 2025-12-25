@@ -1,7 +1,8 @@
-package me.anno.zauberei.astbuilder.flow
+package me.anno.zauberei.astbuilder.controlflow
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.NothingType
 
@@ -20,6 +21,6 @@ class ThrowExpression(origin: Int, val thrown: Expression) : Expression(thrown.s
         return NothingType
     }
 
-    override fun clone() = ThrowExpression(origin, thrown.clone())
+    override fun clone(scope: Scope) = ThrowExpression(origin, thrown.clone(scope))
 
 }

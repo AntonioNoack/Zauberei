@@ -52,7 +52,7 @@ class NumberExpression(val value: String, scope: Scope, origin: Int) : Expressio
         return resolvedType!!
     }
 
-    override fun clone() = NumberExpression(value, scope, origin)
+    override fun clone(scope: Scope) = NumberExpression(value, scope, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
 }

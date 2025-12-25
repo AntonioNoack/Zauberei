@@ -3,9 +3,9 @@ package me.anno.zauberei.generator.c
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.astbuilder.expression.ExpressionList
 import me.anno.zauberei.astbuilder.expression.NameExpression
-import me.anno.zauberei.astbuilder.flow.IfElseBranch
-import me.anno.zauberei.astbuilder.flow.ReturnExpression
-import me.anno.zauberei.astbuilder.flow.WhileLoop
+import me.anno.zauberei.astbuilder.controlflow.IfElseBranch
+import me.anno.zauberei.astbuilder.controlflow.ReturnExpression
+import me.anno.zauberei.astbuilder.controlflow.WhileLoop
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type

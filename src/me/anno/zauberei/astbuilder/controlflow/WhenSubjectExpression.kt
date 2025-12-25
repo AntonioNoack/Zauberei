@@ -1,4 +1,4 @@
-package me.anno.zauberei.astbuilder.flow
+package me.anno.zauberei.astbuilder.controlflow
 
 import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.ASTBuilder
@@ -20,7 +20,7 @@ class SubjectWhenCase(val conditions: List<SubjectCondition?>, val conditionScop
     fun toCondition(astBuilder: ASTBuilder, subject: Expression): Expression {
         val scope = conditionScope
         val expressions = conditions.map { condition -> condition!!.toExpression(astBuilder, subject, scope) }
-        return expressions.reduce { a, b -> ShortcutExpression(a, ShortcutOperator.OR, b, scope, a.origin) }
+        return expressions.reduce { a, b -> shortcutExpression(a, ShortcutOperator.OR, b, scope, a.origin) }
     }
 }
 

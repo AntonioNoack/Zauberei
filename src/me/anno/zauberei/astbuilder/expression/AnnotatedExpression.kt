@@ -2,6 +2,7 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.Annotation
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Expression(base.scope, base.origin) {
@@ -22,5 +23,5 @@ class AnnotatedExpression(val annotation: Annotation, val base: Expression) : Ex
         return base.hasLambdaOrUnknownGenericsType()
     }
 
-    override fun clone() = AnnotatedExpression(annotation, base.clone())
+    override fun clone(scope: Scope) = AnnotatedExpression(annotation, base.clone(scope))
 }

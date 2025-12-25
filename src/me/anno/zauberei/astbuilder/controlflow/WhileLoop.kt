@@ -1,7 +1,8 @@
-package me.anno.zauberei.astbuilder.flow
+package me.anno.zauberei.astbuilder.controlflow
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 class WhileLoop(val condition: Expression, val body: Expression, val label: String?) :
@@ -20,7 +21,7 @@ class WhileLoop(val condition: Expression, val body: Expression, val label: Stri
         return exprHasNoType(context)
     }
 
-    override fun clone() = WhileLoop(condition.clone(), body.clone(), label)
+    override fun clone(scope: Scope) = WhileLoop(condition.clone(scope), body.clone(body.scope), label)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false // this has no return value
 

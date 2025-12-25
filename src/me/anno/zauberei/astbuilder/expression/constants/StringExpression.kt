@@ -19,7 +19,7 @@ class StringExpression(val value: String, scope: Scope, origin: Int) : Expressio
         return StringType
     }
 
-    override fun clone() = StringExpression(value, scope, origin)
+    override fun clone(scope: Scope) = StringExpression(value, scope, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
 

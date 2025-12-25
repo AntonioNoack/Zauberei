@@ -14,7 +14,7 @@ class ImportedExpression(
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String = nameAsImport.name
 
-    override fun clone() = ImportedExpression(nameAsImport, scope, origin)
+    override fun clone(scope: Scope) = ImportedExpression(nameAsImport, scope, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
 

@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.UnitType
 
@@ -23,5 +24,5 @@ class AssignIfMutableExpr(val left: Expression, val symbol: String, val right: E
         return UnitType
     }
 
-    override fun clone() = AssignIfMutableExpr(left.clone(), symbol, right.clone())
+    override fun clone(scope: Scope): Expression = AssignIfMutableExpr(left.clone(scope), symbol, right.clone(scope))
 }

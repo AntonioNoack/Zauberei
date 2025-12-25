@@ -8,6 +8,7 @@ import me.anno.zauberei.typeresolution.ResolveMethod.findMethod
 import me.anno.zauberei.typeresolution.ResolveMethod.resolveCallType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParameters
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 /**
@@ -33,9 +34,9 @@ class CallExpression(
         } else "($base)<${typeParameters ?: "?"}>($valueParameters)"
     }
 
-    override fun clone() = CallExpression(
-        base.clone(), typeParameters,
-        valueParameters.map { NamedParameter(it.name, it.value.clone()) }, origin
+    override fun clone(scope: Scope) = CallExpression(
+        base.clone(scope), typeParameters,
+        valueParameters.map { NamedParameter(it.name, it.value.clone(scope)) }, origin
     )
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean {

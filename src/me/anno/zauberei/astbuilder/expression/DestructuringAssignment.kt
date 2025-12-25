@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 // todo generate a temporary variable, and then just assign all of them in an expression list :)
@@ -22,6 +23,6 @@ class DestructuringAssignment(
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
 
-    override fun clone() = DestructuringAssignment(names, initialValue.clone(), isVar, isLateinit)
+    override fun clone(scope: Scope) = DestructuringAssignment(names, initialValue.clone(scope), isVar, isLateinit)
 
 }

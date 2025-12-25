@@ -28,7 +28,7 @@ class NameExpression(
 
     override fun forEachExpr(callback: (Expression) -> Unit) {}
     override fun toString(): String = name
-    override fun clone() = NameExpression(name, scope, origin)
+    override fun clone(scope: Scope) = NameExpression(name, scope, origin)
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
     override fun resolveType(context: ResolutionContext): Type {
         val field = findField(context.codeScope, context.selfScope?.typeWithoutArgs, name)

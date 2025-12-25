@@ -29,7 +29,7 @@ class ExprTypeOp(val left: Expression, val op: ExprTypeOpType, val right: Type, 
         }
     }
 
-    override fun clone(): Expression {
-        return ExprTypeOp(left.clone(), op, right, scope, origin)
+    override fun clone(scope: Scope): Expression {
+        return ExprTypeOp(left.clone(scope), op, right, scope, origin)
     }
 }

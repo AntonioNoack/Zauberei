@@ -26,5 +26,5 @@ class ConstructorExpression(
         return ClassType(clazz, typeParams)
     }
 
-    override fun clone() = ConstructorExpression(clazz, typeParams, params.map { it.clone() }, scope, origin)
+    override fun clone(scope: Scope) = ConstructorExpression(clazz, typeParams, params.map { it.clone(scope) }, scope, origin)
 }

@@ -6,7 +6,7 @@ import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValue
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
 import me.anno.zauberei.astbuilder.expression.constants.StringExpression
-import me.anno.zauberei.astbuilder.flow.*
+import me.anno.zauberei.astbuilder.controlflow.*
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.TokenType
 import me.anno.zauberei.typeresolution.TypeResolution.getSelfType
@@ -1012,6 +1012,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     private fun readForLoop(label: String?): Expression {
         i++ // skip for
         if (tokens.equals(i + 1, TokenType.OPEN_CALL)) {
+            // destructuring expression
             val names = ArrayList<String>()
             lateinit var iterable: Expression
             pushCall {
@@ -1029,11 +1030,12 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 check(i == tokens.size)
             }
             val body = readBodyOrExpression()
-            return DestructuringForLoop(currPackage, names, iterable, body, label)
+            return destructuringForLoop(currPackage, names, iterable, body, label)
         } else {
             lateinit var name: String
             lateinit var iterable: Expression
             var variableType: Type? = null
+            val origin = origin(i)
             pushCall {
                 check(tokens.equals(i, TokenType.NAME))
                 name = tokens.toString(i++)
@@ -1047,7 +1049,11 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 check(i == tokens.size)
             }
             val body = readBodyOrExpression()
-            return ForLoop(name, variableType, iterable, body, label)
+            val variableField = Field(
+                body.scope, false, true, null,
+                name, variableType, null, emptyList(), origin
+            )
+            return forLoop(variableField, iterable, body, label)
         }
     }
 

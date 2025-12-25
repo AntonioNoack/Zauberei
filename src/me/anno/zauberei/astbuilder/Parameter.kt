@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 class Parameter(
@@ -16,7 +17,7 @@ class Parameter(
         return "${if (isVar) "var " else ""}${if (isVal) "val " else ""}$name: $type${if (initialValue != null) " = $initialValue" else ""}"
     }
 
-    fun clone(): Parameter {
-        return Parameter(isVar, isVal, isVararg, name, type, initialValue?.clone(), origin)
+    fun clone(scope: Scope): Parameter {
+        return Parameter(isVar, isVal, isVararg, name, type, initialValue?.clone(scope), origin)
     }
 }

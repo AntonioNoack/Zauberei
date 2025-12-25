@@ -2,6 +2,7 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 class PrefixExpression(val type: PrefixType, origin: Int, val base: Expression) : Expression(base.scope, origin) {
@@ -22,5 +23,5 @@ class PrefixExpression(val type: PrefixType, origin: Int, val base: Expression) 
         return base.hasLambdaOrUnknownGenericsType()
     }
 
-    override fun clone() = PrefixExpression(type, origin, base.clone())
+    override fun clone(scope: Scope) = PrefixExpression(type, origin, base.clone(scope))
 }

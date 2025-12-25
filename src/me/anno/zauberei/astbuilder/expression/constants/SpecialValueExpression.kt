@@ -24,6 +24,6 @@ class SpecialValueExpression(val value: SpecialValue, scope: Scope, origin: Int)
         }
     }
 
-    override fun clone() = SpecialValueExpression(value, scope, origin)
+    override fun clone(scope: Scope) = SpecialValueExpression(value, scope, origin)
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false // should not have any
 }

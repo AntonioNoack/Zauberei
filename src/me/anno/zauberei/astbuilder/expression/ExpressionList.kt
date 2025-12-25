@@ -21,7 +21,7 @@ class ExpressionList(val list: List<Expression>, scope: Scope, origin: Int) : Ex
         return TypeResolution.resolveType(context, lastExpr)
     }
 
-    override fun clone() = ExpressionList(list.map { it.clone() }, scope, origin)
+    override fun clone(scope: Scope) = ExpressionList(list.map { it.clone(scope) }, scope, origin)
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean {
         val last = list.lastOrNull() ?: return false

@@ -18,6 +18,6 @@ class GetClassFromTypeExpression(val base: Scope, scope: Scope, origin: Int) : E
         return ClassType(getScope("Class"), listOf(ClassType(base, null)))
     }
 
-    override fun clone() = GetClassFromTypeExpression(base, scope, origin)
+    override fun clone(scope: Scope) = GetClassFromTypeExpression(base, scope, origin)
 
 }

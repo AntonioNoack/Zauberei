@@ -31,9 +31,9 @@ class NamedCallExpression(
         }
     }
 
-    override fun clone() = NamedCallExpression(
-        base.clone(), name, typeParameters,
-        valueParameters.map { NamedParameter(it.name, it.value.clone()) },
+    override fun clone(scope: Scope) = NamedCallExpression(
+        base.clone(scope), name, typeParameters,
+        valueParameters.map { NamedParameter(it.name, it.value.clone(scope)) },
         scope, origin
     )
 

@@ -32,9 +32,10 @@ abstract class Expression(val scope: Scope, val origin: Int) {
     }
 
     /**
-     * clone to get rid of resolvedType
+     * clone to get rid of resolvedType,
+     * or to change the scope
      * */
-    abstract fun clone(): Expression
+    abstract fun clone(scope: Scope): Expression
 
     /**
      * returns whether the type of this has a lambda, or some other unknown generics inside;

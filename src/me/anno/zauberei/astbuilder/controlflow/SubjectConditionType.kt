@@ -1,4 +1,4 @@
-package me.anno.zauberei.astbuilder.flow
+package me.anno.zauberei.astbuilder.controlflow
 
 enum class SubjectConditionType(val symbol: String) {
     INSTANCEOF("is"),

@@ -1,8 +1,9 @@
-package me.anno.zauberei.astbuilder.flow
+package me.anno.zauberei.astbuilder.controlflow
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
@@ -12,7 +13,7 @@ class IfElseBranch(val condition: Expression, val ifBranch: Expression, val else
     init {
         check(ifBranch.scope != elseBranch?.scope)
         check(ifBranch.scope != condition.scope)
-        check(elseBranch?.scope != condition.scope){
+        check(elseBranch?.scope != condition.scope) {
             "Else and condition somehow have the same scope: ${condition.scope.pathStr}"
         }
 
@@ -34,7 +35,11 @@ class IfElseBranch(val condition: Expression, val ifBranch: Expression, val else
         return unionTypes(ifType, elseType)
     }
 
-    override fun clone() = IfElseBranch(condition.clone(), ifBranch.clone(), elseBranch?.clone())
+    override fun clone(scope: Scope): Expression = IfElseBranch(
+        condition.clone(scope),
+        ifBranch.clone(ifBranch.scope),
+        elseBranch?.clone(elseBranch.scope)
+    )
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean {
         return elseBranch != null && // if else is undefined, this has no return type

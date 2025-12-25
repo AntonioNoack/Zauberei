@@ -1,4 +1,4 @@
-package me.anno.zauberei.astbuilder.flow
+package me.anno.zauberei.astbuilder.controlflow
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
@@ -21,6 +21,6 @@ class ReturnExpression(val value: Expression?, val label: String?, scope: Scope,
         return NothingType
     }
 
-    override fun clone() = ReturnExpression(value?.clone(), label, scope, origin)
+    override fun clone(scope: Scope) = ReturnExpression(value?.clone(scope), label, scope, origin)
 
 }

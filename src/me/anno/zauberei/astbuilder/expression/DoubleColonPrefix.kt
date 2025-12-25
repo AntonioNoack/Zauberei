@@ -20,6 +20,6 @@ class DoubleColonPrefix(val left: Scope, val methodName: String, scope: Scope, o
         TODO("Not yet implemented")
     }
 
-    override fun clone() = DoubleColonPrefix(left, methodName, scope, origin)
+    override fun clone(scope: Scope) = DoubleColonPrefix(left, methodName, scope, origin)
 
 }

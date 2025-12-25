@@ -2,6 +2,7 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.getScope
 import me.anno.zauberei.types.impl.ClassType
@@ -21,6 +22,6 @@ class GetClassFromValueExpression(val type: Expression, origin: Int) : Expressio
         return ClassType(getScope("Class"), listOf(base))
     }
 
-    override fun clone() = GetClassFromValueExpression(type.clone(), origin)
+    override fun clone(scope: Scope) = GetClassFromValueExpression(type.clone(scope), origin)
 
 }

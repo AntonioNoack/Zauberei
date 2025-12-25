@@ -16,7 +16,7 @@ class UnderdefinedValueParameter(
         val expr = param.value
         println("Expr for resolving lambda/generics: $expr, tt: $targetType")
         // this is targetType-specific, so we should clone expr
-        return resolveType(context.withTargetType(targetType), expr.clone())
+        return resolveType(context.withTargetType(targetType), expr.clone(expr.scope))
     }
 
     override fun toString(): String {

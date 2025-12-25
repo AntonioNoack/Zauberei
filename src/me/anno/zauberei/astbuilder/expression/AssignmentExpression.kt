@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
 class AssignmentExpression(var variableName: Expression, var newValue: Expression) :
@@ -19,7 +20,7 @@ class AssignmentExpression(var variableName: Expression, var newValue: Expressio
         return exprHasNoType(context)
     }
 
-    override fun clone() = AssignmentExpression(variableName.clone(), newValue.clone())
+    override fun clone(scope: Scope): Expression = AssignmentExpression(variableName.clone(scope), newValue.clone(scope))
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false // this has no return type
 }

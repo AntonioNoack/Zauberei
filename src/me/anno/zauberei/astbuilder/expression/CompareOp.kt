@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.BooleanType
 
@@ -19,5 +20,5 @@ class CompareOp(val value: Expression, val type: CompareType) : Expression(value
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false // return type is always Boolean
 
-    override fun clone() = CompareOp(value.clone(), type)
+    override fun clone(scope: Scope) = CompareOp(value.clone(scope), type)
 }

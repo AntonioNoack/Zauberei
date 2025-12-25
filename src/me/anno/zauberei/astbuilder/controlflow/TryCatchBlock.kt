@@ -1,8 +1,9 @@
-package me.anno.zauberei.astbuilder.flow
+package me.anno.zauberei.astbuilder.controlflow
 
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
@@ -27,8 +28,8 @@ class TryCatchBlock(val tryBody: Expression, val catches: List<Catch>, val final
         else unionTypes(bodyType, catchTypes)
     }
 
-    override fun clone() = TryCatchBlock(tryBody.clone(), catches.map {
-        Catch(it.param.clone(), it.handler.clone())
-    }, finallyExpression?.clone())
+    override fun clone(scope: Scope) = TryCatchBlock(tryBody.clone(scope), catches.map {
+        Catch(it.param.clone(scope), it.handler.clone(scope))
+    }, finallyExpression?.clone(scope))
 
 }

@@ -17,6 +17,6 @@ class GetMethodFromTypeExpression(val base: Scope, val name: String, scope: Scop
         TODO("Not yet implemented")
     }
 
-    override fun clone() = GetMethodFromTypeExpression(base, name, scope, origin)
+    override fun clone(scope: Scope) = GetMethodFromTypeExpression(base, name, scope, origin)
 
 }

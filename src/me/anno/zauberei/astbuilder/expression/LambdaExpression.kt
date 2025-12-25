@@ -22,7 +22,8 @@ class LambdaExpression(
         return "LambdaExpr(${variables ?: "?"} -> $body)"
     }
 
-    override fun clone() = LambdaExpression(variables, bodyScope, body.clone())
+    // scope cannot be changed that easily, like with branches and loops
+    override fun clone(scope: Scope) = LambdaExpression(variables, bodyScope, body.clone(bodyScope))
 
     override fun hasLambdaOrUnknownGenericsType(): Boolean = true
 
