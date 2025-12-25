@@ -4,7 +4,6 @@ import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.SuperCall
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.types.Scope
-import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.AnyType
 import me.anno.zauberei.types.impl.*
@@ -86,9 +85,9 @@ object Inheritance {
             )
         ) return false
 
-        actualTypeParameters.union(typeParamIdx, actualType, insertMode == InsertMode.STRONG)
-        println("Found Type: [$typeParamIdx,'${expectedType.name}'] = ${actualTypeParameters[typeParamIdx]}")
-        return true
+        val success = actualTypeParameters.union(typeParamIdx, actualType, insertMode == InsertMode.STRONG)
+        println("Found Type[$success]: [$typeParamIdx,'${expectedType.name}'] = ${actualTypeParameters[typeParamIdx]}")
+        return success
     }
 
     private fun isSubTypeOfImpl(

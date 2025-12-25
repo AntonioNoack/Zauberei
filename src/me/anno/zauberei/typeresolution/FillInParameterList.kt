@@ -14,14 +14,16 @@ class FillInParameterList(override val size: Int) : List<Type?> {
      * */
     val isStrong = BooleanArray(size)
 
-    fun union(index: Int, newType: Type, valueIsStrong: Boolean) {
-        if (isStrong[index] == valueIsStrong) {
+    fun union(index: Int, newType: Type, valueIsStrong: Boolean): Boolean {
+        return if (isStrong[index] == valueIsStrong) {
             val oldType = types[index]
             types[index] = if (oldType != null) unionTypes(newType, oldType) else newType
+            true
         } else if (valueIsStrong) {
             types[index] = newType
             isStrong[index] = true
-        } // else ignored
+            true
+        } else false// else ignored
     }
 
     override fun isEmpty(): Boolean = size == 0
@@ -35,6 +37,11 @@ class FillInParameterList(override val size: Int) : List<Type?> {
     override fun listIterator(): ListIterator<Type?> = listIterator(0)
     override fun listIterator(index: Int): ListIterator<Type?> = types.asList().listIterator(index)
     override fun subList(fromIndex: Int, toIndex: Int): List<Type?> = types.asList().subList(fromIndex, toIndex)
+
+    fun clear() {
+        isStrong.fill(false)
+        types.fill(null)
+    }
 
     override fun toString(): String {
         return indices.joinToString(", ", "[", "]") { idx ->

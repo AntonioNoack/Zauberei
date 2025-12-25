@@ -11,7 +11,8 @@ import me.anno.zauberei.types.Type
 class GenericType(val scope: Scope, val name: String) : Type() {
 
     val byTypeParameter: Parameter
-        get() = scope.typeParameters.first { it.name == name }
+        get() = scope.typeParameters.firstOrNull { it.name == name }
+            ?: throw IllegalStateException("Missing generic parameter '$name'")
 
     val superBounds: Type
         get() = byTypeParameter.type

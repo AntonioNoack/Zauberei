@@ -612,6 +612,8 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 tokens.equals(i, TokenType.NAME) || tokens.equals(i, TokenType.KEYWORD) ->
                     collectNames(fileLevelKeywords)
 
+                tokens.equals(i, ";") -> i++ // just skip it
+
                 else -> throw NotImplementedError("Unknown token at ${tokens.err(i)}")
             }
         }
