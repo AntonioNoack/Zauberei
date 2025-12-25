@@ -4,7 +4,7 @@ import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.ResolveMethod.findConstructor
-import me.anno.zauberei.typeresolution.ResolveMethod.findMethod
+import me.anno.zauberei.typeresolution.ResolveMethod.findMethodInFile
 import me.anno.zauberei.typeresolution.ResolveMethod.resolveCallType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParameters
@@ -72,9 +72,7 @@ class CallExpression(
                 // findConstructor(selfScope, false, name, typeParameters, valueParameters)
                 val constructor =
                     findConstructor(base.nameAsImport, name, typeParameters, valueParameters)
-                    // ?: findConstructor(context.codeScope, true, name, typeParameters, valueParameters)
-                    // ?: findConstructor(langScope, false, name, typeParameters, valueParameters)
-                        ?: findMethod(
+                        ?: findMethodInFile(
                             base.nameAsImport.parent, name,
                             context.targetType,
                             base.nameAsImport.parent?.typeWithoutArgs,

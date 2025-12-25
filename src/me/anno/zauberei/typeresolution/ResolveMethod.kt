@@ -6,6 +6,7 @@ import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolveField.findField
+import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.typeresolution.TypeResolution.applyTypeAlias
 import me.anno.zauberei.typeresolution.TypeResolution.getSelfType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
@@ -16,6 +17,7 @@ import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.impl.ClassType
+import me.anno.zauberei.types.impl.NullType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 object ResolveMethod {
@@ -26,8 +28,9 @@ object ResolveMethod {
     /**
      * finds a method, returns the method and any inserted type parameters
      * */
-    fun findMethod(
+    fun findMethodInFile(
         scope: Scope?, name: String,
+
         expectedReturnType: Type?, // sometimes, we know what to expect from the return type
         expectedSelfType: Type?, // if inside Companion/Object/Class/Interface, this is defined; else null
 
@@ -36,26 +39,86 @@ object ResolveMethod {
     ): ResolvedMethod? {
         var scope = scope ?: return null
         while (true) {
-            val scopeSelfType = getSelfType(scope)
-            for (method in scope.methods) {
-                if (method.name != name) continue
-                if (method.typeParameters.isNotEmpty()) {
-                    println("Given $method on $expectedSelfType, with target $expectedReturnType, can we deduct any generics from that?")
-                }
-                val methodReturnType = if (expectedReturnType != null) {
-                    getMethodReturnType(scopeSelfType, method)
-                } else method.returnType // no resolution invoked
-                val generics = findGenericsForMatch(
-                    expectedSelfType, method.selfType,
-                    expectedReturnType, methodReturnType,
-                    method.typeParameters, typeParameters,
-                    method.valueParameters, valueParameters
-                ) ?: continue
-                return ResolvedMethod(method, generics)
-            }
+            val method = findMethodInScope(
+                scope, name,
+                expectedReturnType, expectedSelfType,
+                typeParameters, valueParameters
+            )
+            if (method != null) return method
 
             scope = scope.parentIfSameFile ?: return null
         }
+    }
+
+    /**
+     * finds a method, returns the method and any inserted type parameters
+     * todo check whether this works... the first call should be checked whether expectedSelfType & scope are the same
+     * */
+    fun findMethodInHierarchy(
+        scope: Scope?, name: String,
+
+        expectedReturnType: Type?, // sometimes, we know what to expect from the return type
+        expectedSelfType: Type?, // if inside Companion/Object/Class/Interface, this is defined; else null
+
+        typeParameters: List<Type>?,
+        valueParameters: List<ValueParameter>
+    ): ResolvedMethod? {
+        if (scope == null || expectedSelfType !is ClassType) return null
+
+        val method = findMethodInScope(
+            scope, name,
+            expectedReturnType, expectedSelfType,
+            typeParameters, valueParameters
+        )
+        if (method != null) return method
+
+        return scope.superCalls.firstNotNullOfOrNull { call ->
+            val superType = call.type
+            val genericNames = scope.typeParameters
+            val genericValues = call.type.typeParameters ?: emptyList()
+            val mappedSelfType = resolveGenerics(expectedSelfType, genericNames, genericValues) as ClassType
+            val mappedTypeParameters = typeParameters?.map {
+                resolveGenerics(it, genericNames, genericValues)
+            }
+            check(superType.clazz != expectedSelfType.clazz)
+            findMethodInHierarchy(
+                superType.clazz, name,
+                expectedReturnType,
+                mappedSelfType,
+                mappedTypeParameters,
+                valueParameters
+            )
+        }
+    }
+
+    fun findMethodInScope(
+        scope: Scope?, name: String,
+
+        expectedReturnType: Type?, // sometimes, we know what to expect from the return type
+        expectedSelfType: Type?, // if inside Companion/Object/Class/Interface, this is defined; else null
+
+        typeParameters: List<Type>?,
+        valueParameters: List<ValueParameter>
+    ): ResolvedMethod? {
+        scope ?: return null
+        val scopeSelfType = getSelfType(scope)
+        for (method in scope.methods) {
+            if (method.name != name) continue
+            if (method.typeParameters.isNotEmpty()) {
+                println("Given $method on $expectedSelfType, with target $expectedReturnType, can we deduct any generics from that?")
+            }
+            val methodReturnType = if (expectedReturnType != null) {
+                getMethodReturnType(scopeSelfType, method)
+            } else method.returnType // no resolution invoked
+            val generics = findGenericsForMatch(
+                expectedSelfType, method.selfType,
+                expectedReturnType, methodReturnType,
+                method.typeParameters, typeParameters,
+                method.valueParameters, valueParameters
+            ) ?: continue
+            return ResolvedMethod(method, generics)
+        }
+        return null
     }
 
     fun findConstructor(
@@ -136,9 +199,9 @@ object ResolveMethod {
         val targetType = context.targetType
         val selfType = context.selfType
         val method = constructor
-            ?: findMethod(context.selfScope, name, targetType, selfType, typeParameters, valueParameters)
-            ?: findMethod(context.codeScope, name, targetType, selfType, typeParameters, valueParameters)
-            ?: findMethod(langScope, name, targetType, selfType, typeParameters, valueParameters)
+            ?: findMethodInHierarchy(context.selfScope, name, targetType, selfType, typeParameters, valueParameters)
+            ?: findMethodInFile(context.codeScope, name, targetType, selfType, typeParameters, valueParameters)
+            ?: findMethodInFile(langScope, name, targetType, selfType, typeParameters, valueParameters)
         val field = findField(context.codeScope, selfType, name)
         val candidates =
             listOfNotNull(method?.getTypeFromCall(), field?.resolveCall()?.getTypeFromCall())
