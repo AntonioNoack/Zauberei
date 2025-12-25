@@ -1,7 +1,9 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.astbuilder.Parameter
+import me.anno.zauberei.astbuilder.SuperCall
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
+import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.AnyType
@@ -145,18 +147,18 @@ object Inheritance {
         }
 
         if (insertMode != InsertMode.READ_ONLY) {
-            if (expectedType is GenericType) {
+            if (actualType is GenericType) {
                 return tryInsertGenericType(
-                    expectedType, actualType,
+                    // does this work with just swapping them???
+                    actualType, expectedType,
                     expectedTypeParams, actualTypeParameters,
                     insertMode,
                 )
             }
 
-            if (actualType is GenericType) {
+            if (expectedType is GenericType) {
                 return tryInsertGenericType(
-                    // does this work with just swapping them???
-                    actualType, expectedType,
+                    expectedType, actualType,
                     expectedTypeParams, actualTypeParameters,
                     insertMode,
                 )
@@ -206,26 +208,19 @@ object Inheritance {
             }
 
             // println("classType of $expectedType: ${expectedType.clazz.scopeType}")
-            return when (expectedType.clazz.scopeType) {
-                ScopeType.INTERFACE -> {
-                    TODO("check super interfaces of $actualType for $expectedType")
-                }
-                else -> {
-                    val isAnyClass = actualType.clazz == AnyType.clazz
-                    if (isAnyClass) return false
 
-                    // check super class
-                    // todo if super type has generics, we need to inject them into the super type
-                    val superType = actualType.clazz.superCalls.firstOrNull { it.valueParams != null }?.type ?: AnyType
-                    println("super($actualType): $superType")
-                    isSubTypeOf(
-                        expectedType,
-                        superType,
-                        expectedTypeParams,
-                        actualTypeParameters,
-                        insertMode,
-                    )
-                }
+            // check super class
+            // todo if super type has generics, we need to inject them into the super type
+            return getSuperCalls(actualType.clazz).any { superCall ->
+                val superType = superCall.type
+                println("super($actualType): $superType")
+                isSubTypeOf(
+                    expectedType,
+                    superType,
+                    expectedTypeParams,
+                    actualTypeParameters,
+                    insertMode,
+                )
             }
         }
 
@@ -261,5 +256,13 @@ object Inheritance {
 
         TODO("Is $actualType a $expectedType?, $expectedTypeParams, $actualTypeParameters [$insertMode]")
     }
+
+    fun getSuperCalls(scope: Scope): List<SuperCall> {
+        if (scope == AnyType.clazz) return emptyList()
+        if (scope.superCalls.isEmpty()) return listOf(superCallAny)
+        return scope.superCalls
+    }
+
+    private val superCallAny = SuperCall(AnyType, emptyList(), null)
 
 }
