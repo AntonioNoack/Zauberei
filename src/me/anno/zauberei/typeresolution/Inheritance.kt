@@ -100,6 +100,20 @@ object Inheritance {
 
         if (expectedType == actualType) return true
 
+        if (expectedType is NotType) {
+            return !isSubTypeOf(
+                expectedType.not(), actualType,
+                expectedTypeParams, actualTypeParameters, insertMode
+            )
+        }
+
+        if (actualType is NotType) {
+            return !isSubTypeOf(
+                expectedType, actualType.not(),
+                expectedTypeParams, actualTypeParameters, insertMode
+            )
+        }
+
         if (actualType is UnionType) {
             // everything must fit
             // first try without inserting types
@@ -141,6 +155,51 @@ object Inheritance {
                     expectedTypeParams,
                     actualTypeParameters,
                     insertMode
+                )
+            }
+        }
+
+        if (expectedType is AndType) {
+            // first try without inserting types
+            val t0 = expectedType.types.all { anyExpected ->
+                isSubTypeOf(
+                    anyExpected, actualType,
+                    expectedTypeParams,
+                    actualTypeParameters,
+                    InsertMode.READ_ONLY
+                )
+            }
+            if (t0 || insertMode == InsertMode.READ_ONLY) return t0
+            // then, try with inserting new types
+            return expectedType.types.all { anyExpected ->
+                isSubTypeOf(
+                    anyExpected, actualType,
+                    expectedTypeParams,
+                    actualTypeParameters,
+                    insertMode
+                )
+            }
+        }
+
+        if (actualType is AndType) {
+            // everything must fit
+            // first try without inserting types
+            val t0 = actualType.types.any { allActual ->
+                isSubTypeOf(
+                    expectedType, allActual,
+                    expectedTypeParams,
+                    actualTypeParameters,
+                    InsertMode.READ_ONLY,
+                )
+            }
+            if (t0 || insertMode == InsertMode.READ_ONLY) return t0
+            // then, try with inserting new types
+            return actualType.types.any { allActual ->
+                isSubTypeOf(
+                    expectedType, allActual,
+                    expectedTypeParams,
+                    actualTypeParameters,
+                    insertMode,
                 )
             }
         }

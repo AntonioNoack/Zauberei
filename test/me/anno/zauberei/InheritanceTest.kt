@@ -16,10 +16,12 @@ import me.anno.zauberei.types.Types.AnyType
 import me.anno.zauberei.types.Types.FloatType
 import me.anno.zauberei.types.Types.IntType
 import me.anno.zauberei.types.Types.NullableAnyType
+import me.anno.zauberei.types.impl.AndType.Companion.andTypes
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.GenericType
 import me.anno.zauberei.types.impl.NullType
 import me.anno.zauberei.types.impl.UnionType
+import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -43,15 +45,21 @@ class InheritanceTest {
             return children.first { it.name == name }.typeWithoutArgs
         }
 
-        fun isSubTypeOf(type1: Type, type2: Type): Boolean {
+        fun isSubTypeOf(expected: Type, actual: Type): Boolean {
             return isSubTypeOf(
-                type1, type2, emptyList(),
+                expected, actual, emptyList(),
                 emptyList(), InsertMode.READ_ONLY
             )
         }
-    }
 
-    // todo add sub-type tests with generics, union types, etc...
+        fun unionTypes(typeA: Type, typeB: Type, typeC: Type): Type {
+            return unionTypes(typeA, unionTypes(typeB, typeC))
+        }
+
+        fun andTypes(typeA: Type, typeB: Type, typeC: Type): Type {
+            return andTypes(typeA, andTypes(typeB, typeC))
+        }
+    }
 
     @Test
     fun testIdentity() {
@@ -245,6 +253,71 @@ class InheritanceTest {
         defineArrayListConstructors()
         val listType = standardClasses["ArrayList"]!!
         testInferred { ClassType(listType, listOf(it)) }
+    }
+
+    @Test
+    fun testUnionTypes() {
+        val scope = """
+    class A
+    class B
+    class C
+""".testInheritance()
+        val classA = scope["A"]
+        val classB = scope["B"]
+        val classC = scope["C"]
+
+        assertTrue(isSubTypeOf(classA, classA))
+        assertFalse(isSubTypeOf(classB, classA))
+        assertFalse(isSubTypeOf(classC, classA))
+
+        assertTrue(isSubTypeOf(unionTypes(classA, classB), classA))
+        assertTrue(isSubTypeOf(unionTypes(classA, classB), classB))
+        assertFalse(isSubTypeOf(unionTypes(classA, classB), classC))
+
+        assertFalse(isSubTypeOf(classA, unionTypes(classA, classB)))
+        assertFalse(isSubTypeOf(classB, unionTypes(classA, classB)))
+
+        assertTrue(isSubTypeOf(unionTypes(classA, classB), unionTypes(classA, classB)))
+        assertTrue(isSubTypeOf(unionTypes(classA, classB, classC), unionTypes(classA, classB)))
+    }
+
+    @Test
+    fun testAndTypes() {
+        val scope = """
+    class A
+    class B
+    class C
+""".testInheritance()
+        val classA = scope["A"]
+        val classB = scope["B"]
+        val classC = scope["C"]
+
+        assertTrue(isSubTypeOf(classA, classA))
+        assertFalse(isSubTypeOf(classB, classA))
+        assertFalse(isSubTypeOf(classC, classA))
+
+        assertTrue(isSubTypeOf(classA, andTypes(classA, classB)))
+        assertTrue(isSubTypeOf(classB, andTypes(classA, classB)))
+        assertFalse(isSubTypeOf(classC, andTypes(classA, classB)))
+
+        assertFalse(isSubTypeOf(andTypes(classA, classB), classA))
+        assertFalse(isSubTypeOf(andTypes(classA, classB), classB))
+
+        assertTrue(isSubTypeOf(andTypes(classA, classB), andTypes(classA, classB)))
+        assertTrue(isSubTypeOf(andTypes(classA, classB), andTypes(classA, classB, classC)))
+    }
+
+    @Test
+    fun testNotTypes() {
+        val scope = "class A".testInheritance()
+        val classA = scope["A"]
+
+        // todo test nots with unions(?)
+
+        assertTrue(isSubTypeOf(classA, classA))
+        assertFalse(isSubTypeOf(classA.not(), classA))
+        assertFalse(isSubTypeOf(classA, classA.not()))
+        assertTrue(isSubTypeOf(classA.not(), classA.not()))
     }
 
 }
