@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test
 class TypeResolutionTest {
 
     companion object {
-        private var ctr = 0
+        var ctr = 0
 
         fun testTypeResolution(code: String): Type {
             val testScopeName = "test${ctr++}"
@@ -41,7 +41,6 @@ class TypeResolutionTest {
             TypeResolution.resolveTypesAndNames(testScope)
             return testScope.fields.first { it.name == "tested" }.valueType!!
         }
-
 
         fun defineArrayListConstructors() {
             val arrayListType = standardClasses["ArrayList"]!!
