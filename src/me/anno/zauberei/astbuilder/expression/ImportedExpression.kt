@@ -19,8 +19,7 @@ class ImportedExpression(
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
 
     override fun resolveType(context: ResolutionContext): Type {
-        val imported = nameAsImport
-        val typeParams = if (imported.scopeType == ScopeType.OBJECT) emptyList<Type>() else null
-        return ClassType(imported, typeParams)
+        val typeParams = if (nameAsImport.scopeType == ScopeType.OBJECT) emptyList<Type>() else null
+        return ClassType(nameAsImport, typeParams)
     }
 }

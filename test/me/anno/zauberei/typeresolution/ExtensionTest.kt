@@ -144,7 +144,10 @@ class ExtensionTest {
             TypeResolutionTest.testTypeResolution(
                 """
                 class Impl<V>()
-                fun Impl.get(): List<V> = emptyList()
+                // illegal syntax: V is not defined
+                // fun Impl.get(): List<V> = emptyList()
+                // proper syntax:
+                fun <V> Impl<V>.get(): List<V> = emptyList()
                 
                 fun <V> emptyList(): List<V>
                 fun sum(values: List<Int>): Int
@@ -162,8 +165,10 @@ class ExtensionTest {
             TypeResolutionTest.testTypeResolution(
                 """
                 class Impl<V>()
-                val Impl.value: List<V>
-                    get() = emptyList()
+                // illegal syntax: V is not defined
+                // val Impl.value: List<V> get() = emptyList()
+                // proper syntax:
+                val <V> Impl<V>.value: List<V> get() = emptyList()
                 
                 fun <V> emptyList(): List<V>
                 fun sum(values: List<Int>): Int
