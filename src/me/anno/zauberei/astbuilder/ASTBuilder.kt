@@ -1,12 +1,12 @@
 package me.anno.zauberei.astbuilder
 
+import me.anno.zauberei.astbuilder.controlflow.*
 import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.astbuilder.expression.NameExpression.Companion.nameExpression
 import me.anno.zauberei.astbuilder.expression.constants.NumberExpression
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValue
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
 import me.anno.zauberei.astbuilder.expression.constants.StringExpression
-import me.anno.zauberei.astbuilder.controlflow.*
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.tokenizer.TokenType
 import me.anno.zauberei.typeresolution.TypeResolution.getSelfType
@@ -1547,6 +1547,13 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                             val rhs = readRHS()
                             binaryOp(currPackage, expr, op.symbol, rhs)
                         }
+                    }
+                    "&&", "||" -> {
+                        val left = expr
+                        val name = currPackage.generateName("shortcut")
+                        val right = pushScope(name, ScopeType.EXPRESSION) { readRHS() }
+                        if (symbol == "&&") shortcutExpressionI(left, ShortcutOperator.AND, right, scope, origin)
+                        else shortcutExpressionI(left, ShortcutOperator.OR, right, scope, origin)
                     }
                     else -> {
                         val rhs = readRHS()

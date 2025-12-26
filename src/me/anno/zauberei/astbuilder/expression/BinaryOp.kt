@@ -2,9 +2,9 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.ASTBuilder
 import me.anno.zauberei.astbuilder.NamedParameter
+import me.anno.zauberei.astbuilder.controlflow.shortcutExpression
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValue
 import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
-import me.anno.zauberei.astbuilder.controlflow.shortcutExpression
 import me.anno.zauberei.types.Scope
 
 private fun compareTo(left: Expression, right: Expression) =

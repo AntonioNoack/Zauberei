@@ -14,6 +14,13 @@ fun shortcutExpression(
     val bodyName = scope.generateName("shortcut")
     val bodyScope = scope.getOrPut(bodyName, ScopeType.EXPRESSION)
     val rightWithScope = right.clone(bodyScope)
+    return shortcutExpressionI(left, operator, rightWithScope, scope, origin)
+}
+
+fun shortcutExpressionI(
+    left: Expression, operator: ShortcutOperator, rightWithScope: Expression,
+    scope: Scope, origin: Int
+): Expression {
     return when (operator) {
         ShortcutOperator.AND -> {
             val falseExpression = SpecialValueExpression(SpecialValue.TRUE, scope, origin)

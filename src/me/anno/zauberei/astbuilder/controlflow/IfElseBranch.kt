@@ -1,6 +1,7 @@
 package me.anno.zauberei.astbuilder.controlflow
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.astbuilder.expression.constants.SpecialValueExpression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.types.Scope
@@ -12,8 +13,16 @@ class IfElseBranch(val condition: Expression, val ifBranch: Expression, val else
 
     init {
         check(ifBranch.scope != elseBranch?.scope)
-        check(ifBranch.scope != condition.scope)
-        check(elseBranch?.scope != condition.scope) {
+        check(
+            ifBranch.scope != condition.scope ||
+                    ifBranch is SpecialValueExpression
+        ) {
+            "If and condition somehow have the same scope: ${condition.scope.pathStr}"
+        }
+        check(
+            elseBranch?.scope != condition.scope ||
+                    elseBranch is SpecialValueExpression
+        ) {
             "Else and condition somehow have the same scope: ${condition.scope.pathStr}"
         }
 

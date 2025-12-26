@@ -3,7 +3,13 @@ package me.anno.zauberei.types
 import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.*
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.astbuilder.expression.NamedCallExpression
+import me.anno.zauberei.astbuilder.expression.PrefixExpression
+import me.anno.zauberei.astbuilder.expression.PrefixType
 import me.anno.zauberei.tokenizer.TokenList
+import me.anno.zauberei.types.BooleanUtils.and
+import me.anno.zauberei.types.BooleanUtils.not
+import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.GenericType
 
@@ -55,9 +61,21 @@ class Scope(val name: String, val parent: Scope? = null) {
     var branchConditionTrue: Boolean = false
 
     fun addCondition(condition: Expression, isTrue: Boolean) {
-        check(branchCondition == null)
-        branchCondition = condition
-        branchConditionTrue = isTrue
+        var branchCondition = branchCondition
+        if (branchCondition == null) {
+            this.branchCondition = condition
+            branchConditionTrue = isTrue
+        } else {
+            if (!branchConditionTrue) {
+                branchCondition = branchCondition.not()
+            }
+            var condition = condition
+            if (!isTrue) {
+                condition = condition.not()
+            }
+            this.branchCondition = branchCondition.and(condition)
+            branchConditionTrue = true
+        }
     }
 
     var primaryConstructorScope: Scope? = null
