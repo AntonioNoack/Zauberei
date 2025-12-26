@@ -84,6 +84,8 @@ class ArrayList<V>(capacity: Int) : MutableList<V> {
     override var size: Int = 0
         private set
 
+    override fun isEmpty(): Boolean = size == 0
+
     override fun get(index: Int): V = content[index]
 
     override fun set(index: Int, value: V): V {

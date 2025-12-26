@@ -246,9 +246,15 @@ object ResolveField {
                 )
                 if (baseType != null) {
                     if (expr.negated) {
-                        // todo if enum with single value or object,
+                        // if enum with single value or object,
                         //  we can invert the type, otherwise not
-                        if (baseType == NullType) baseType.not() else null
+                        if (baseType == NullType ||
+                            (baseType is ClassType && baseType.clazz.scopeType == ScopeType.OBJECT) ||
+                            (baseType is ClassType && baseType.clazz.scopeType == ScopeType.ENUM_CLASS &&
+                                    baseType.clazz.enumValues.size == 1)
+                        ) {
+                            baseType.not()
+                        } else null
                     } else baseType
                 } else null
             }

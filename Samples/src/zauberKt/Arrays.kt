@@ -6,6 +6,7 @@ class Array<V>(override val size: Int) : List<V> {
 
     external fun copyOf(): Array<V>
     external fun copyOf(newSize: Int): Array<V>
+    override fun isEmpty(): Boolean = size == 0
 }
 
 typealias IntArray = Array<Int>

@@ -68,21 +68,23 @@ object Compile {
     fun tokenizeSources() {
         val project = File(".")
         val samples = File(project, "Samples/src")
+        val remsEngine = File(project, "../RemsEngine")
 
         // base: compile itself
         addSource(samples)
-        addSource(File(project, "src"))
+        if (false) {
+            addSource(File(project, "src"))
+        }
 
         if (false) {
             // bonus: compile Rem's Engine
-            val remsEngine = File(project, "../RemsEngine")
             addSource(File(remsEngine, "src"))
+            addSource(File(remsEngine, "JOML/src"))
             addSource(File(remsEngine, "Bullet/src"))
             addSource(File(remsEngine, "Box2d/src"))
             addSource(File(remsEngine, "Export/src"))
             addSource(File(remsEngine, "Image/src"))
             addSource(File(remsEngine, "JVM/src"))
-            addSource(File(remsEngine, "JOML/src"))
             addSource(File(remsEngine, "Video/src"))
             addSource(File(remsEngine, "Unpack/src"))
         }
