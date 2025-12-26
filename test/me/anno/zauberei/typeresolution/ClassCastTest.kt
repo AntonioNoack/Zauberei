@@ -40,5 +40,6 @@ class ClassCastTest {
             """.trimIndent()
             )
         )
+        check(false) { "We need to test the result/mechanics" }
     }
 }

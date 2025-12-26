@@ -11,6 +11,7 @@ class Parameter(
     val name: String,
     val type: Type,
     val initialValue: Expression?,
+    val scope: Scope,
     val origin: Int
 ) {
     override fun toString(): String {
@@ -18,6 +19,6 @@ class Parameter(
     }
 
     fun clone(scope: Scope): Parameter {
-        return Parameter(isVar, isVal, isVararg, name, type, initialValue?.clone(scope), origin)
+        return Parameter(isVar, isVal, isVararg, name, type, initialValue?.clone(scope), scope, origin)
     }
 }

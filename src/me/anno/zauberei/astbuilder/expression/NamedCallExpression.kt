@@ -5,10 +5,12 @@ import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.ResolveField.findFieldType
 import me.anno.zauberei.typeresolution.ResolveMethod.resolveCallType
+import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParameters
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.impl.ClassType
 
 class NamedCallExpression(
     val base: Expression,
@@ -80,11 +82,22 @@ class NamedCallExpression(
             check(parameter0.name == null)
             when (val parameter = parameter0.value) {
                 is NameExpression -> {
+                    // todo replace own generics, because we don't know them yet
+                    /*val selfType = context.selfType
+                    val baseType = if (baseType.containsGenerics() && selfType is ClassType) {
+                        resolveGenerics(
+                            baseType,
+                            selfType.clazz.typeParameters,
+                            selfType.clazz.typeParameters.map { it.type })
+                    } else baseType*/
                     val fieldName = parameter.name
                     return findFieldType(
                         baseType, fieldName, emptyList(),
                         parameter.scope, parameter.origin, context.targetType
-                    ) ?: throw IllegalStateException("Missing $baseType.$fieldName in ${resolveOrigin(origin)}")
+                    ) ?: throw IllegalStateException(
+                        "Missing $baseType.$fieldName" +
+                                " in ${context.selfType}, ${resolveOrigin(origin)}"
+                    )
                 }
                 is CallExpression -> {
                     val baseName = parameter.base as NameExpression

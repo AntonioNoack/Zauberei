@@ -29,7 +29,7 @@ class TryCatchBlock(val tryBody: Expression, val catches: List<Catch>, val final
     }
 
     override fun clone(scope: Scope) = TryCatchBlock(tryBody.clone(scope), catches.map {
-        Catch(it.param.clone(scope), it.handler.clone(scope))
+        Catch(it.param.clone(it.param.scope /* I don't think we should override this */), it.handler.clone(scope))
     }, finallyExpression?.clone(scope))
 
 }

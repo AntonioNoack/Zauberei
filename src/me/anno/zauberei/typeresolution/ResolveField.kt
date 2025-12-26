@@ -208,7 +208,7 @@ object ResolveField {
                     }
                     fieldType = andTypes(fieldType, conditionType)
                     println("  -> $fieldType (via $conditionType)")
-                } else println("  -> condition not yet supported (${condition.javaClass.simpleName})")
+                } else println("  -> condition not yet supported or not relevant (${condition.javaClass.simpleName})")
             }
             scopeI = scopeI.parent ?: break
         }

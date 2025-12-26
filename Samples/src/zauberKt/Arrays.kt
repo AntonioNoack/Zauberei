@@ -1,5 +1,6 @@
 package zauberKt
 
+// todo is this a MutableList? Kind of yes, kind of no...
 class Array<V>(override val size: Int) : List<V> {
     external override operator fun get(index: Int): V
     external operator fun set(index: Int, value: V)

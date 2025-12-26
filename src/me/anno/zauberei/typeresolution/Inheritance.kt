@@ -62,14 +62,25 @@ object Inheritance {
         actualTypeParameters: List<Type?>,
         insertMode: InsertMode
     ): Boolean {
+        check(insertMode != InsertMode.READ_ONLY)
 
-        // todo compare scope, too
-        val typeParamIdx = expectedTypeParams.indexOfFirst { it.name == expectedType.name }
+        val typeParamIdx = expectedTypeParams.indexOfFirst {
+            it.name == expectedType.name &&
+                    it.scope == expectedType.scope
+        }
+
         if (typeParamIdx == -1) {
-            if (insertMode != InsertMode.WEAK) {
-                System.err.println("Missing generic parameter ${expectedType.name}, ignoring it")
-            }// else can be safely ignored ;)
-            return true
+            val generallyExpectedType = expectedType.superBounds
+            println("Missing $expectedType for $actualType, falling back to $generallyExpectedType")
+            return isSubTypeOf(
+                generallyExpectedType,
+                actualType,
+                expectedTypeParams,
+                actualTypeParameters,
+                insertMode
+            )
+            // System.err.println("Missing generic parameter ${expectedType.scope.pathStr}.${expectedType.name}, ignoring it")
+            // System.err.println("Available generic parameters: ${expectedTypeParams.map { "${it.scope.pathStr}.${it.name}" }}")
         }
 
         actualTypeParameters as FillInParameterList

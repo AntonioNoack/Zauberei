@@ -717,7 +717,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     } else null
 
                     val keywords = packKeywords()
-                    result.add(Parameter(isVar, isVal, isVararg, name, type, initialValue, origin))
+                    result.add(Parameter(isVar, isVal, isVararg, name, type, initialValue, currPackage, origin))
 
                     // automatically gets added to currPackage...
                     Field(currPackage, isVar, isVal, selfType, name, type, initialValue, keywords, origin)
@@ -778,7 +778,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                     readType(null, true)
                 } else NullableAnyType
 
-                params.add(Parameter(false, true, false, name, type, null, origin))
+                params.add(Parameter(false, true, false, name, type, null, scope, origin))
                 readComma()
             }
         }

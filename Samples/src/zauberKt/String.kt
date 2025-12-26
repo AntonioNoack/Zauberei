@@ -6,6 +6,8 @@ class String(
     override val size: Int
 ) : CharSequence {
 
+    constructor(content: ByteArray): this(content, 0, content.size)
+
     override fun get(index: Int): Char {
         check(index in 0 until size)
         return content[offset + index].toInt().and(255).toChar()
