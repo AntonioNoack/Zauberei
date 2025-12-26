@@ -1290,14 +1290,17 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     }
 
 
-    fun readType(selfType: Type? = null, allowSubTypes: Boolean): Type {
+    fun readType(
+        selfType: Type? = null, allowSubTypes: Boolean,
+        isAndType: Boolean = false
+    ): Type {
         val negate = tokens.equals(i, "!")
         if (negate) i++
 
         var base = readTypeExpr(selfType, allowSubTypes)
         if (allowSubTypes && tokens.equals(i, ".")) {
             i++
-            base = readType(base, true)
+            base = readType(base, true, isAndType)
             return if (negate) base.not() else base
         }
 
@@ -1307,14 +1310,13 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         }
 
         if (negate) base = base.not()
-        // todo respect '&'/'|' binding force
-        if (tokens.equals(i, "|")) {
+        while (tokens.equals(i, "&")) {
             i++
-            return unionTypes(base, readType(null, allowSubTypes))
+            base = andTypes(base, readType(null, allowSubTypes, true))
         }
-        if (tokens.equals(i, "&")) {
+        if (!isAndType && tokens.equals(i, "|")) {
             i++
-            return andTypes(base, readType(null, allowSubTypes))
+            return unionTypes(base, readType(null, allowSubTypes, false))
         }
         return base
     }

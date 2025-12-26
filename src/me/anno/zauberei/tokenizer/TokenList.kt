@@ -131,6 +131,7 @@ class TokenList(val src: String, val fileName: String) {
             !(src[i0 - 1] == '*' && src[i0] == '>') && // <*>
             !(src[i0 - 1] == '!' && src[i0] in ":.") && // !!::, !!.
             !(src[i0 - 1] == '.' && src[i0] in "+-") && // ..+3.0, ..-3.0
+            !(src[i0 - 1] in "&|" && src[i0] == '!') && // &!, |!
             (src[i0 - 1] != '=' || src[i0] == '=')
         ) {
             // todo only accept a symbol if the previous is not =, or the current one is =, too
