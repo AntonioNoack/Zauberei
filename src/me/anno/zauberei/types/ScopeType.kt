@@ -26,5 +26,15 @@ enum class ScopeType {
     // inside expressions
     EXPRESSION,
     WHEN_CASES,
-    WHEN_ELSE
+    WHEN_ELSE;
+
+
+     fun isClassType(): Boolean {
+         return when(this) {
+             NORMAL_CLASS, INTERFACE,
+             ENUM_CLASS, ENUM_ENTRY_CLASS,
+             OBJECT, INLINE_CLASS -> true
+             else -> false
+         }
+     }
 }

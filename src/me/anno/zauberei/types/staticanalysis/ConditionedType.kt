@@ -21,6 +21,9 @@ class ConditionedType(val base: Type, val conditions: List<Condition>): Type() {
         LESS_THAN,
         LESS_THAN_OR_EQUALS,
 
+        CONTAINS,
+        NOT_CONTAINS,
+
         PREDICATE_FUNCTION
     }
 }

@@ -72,15 +72,12 @@ object TypeResolution {
     fun getSelfType(scope: Scope): Type? {
         var scope = scope
         while (true) {
-            when (scope.scopeType) {
-                ScopeType.NORMAL_CLASS, ScopeType.ENUM_CLASS,
-                ScopeType.ENUM_ENTRY_CLASS, ScopeType.INTERFACE,
-                ScopeType.OBJECT -> {
-                    val typeParams = scope.typeParameters.map { GenericType(scope, it.name) }
-                    return ClassType(scope, typeParams)
-                }
-                else -> scope = scope.parent ?: return null
+            val scopeType = scope.scopeType
+            if (scopeType != null && scopeType.isClassType()) {
+                val typeParams = scope.typeParameters.map { GenericType(scope, it.name) }
+                return ClassType(scope, typeParams)
             }
+            scope = scope.parent ?: return null
         }
     }
 
@@ -125,11 +122,10 @@ object TypeResolution {
         var scope = scope
         while (true) {
             println("Checking ${scope.pathStr}/${scope.scopeType} for 'this'")
-            when (scope.scopeType) {
-                ScopeType.NORMAL_CLASS, ScopeType.ENUM_CLASS,
-                ScopeType.INTERFACE, ScopeType.OBJECT,
-                ScopeType.INLINE_CLASS -> return scope
-                ScopeType.METHOD -> {
+            val scopeType = scope.scopeType
+            when {
+                scopeType != null && scopeType.isClassType() -> return scope
+                scopeType == ScopeType.METHOD -> {
                     val func = scope.selfAsMethod!!
                     val self = func.selfType
                     if (self != null) {

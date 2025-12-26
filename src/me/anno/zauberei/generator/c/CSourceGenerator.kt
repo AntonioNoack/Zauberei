@@ -1,11 +1,11 @@
 package me.anno.zauberei.generator.c
 
-import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.astbuilder.expression.ExpressionList
-import me.anno.zauberei.astbuilder.expression.NameExpression
 import me.anno.zauberei.astbuilder.controlflow.IfElseBranch
 import me.anno.zauberei.astbuilder.controlflow.ReturnExpression
 import me.anno.zauberei.astbuilder.controlflow.WhileLoop
+import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.astbuilder.expression.ExpressionList
+import me.anno.zauberei.astbuilder.expression.NameExpression
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
@@ -45,7 +45,7 @@ object CSourceGenerator {
         dst.deleteRecursively()
 
         fun generateCode(scope: Scope) {
-            when (scope.scopeType) {
+            when (val scopeType = scope.scopeType) {
                 ScopeType.PACKAGE, null -> {
                     if (scope.name != "*") {
                         indent()
@@ -54,17 +54,18 @@ object CSourceGenerator {
                     }
                     if (scope.name != "*") depth--
                 }
-                ScopeType.NORMAL_CLASS, ScopeType.ENUM_CLASS, ScopeType.INTERFACE, ScopeType.OBJECT -> {
-                    writeClassReflectionStruct(scope)
-                    writeClassInstanceStruct(scope)
-                }
                 ScopeType.TYPE_ALIAS -> {} // nothing to do
                 ScopeType.METHOD -> {
                     writeMethod(scope)
                 }
                 else -> {
-                    indent()
-                    builder.append("// todo: ").append(scope.name).append(" (${scope.scopeType})").append('\n')
+                    if (scopeType.isClassType()) {
+                        writeClassReflectionStruct(scope)
+                        writeClassInstanceStruct(scope)
+                    } else {
+                        indent()
+                        builder.append("// todo: ").append(scope.name).append(" (${scope.scopeType})").append('\n')
+                    }
                 }
             }
             for (child in scope.children) {

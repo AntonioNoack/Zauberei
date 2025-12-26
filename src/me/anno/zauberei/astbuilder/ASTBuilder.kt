@@ -818,7 +818,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 j++
             }
 
-            pushBlock(ScopeType.EXPRESSION, null) { scope ->
+            pushBlock(ScopeType.EXPRESSION, null) {
                 readMethodBody()
             }
         } else {
@@ -827,7 +827,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
     }
 
     private fun readExprInNewScope(): Expression {
-        return pushScope(currPackage.generateName("expr"), ScopeType.EXPRESSION) { scope ->
+        return pushScope(currPackage.generateName("expr"), ScopeType.EXPRESSION) {
             readExpression()
         }
     }
