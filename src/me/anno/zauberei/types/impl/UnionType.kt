@@ -1,6 +1,7 @@
 package me.anno.zauberei.types.impl
 
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.Types.NothingType
 
 class UnionType(val types: List<Type>) : Type() {
 
@@ -10,6 +11,8 @@ class UnionType(val types: List<Type>) : Type() {
          * */
         fun unionTypes(typeA: Type, typeB: Type): Type {
             if (typeA == typeB) return typeA
+            if (typeA == NothingType) return typeB
+            if (typeB == NothingType) return typeA
             return UnionType((getTypes(typeA) + getTypes(typeB)).distinct())
         }
 

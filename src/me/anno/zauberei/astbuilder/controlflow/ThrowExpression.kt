@@ -17,10 +17,8 @@ class ThrowExpression(origin: Int, val thrown: Expression) : Expression(thrown.s
         return "throw $thrown"
     }
 
-    override fun resolveType(context: ResolutionContext): Type {
-        return NothingType
-    }
-
+    override fun resolveType(context: ResolutionContext): Type = NothingType
+    override fun hasLambdaOrUnknownGenericsType(): Boolean = false // always Nothing
     override fun clone(scope: Scope) = ThrowExpression(origin, thrown.clone(scope))
 
 }

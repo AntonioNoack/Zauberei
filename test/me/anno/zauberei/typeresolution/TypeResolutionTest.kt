@@ -39,7 +39,9 @@ class TypeResolutionTest {
             ASTBuilder(tokens, root).readFileLevel()
             val testScope = root.children.first { it.name == testScopeName }
             TypeResolution.resolveTypesAndNames(testScope)
-            return testScope.fields.first { it.name == "tested" }.valueType!!
+            val field = testScope.fields.first { it.name == "tested" }
+            return field.valueType
+                ?: throw IllegalStateException("Could not resolve type for $field")
         }
 
         fun defineArrayListConstructors() {

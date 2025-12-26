@@ -37,11 +37,14 @@ class IfElseBranch(val condition: Expression, val ifBranch: Expression, val else
     }
 
     override fun resolveType(context: ResolutionContext): Type {
-        if (elseBranch == null) return exprHasNoType(context)
-        // targetLambdaType stays the same
-        val ifType = TypeResolution.resolveType(context, ifBranch)
-        val elseType = TypeResolution.resolveType(context, elseBranch)
-        return unionTypes(ifType, elseType)
+        return if (elseBranch == null) {
+            exprHasNoType(context)
+        } else {
+            // targetLambdaType stays the same
+            val ifType = TypeResolution.resolveType(context, ifBranch)
+            val elseType = TypeResolution.resolveType(context, elseBranch)
+            unionTypes(ifType, elseType)
+        }
     }
 
     override fun clone(scope: Scope): Expression = IfElseBranch(

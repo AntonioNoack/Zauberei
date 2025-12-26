@@ -2,9 +2,7 @@ package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
-import me.anno.zauberei.astbuilder.expression.ExprTypeOp
-import me.anno.zauberei.astbuilder.expression.ExprTypeOpType
-import me.anno.zauberei.astbuilder.expression.FieldExpression
+import me.anno.zauberei.astbuilder.expression.*
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.typeresolution.TypeResolution.getSelfType
@@ -15,12 +13,8 @@ import me.anno.zauberei.typeresolution.TypeResolution.typeToScope
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
-import me.anno.zauberei.types.impl.AndType
+import me.anno.zauberei.types.impl.*
 import me.anno.zauberei.types.impl.AndType.Companion.andTypes
-import me.anno.zauberei.types.impl.ClassType
-import me.anno.zauberei.types.impl.NotType
-import me.anno.zauberei.types.impl.NullType
-import me.anno.zauberei.types.impl.UnionType
 
 object ResolveField {
 
@@ -206,27 +200,7 @@ object ResolveField {
 
                 // decide based on conditionType...
                 //  might be inside complex combinations of and, or and not with other conditions...
-                var conditionType = when (condition) {
-                    is ExprTypeOp -> {
-                        println("  -> ExprTypeOf(${condition.left})")
-                        var nameExpr = condition.left as? FieldExpression
-                        val type = condition.right
-                        var matchesName = false
-                        while (!matchesName && nameExpr != null) { // todo check if field is actually the same
-                            matchesName = nameExpr.field.name == field.name
-                            nameExpr = nameExpr.field.initialValue as? FieldExpression
-                            println("  -> ExprTypeOf/i($nameExpr)")
-                        }
-                        if (matchesName) {
-                            when (condition.op) {
-                                ExprTypeOpType.INSTANCEOF -> type
-                                ExprTypeOpType.NOT_INSTANCEOF -> type.not()
-                                else -> null
-                            }
-                        } else null
-                    }
-                    else -> null
-                }
+                var conditionType = matchesField(condition, field)
 
                 if (conditionType != null) {
                     if (!scopeI.branchConditionTrue) {
@@ -234,7 +208,7 @@ object ResolveField {
                     }
                     fieldType = andTypes(fieldType, conditionType)
                     println("  -> $fieldType (via $conditionType)")
-                } else println("  -> condition not yet supported")
+                } else println("  -> condition not yet supported (${condition.javaClass.simpleName})")
             }
             scopeI = scopeI.parent ?: break
         }
@@ -242,6 +216,54 @@ object ResolveField {
         println("SpecializedFieldType[${field.declaredScope}.${field.name}]: $fieldType")
 
         return fieldType
+    }
+
+    fun matchesField(expr: Expression, field: Field): Type? {
+        return when (expr) {
+            is ExprTypeOp -> {
+                val type = expr.right
+                if (matchesFieldI(expr, field)) {
+                    when (expr.op) {
+                        ExprTypeOpType.INSTANCEOF -> type
+                        ExprTypeOpType.NOT_INSTANCEOF -> type.not()
+                        else -> null
+                    }
+                } else null
+            }
+            is CheckEqualsOp -> {
+                val context = ResolutionContext(
+                    expr.scope, /* todo we need selfType */null,
+                    false, null
+                )
+                val baseType = when {
+                    matchesFieldI(expr.right, field) -> resolveType(context, expr.left)
+                    matchesFieldI(expr.left, field) -> resolveType(context, expr.right)
+                    else -> null
+                }
+                if (baseType != null) {
+                    if (expr.negated) {
+                        // todo if enum with single value or object,
+                        //  we can invert the type, otherwise not
+                        if (baseType == NullType) baseType.not() else null
+                    } else baseType
+                } else null
+            }
+            else -> null
+        }
+    }
+
+    fun matchesFieldI(expr: Expression, field: Field): Boolean {
+        return when (expr) {
+            is FieldExpression -> {
+                var nameExpr: FieldExpression? = expr
+                while (nameExpr != null) {
+                    if (nameExpr.field == field) return true
+                    nameExpr = nameExpr.field.initialValue as? FieldExpression
+                }
+                false
+            }
+            else -> false
+        }
     }
 
 }
