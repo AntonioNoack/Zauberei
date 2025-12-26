@@ -44,6 +44,7 @@ object Inheritance {
         insertMode: InsertMode,
     ): Boolean {
         println("checking $actualType instanceOf $expectedType")
+        println("  with generics $expectedTypeParams")
         val result = isSubTypeOfImpl(
             expectedType,
             actualType,
@@ -70,7 +71,7 @@ object Inheritance {
         }
 
         if (typeParamIdx == -1) {
-            val generallyExpectedType = expectedType.superBounds
+            /*val generallyExpectedType = expectedType.superBounds
             println("Missing $expectedType for $actualType, falling back to $generallyExpectedType")
             return isSubTypeOf(
                 generallyExpectedType,
@@ -78,7 +79,11 @@ object Inheritance {
                 expectedTypeParams,
                 actualTypeParameters,
                 insertMode
-            )
+            )*/
+            if (insertMode != InsertMode.WEAK) {
+                System.err.println("Missing generic parameter ${expectedType.name}, ignoring it")
+            }// else can be safely ignored ;)
+            return true
             // System.err.println("Missing generic parameter ${expectedType.scope.pathStr}.${expectedType.name}, ignoring it")
             // System.err.println("Available generic parameters: ${expectedTypeParams.map { "${it.scope.pathStr}.${it.name}" }}")
         }
@@ -97,7 +102,7 @@ object Inheritance {
         ) return false
 
         val success = actualTypeParameters.union(typeParamIdx, actualType, insertMode == InsertMode.STRONG)
-        println("Found Type[$success]: [$typeParamIdx,'${expectedType.name}'] = ${actualTypeParameters[typeParamIdx]}")
+        println("Found Type[$success for $actualType @$insertMode]: [$typeParamIdx,${expectedType.scope.pathStr}.${expectedType.name}] = ${actualTypeParameters[typeParamIdx]}")
         return success
     }
 

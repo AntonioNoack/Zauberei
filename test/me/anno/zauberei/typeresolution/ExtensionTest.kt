@@ -105,6 +105,8 @@ class ExtensionTest {
 
     @Test
     fun testUnderdefinedExtensionMethodsByMethod() {
+        TypeResolutionTest.defineListParameters()
+
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(
@@ -122,6 +124,8 @@ class ExtensionTest {
 
     @Test
     fun testUnderdefinedExtensionFieldsByField() {
+        TypeResolutionTest.defineListParameters()
+
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(
@@ -139,6 +143,8 @@ class ExtensionTest {
 
     @Test
     fun testUnderdefinedExtensionMethodsByClass() {
+        TypeResolutionTest.defineListParameters()
+
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(
@@ -160,6 +166,8 @@ class ExtensionTest {
 
     @Test
     fun testUnderdefinedExtensionFieldsByClass() {
+        TypeResolutionTest.defineListParameters()
+
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(

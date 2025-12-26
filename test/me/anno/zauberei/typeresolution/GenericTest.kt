@@ -1,10 +1,12 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile.stdlib
+import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.types.StandardTypes.standardClasses
 import me.anno.zauberei.types.Types.FloatType
 import me.anno.zauberei.types.Types.IntType
 import me.anno.zauberei.types.Types.LongType
+import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.Types.StringType
 import me.anno.zauberei.types.impl.ClassType
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -61,6 +63,10 @@ class GenericTest {
 
     @Test
     fun testInferredMapGenerics() {
+        registerMapParams()
+        registerPairParams()
+        registerArrayParams()
+
         assertEquals(
             ClassType(
                 standardClasses["Map"]!!,
@@ -134,11 +140,45 @@ class GenericTest {
         )
     }
 
+    private fun registerMapParams() {
+        val mapClass = standardClasses["Map"]!!
+        if (mapClass.typeParameters.size != 2) {
+            mapClass.typeParameters = listOf(
+                Parameter(false, true, false, "K", NullableAnyType, null, mapClass, -1),
+                Parameter(false, true, false, "V", NullableAnyType, null, mapClass, -1),
+            )
+        }
+    }
+
+    private fun registerPairParams() {
+        val pairClass = standardClasses["Pair"]!!
+        if (pairClass.typeParameters.size != 2) {
+            pairClass.typeParameters = listOf(
+                Parameter(false, true, false, "F", NullableAnyType, null, pairClass, -1),
+                Parameter(false, true, false, "S", NullableAnyType, null, pairClass, -1),
+            )
+        }
+    }
+
+    private fun registerArrayParams() {
+        val arrayClass = standardClasses["Pair"]!!
+        if (arrayClass.typeParameters.size != 1) {
+            arrayClass.typeParameters = listOf(
+                Parameter(false, true, false, "V", NullableAnyType, null, arrayClass, -1),
+            )
+        }
+    }
+
     @Test
     fun testTwoStackedGenericReturnTypes() {
+        val mapClass = standardClasses["Map"]!!
+        registerMapParams()
+        registerPairParams()
+        registerArrayParams()
+
         assertEquals(
             ClassType(
-                standardClasses["Map"]!!,
+                mapClass,
                 listOf(IntType, FloatType)
             ),
             TypeResolutionTest.testTypeResolution(
@@ -182,6 +222,8 @@ class GenericTest {
 
     @Test
     fun testListsAreNotConfused() {
+        TypeResolutionTest.defineListParameters()
+
         assertEquals(
             ClassType(standardClasses["List"]!!, listOf(FloatType)),
             TypeResolutionTest.testTypeResolution(

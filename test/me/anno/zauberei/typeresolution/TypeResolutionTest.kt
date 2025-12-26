@@ -49,7 +49,7 @@ class TypeResolutionTest {
             if (arrayListType.typeParameters.isEmpty()) {
                 arrayListType.typeParameters += Parameter(
                     false, false, false,
-                    "X", NullableAnyType, null, -1
+                    "X", NullableAnyType, null, arrayListType, -1
                 )
             }
 
@@ -70,12 +70,22 @@ class TypeResolutionTest {
                         arrayListType, listOf(
                             Parameter(
                                 false, false, false, "size",
-                                IntType, null, -1
+                                IntType, null, arrayListType, -1
                             ),
                         ),
                         arrayListType.getOrCreatePrimConstructorScope(), null, null,
                         emptyList(), -1
                     )
+                )
+            }
+        }
+
+        fun defineListParameters() {
+            val arrayListType = standardClasses["List"]!!
+            if (arrayListType.typeParameters.isEmpty()) {
+                arrayListType.typeParameters += Parameter(
+                    false, false, false,
+                    "X", NullableAnyType, null, arrayListType, -1
                 )
             }
         }
@@ -117,7 +127,7 @@ class TypeResolutionTest {
                     intArrayType, listOf(
                         Parameter(
                             false, false, false,
-                            "size", IntType, null, -1
+                            "size", IntType, null, intArrayType, -1
                         )
                     ),
                     intArrayType.getOrCreatePrimConstructorScope(), null, null,

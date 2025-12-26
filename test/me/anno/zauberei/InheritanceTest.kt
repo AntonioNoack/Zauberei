@@ -151,7 +151,7 @@ class InheritanceTest {
         val anyOrNullGeneric = GenericType(scope, "V")
         val anyOrNullParameter = Parameter(
             false, true, false,
-            "V", NullableAnyType, null, -1
+            "V", NullableAnyType, null, scope, -1
         )
         scope.typeParameters = listOf(anyOrNullParameter)
 
@@ -207,7 +207,7 @@ class InheritanceTest {
         val floatGeneric = GenericType(scope, "F")
         val floatParameter = Parameter(
             false, true, false,
-            "F", FloatType, null, -1
+            "F", FloatType, null, scope, -1
         )
         scope.typeParameters = listOf(floatParameter)
 
