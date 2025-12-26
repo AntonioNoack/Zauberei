@@ -165,8 +165,13 @@ object TypeResolution {
 
     fun typeToScope(type: Type?): Scope? {
         return when (type) {
-            null -> null
+            null, NullType -> null
             is ClassType -> type.clazz
+            is UnionType -> {
+                val scopes = type.types.mapNotNull { typeToScope(it) }
+                if (scopes.distinct().size == 1) scopes.first()
+                else null
+            }
             // is NullableType -> typeToScope(type.base)
             else -> throw NotImplementedError("typeToScope($type)")
         }

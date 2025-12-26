@@ -160,11 +160,11 @@ object ResolveField {
         return resolveFieldType(base, field, scope, targetType)
     }
 
-    fun resolveFieldType(base: Type?, field: Field, scope: Scope, targetType: Type?): Type {
+    fun resolveFieldType(selfType: Type?, field: Field, scope: Scope, targetType: Type?): Type {
         println("InitialType[${field.declaredScope}.${field.name}]: ${field.valueType}")
         val fieldType0 = field.valueType // if (targetType == null) field.valueType else null
         var fieldType = fieldType0 ?: run {
-            val context = ResolutionContext(field.declaredScope, base, false, targetType)
+            val context = ResolutionContext(field.declaredScope, selfType, false, targetType)
             val initialValue = field.initialValue
             val getter = field.getterExpr
             when {
@@ -200,7 +200,7 @@ object ResolveField {
 
                 // decide based on conditionType...
                 //  might be inside complex combinations of and, or and not with other conditions...
-                var conditionType = matchesField(condition, field)
+                var conditionType = matchesField(condition, field, selfType)
 
                 if (conditionType != null) {
                     if (!scopeI.branchConditionTrue) {
@@ -218,7 +218,7 @@ object ResolveField {
         return fieldType
     }
 
-    fun matchesField(expr: Expression, field: Field): Type? {
+    fun matchesField(expr: Expression, field: Field, selfType: Type?): Type? {
         return when (expr) {
             is ExprTypeOp -> {
                 val type = expr.right
@@ -232,7 +232,7 @@ object ResolveField {
             }
             is CheckEqualsOp -> {
                 val context = ResolutionContext(
-                    expr.scope, /* todo we need selfType */null,
+                    expr.scope, selfType,
                     false, null
                 )
                 val baseType = when {
@@ -240,6 +240,10 @@ object ResolveField {
                     matchesFieldI(expr.left, field) -> resolveType(context, expr.right)
                     else -> null
                 }
+                println(
+                    "CheckEqualsOp[${field.name}]: $baseType, " +
+                            "${expr.left.javaClass.simpleName}, ${expr.right.javaClass.simpleName}"
+                )
                 if (baseType != null) {
                     if (expr.negated) {
                         // todo if enum with single value or object,
@@ -254,13 +258,16 @@ object ResolveField {
 
     fun matchesFieldI(expr: Expression, field: Field): Boolean {
         return when (expr) {
+            is NameExpression -> {
+                // todo expression should have been replaced as a field from the start
+                expr.name == field.name
+            }
             is FieldExpression -> {
-                var nameExpr: FieldExpression? = expr
-                while (nameExpr != null) {
-                    if (nameExpr.field == field) return true
-                    nameExpr = nameExpr.field.initialValue as? FieldExpression
+                if (expr.field == field) true
+                else {
+                    val prevExpr = expr.field.initialValue ?: return false
+                    matchesFieldI(prevExpr, field)
                 }
-                false
             }
             else -> false
         }

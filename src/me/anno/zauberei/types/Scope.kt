@@ -3,13 +3,9 @@ package me.anno.zauberei.types
 import me.anno.zauberei.Compile.root
 import me.anno.zauberei.astbuilder.*
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.astbuilder.expression.NamedCallExpression
-import me.anno.zauberei.astbuilder.expression.PrefixExpression
-import me.anno.zauberei.astbuilder.expression.PrefixType
 import me.anno.zauberei.tokenizer.TokenList
 import me.anno.zauberei.types.BooleanUtils.and
 import me.anno.zauberei.types.BooleanUtils.not
-import me.anno.zauberei.types.Types.BooleanType
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.GenericType
 
