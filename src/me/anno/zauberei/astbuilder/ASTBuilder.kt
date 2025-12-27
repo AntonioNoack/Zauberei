@@ -1016,10 +1016,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
 
     private fun readForLoop(label: String?): Expression {
         i++ // skip for
+        lateinit var iterable: Expression
         if (tokens.equals(i + 1, TokenType.OPEN_CALL)) {
             // destructuring expression
             val names = ArrayList<String>()
-            lateinit var iterable: Expression
             pushCall {
                 check(tokens.equals(i, TokenType.OPEN_CALL))
                 pushCall {
@@ -1038,7 +1038,6 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             return destructuringForLoop(currPackage, names, iterable, body, label)
         } else {
             lateinit var name: String
-            lateinit var iterable: Expression
             var variableType: Type? = null
             val origin = origin(i)
             pushCall {
@@ -1054,9 +1053,10 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
                 check(i == tokens.size)
             }
             val body = readBodyOrExpression()
+            val pseudoInitial = iterableToNextExpr(iterable)
             val variableField = Field(
                 body.scope, false, true, null,
-                name, variableType, null, emptyList(), origin
+                name, variableType, pseudoInitial, emptyList(), origin
             )
             return forLoop(variableField, iterable, body, label)
         }

@@ -68,12 +68,13 @@ object FieldResolver : MemberResolver<Field, ResolvedField>() {
         check(valueParameters.isEmpty())
 
         val generics = findGenericsForMatch(
-            field.selfType, selfType,
+            field.selfType, if (field.selfType == null) null else selfType,
             valueType, returnType,
             field.selfTypeTypeParams, typeParameters,
             emptyList(), emptyList()
         ) ?: return null
-        return ResolvedField(generics, field, emptyList())
+        val context = ResolutionContext(field.declaredScope, field.selfType, false, null)
+        return ResolvedField(generics, field, emptyList(), context)
     }
 
     fun resolveFieldType(

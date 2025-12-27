@@ -1,5 +1,5 @@
 package zauber
 
 interface Iterable<V> {
-    fun iterator(): Iterator<V>
+    operator fun iterator(): Iterator<V>
 }

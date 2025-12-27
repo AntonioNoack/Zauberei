@@ -1,18 +1,20 @@
 package me.anno.zauberei.typeresolution.members
 
 import me.anno.zauberei.astbuilder.Parameter
+import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.types.LambdaParameter
 import me.anno.zauberei.types.Type
-import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.impl.*
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
-interface ResolvedCallable {
+abstract class ResolvedCallable<V>(
+    val ownerTypes: List<Type>,
+    val callTypes: List<Type>,
+    val resolved: V,
+    val context: ResolutionContext
+) {
 
-    val ownerTypes: List<Type>
-    val callTypes: List<Type>
-
-    fun getTypeFromCall(): Type
+    abstract fun getTypeFromCall(): Type
 
     companion object {
         fun resolveGenerics(

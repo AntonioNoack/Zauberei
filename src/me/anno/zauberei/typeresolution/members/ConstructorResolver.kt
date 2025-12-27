@@ -1,12 +1,12 @@
 package me.anno.zauberei.typeresolution.members
 
 import me.anno.zauberei.astbuilder.Constructor
-import me.anno.zauberei.astbuilder.Method
+import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.ValueParameter
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
-object ConstructorResolver : MemberResolver<Method, ResolvedConstructor>() {
+object ConstructorResolver : MemberResolver<Constructor, ResolvedConstructor>() {
 
     override fun findMemberInScope(
         scope: Scope?, name: String,
@@ -41,7 +41,7 @@ object ConstructorResolver : MemberResolver<Method, ResolvedConstructor>() {
         selfType: Type?, // if inside Companion/Object/Class/Interface, this is defined; else null
 
         typeParameters: List<Type>?,
-        valueParameters: List<ValueParameter>
+        valueParameters: List<ValueParameter>,
     ): ResolvedConstructor? {
         println("Checking $scope for constructors")
         check(scope.name == name)
@@ -53,7 +53,7 @@ object ConstructorResolver : MemberResolver<Method, ResolvedConstructor>() {
             val match = findMemberMatch(
                 member, member.selfType,
                 returnType,
-                typeParameters, valueParameters
+                typeParameters, valueParameters,
             )
             println("Match($member): $match")
             if (match != null) return match
@@ -68,7 +68,7 @@ object ConstructorResolver : MemberResolver<Method, ResolvedConstructor>() {
         returnType: Type?, // sometimes, we know what to expect from the return type
 
         typeParameters: List<Type>?,
-        valueParameters: List<ValueParameter>
+        valueParameters: List<ValueParameter>,
     ): ResolvedConstructor? {
         val generics = findGenericsForMatch(
             null, null,
@@ -76,6 +76,10 @@ object ConstructorResolver : MemberResolver<Method, ResolvedConstructor>() {
             constructor.selfType.clazz.typeParameters, typeParameters,
             constructor.valueParameters, valueParameters
         ) ?: return null
-        return ResolvedConstructor(generics, constructor)
+        val context = ResolutionContext(
+            constructor.selfType.clazz, constructor.selfType,
+            false, returnType
+        )
+        return ResolvedConstructor(generics, constructor,context)
     }
 }

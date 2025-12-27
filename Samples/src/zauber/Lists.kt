@@ -2,7 +2,7 @@ package zauber
 
 fun <V> emptyList(): List<V> = Array(0)
 
-interface List<V> {
+interface List<V>: Iterable<V> {
     operator fun get(index: Int): V
 
     val size: Int

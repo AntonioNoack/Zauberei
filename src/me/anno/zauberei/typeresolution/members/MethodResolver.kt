@@ -1,5 +1,6 @@
 package me.anno.zauberei.typeresolution.members
 
+import me.anno.zauberei.astbuilder.Constructor
 import me.anno.zauberei.astbuilder.Method
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.astbuilder.expression.Expression
@@ -70,14 +71,18 @@ object MethodResolver : MemberResolver<Method, ResolvedMethod>() {
             method.typeParameters, typeParameters,
             method.valueParameters, valueParameters
         ) ?: return null
-        return ResolvedMethod(emptyList(), method, generics)
+        val context = ResolutionContext(
+            method.innerScope, selfType ?: method.selfType,
+            false, returnType
+        )
+        return ResolvedMethod(emptyList(), method, generics, context)
     }
 
     fun resolveCallType(
         context: ResolutionContext,
         expr: Expression,
         name: String,
-        constructor: ResolvedCallable?,
+        constructor: ResolvedCallable<*>?,
         typeParameters: List<Type>?,
         valueParameters: List<ValueParameter>,
     ): Type {

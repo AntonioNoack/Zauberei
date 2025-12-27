@@ -13,7 +13,7 @@ import me.anno.zauberei.types.Types.ArrayType
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
-abstract class MemberResolver<Resource, Resolved : ResolvedCallable> {
+abstract class MemberResolver<Resource, Resolved : ResolvedCallable<Resource>> {
 
     companion object {
 

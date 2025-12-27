@@ -69,13 +69,18 @@ object TypeResolution {
     }
 
     fun getSelfType(scope: Scope): Type? {
-        // todo if inside method, we need to check method.selfType
         var scope = scope
         while (true) {
             val scopeType = scope.scopeType
             if (scopeType != null && scopeType.isClassType()) {
                 val typeParams = scope.typeParameters.map { GenericType(scope, it.name) }
                 return ClassType(scope, typeParams)
+            }
+            // if inside method, we need to check method.selfType
+            if (scopeType == ScopeType.METHOD) {
+                val self = scope.selfAsMethod
+                val selfType = self?.selfType
+                if (selfType != null) return selfType
             }
             scope = scope.parent ?: return null
         }

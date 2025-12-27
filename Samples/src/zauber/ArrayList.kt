@@ -1,5 +1,6 @@
 package zauber
 
+import zauber.impl.SimpleListIterator
 import kotlin.math.max
 
 class ArrayList<V>(capacity: Int) : MutableList<V> {
@@ -30,4 +31,6 @@ class ArrayList<V>(capacity: Int) : MutableList<V> {
         content[size++] = element
         return true
     }
+
+    override fun iterator(): Iterator<V> = SimpleListIterator(this, 0)
 }

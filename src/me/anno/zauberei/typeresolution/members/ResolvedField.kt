@@ -1,20 +1,22 @@
 package me.anno.zauberei.typeresolution.members
 
 import me.anno.zauberei.astbuilder.Field
-import me.anno.zauberei.typeresolution.members.ResolvedCallable.Companion.resolveGenerics
+import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.types.Type
 
-class ResolvedField(
-    // todo we don't need only the type-param-generics, but also the self-type generics...
-    override val ownerTypes: List<Type>,
-    val field: Field,
-    override val callTypes: List<Type>
-) : ResolvedCallable {
+// todo we don't need only the type-param-generics, but also the self-type generics...
+class ResolvedField(ownerTypes: List<Type>, field: Field, callTypes: List<Type>, context: ResolutionContext) :
+    ResolvedCallable<Field>(ownerTypes, callTypes, field, context) {
 
     fun getValueType(): Type {
+        val field = resolved
         val ownerNames = field.selfTypeTypeParams
-        println("ownerTypes: $ownerTypes")
-        val forType = resolveGenerics( field.valueType!!, ownerNames, ownerTypes)
+        val context = ResolutionContext(
+            field.declaredScope, field.selfType,
+            false, null /* todo we might need targetType */
+        )
+        val valueType = field.deductValueType(context)
+        val forType = resolveGenerics(valueType, ownerNames, ownerTypes)
         val forCall = resolveGenerics(forType, field.typeParameters, callTypes)
         return forCall
     }
@@ -26,6 +28,6 @@ class ResolvedField(
     }
 
     override fun toString(): String {
-        return "ResolvedField(field=$field)"
+        return "ResolvedField(field=$resolved)"
     }
 }

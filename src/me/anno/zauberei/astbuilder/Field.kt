@@ -1,6 +1,8 @@
 package me.anno.zauberei.astbuilder
 
 import me.anno.zauberei.astbuilder.expression.Expression
+import me.anno.zauberei.typeresolution.ResolutionContext
+import me.anno.zauberei.typeresolution.TypeResolution
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.ClassType
@@ -41,6 +43,16 @@ class Field(
     }
 
     val specificTypes = ArrayList<ScopedFieldType>()
+
+    fun deductValueType(context: ResolutionContext): Type {
+        val valueType = valueType
+        if (valueType != null) return valueType
+
+        val value = initialValue
+            ?: getterExpr
+            ?: throw IllegalStateException("Field $this has neither type, nor initial/getter")
+        return TypeResolution.resolveType(context, value)
+    }
 
     override fun toString(): String {
         return "Field($selfType.$name=$initialValue)"

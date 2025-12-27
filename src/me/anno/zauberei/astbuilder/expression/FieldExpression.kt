@@ -24,7 +24,7 @@ class FieldExpression(
             emptyList(), emptyList()
         )
         check(generics != null)
-        val resolved = ResolvedField(generics, field, emptyList())
+        val resolved = ResolvedField(generics, field, emptyList(), context)
         return resolved.getValueType()
     }
 }
