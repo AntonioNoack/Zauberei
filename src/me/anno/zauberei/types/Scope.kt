@@ -40,6 +40,8 @@ class Scope(val name: String, val parent: Scope? = null) {
     var typeParameters: List<Parameter> = emptyList()
     var hasTypeParameters = false
 
+    val typeWithoutArgs = ClassType(this, null)
+
     /**
      * used for type resolution
      * */
@@ -290,8 +292,6 @@ class Scope(val name: String, val parent: Scope? = null) {
 
         return null
     }
-
-    val typeWithoutArgs = ClassType(this, null)
 
     fun resolveType(
         name: String, typeParameters: List<Parameter>,

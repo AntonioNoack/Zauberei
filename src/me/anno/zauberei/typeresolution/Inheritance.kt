@@ -6,7 +6,6 @@ import me.anno.zauberei.typeresolution.members.ResolvedCallable.Companion.resolv
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.AnyType
-import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.impl.*
 
 /**
@@ -260,6 +259,16 @@ object Inheritance {
                     return true
                 }
 
+                if (actualGenerics == null &&
+                    expectedGenerics.all {
+                        it is GenericType &&
+                                expectedTypeParams.none { p -> p.scope == it.scope && p.name == it.name }
+                    }
+                ) {
+                    println("Actual generics unknown, but all expected are just untracked generics -> continue with true")
+                    return true
+                }
+
                 val sufficient = actualType.classHasNoTypeParams()
                 val actualSize = actualGenerics?.size ?: if (sufficient) 0 else -1
                 val expectedSize = expectedGenerics.size
@@ -330,19 +339,12 @@ object Inheritance {
         }
 
         if (insertMode == InsertMode.READ_ONLY) {
-            if (expectedType is GenericType) {
-                println("Using expectedType.superBounds")
+            if (expectedType is GenericType || actualType is GenericType) {
+                val expectedType = if (expectedType is GenericType) expectedType.superBounds else expectedType
+                val actualType = if (actualType is GenericType) actualType.superBounds else expectedType
+                println("Using superBounds...")
                 return isSubTypeOf(
-                    expectedType.superBounds, actualType,
-                    expectedTypeParams, actualTypeParameters,
-                    insertMode,
-                )
-            }
-
-            if (actualType is GenericType) {
-                println("Using actualType.superBounds -> bad?")
-                return isSubTypeOf(
-                    expectedType, actualType.superBounds,
+                    expectedType, actualType,
                     expectedTypeParams, actualTypeParameters,
                     insertMode,
                 )

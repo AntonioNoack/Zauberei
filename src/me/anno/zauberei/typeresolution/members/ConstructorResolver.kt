@@ -23,7 +23,7 @@ object ConstructorResolver : MemberResolver<Constructor, ResolvedConstructor>() 
             val constructor = findMemberInScopeImpl(scope, name, returnType, selfType, typeParameters, valueParameters)
             if (constructor != null) return constructor
         }
-        println("  children: ${scope.children.map { it.name }}")
+        // println("  children: ${scope.children.map { it.name }}")
         for (child in scope.children) {
             if (child.name == name/* && child.scopeType?.isClassType() == true*/) {
                 val constructor =

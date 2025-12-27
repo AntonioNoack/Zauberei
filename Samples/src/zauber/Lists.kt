@@ -2,7 +2,7 @@ package zauber
 
 fun <V> emptyList(): List<V> = Array(0)
 
-interface List<V>: Iterable<V> {
+interface List<V> : Iterable<V> {
     operator fun get(index: Int): V
 
     val size: Int
@@ -45,8 +45,16 @@ fun <V> List<V>.withIndex(): List<IndexedValue<V>> {
 }
 
 fun <V> listOf(vararg v: V): List<V> {
-    val dst = ArrayList<V>(1)
+    val dst = ArrayList<V>(v.size)
     dst.addAll(v)
+    return dst
+}
+
+fun <V> List(size: Int, generator: (Int) -> V): List<V> {
+    val dst = ArrayList<V>(size)
+    for (i in 0 until size) {
+        dst.add(generator(i))
+    }
     return dst
 }
 

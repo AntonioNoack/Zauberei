@@ -11,8 +11,10 @@ class ResolvedMethod(ownerTypes: List<Type>, method: Method, callTypes: List<Typ
     override fun getTypeFromCall(): Type {
         val method = resolved
         val ownerNames = (method.selfType as? ClassType)?.clazz?.typeParameters ?: emptyList()
-        val forSelf = resolveGenerics(method.returnType!!, ownerNames, ownerTypes)
+        val inGeneral = method.returnType!!
+        val forSelf = resolveGenerics(inGeneral, ownerNames, ownerTypes)
         val forCall = resolveGenerics(forSelf, method.typeParameters, callTypes)
+        println("returnType for call: $inGeneral -${ownerNames}|$ownerTypes> $forSelf -${method.typeParameters}|$callTypes> $forCall")
         return forCall
     }
 

@@ -1,9 +1,12 @@
 package zauber
 
+import com.sun.xml.internal.bind.v2.TODO
+
 class IntRange(val from: Int, val endExcl: Int, val step: Int) : Iterable<Int> {
     constructor(from: Int, endExcl: Int) : this(from, endExcl, 1)
 
     override fun iterator(): Iterator<Int> = IntRangeIterator(from, endExcl)
+    fun reversed(): Iterable<Int> = TODO("IntRange.reversed")
 }
 
 class IntRangeIterator(var index: Int, val endExcl: Int, val step: Int = 1) : Iterator<Int> {
