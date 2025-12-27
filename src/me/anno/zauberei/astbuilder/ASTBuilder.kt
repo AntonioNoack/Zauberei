@@ -485,14 +485,14 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         val superCall = if (tokens.equals(i, ":")) {
             i++
             check(tokens.equals(i, "this") || tokens.equals(i, "super"))
-            val origin = origin(i)
-            val name = tokens.toString(i++)
-            val typeParams = readTypeParams(null)
+            // val origin = origin(i)
+            val target = if (tokens.equals(i++, "super"))
+                InnerSuperCallTarget.SUPER else InnerSuperCallTarget.THIS
+            // val typeParams = readTypeParams(null) // <- not supported
             val params = if (tokens.equals(i, TokenType.OPEN_CALL)) {
                 pushCall { readParamExpressions() }
             } else emptyList()
-            val base = nameExpression(name, origin, this, clazz)
-            CallExpression(base, typeParams, params, origin + 1)
+            InnerSuperCall(target, params)
         } else null
 
         // body (or just = expression)

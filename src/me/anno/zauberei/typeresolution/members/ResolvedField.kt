@@ -8,6 +8,12 @@ import me.anno.zauberei.types.Type
 class ResolvedField(ownerTypes: List<Type>, field: Field, callTypes: List<Type>, context: ResolutionContext) :
     ResolvedCallable<Field>(ownerTypes, callTypes, field, context) {
 
+    init {
+        val ownerNames = field.selfTypeTypeParams
+        check(ownerNames.size == ownerTypes.size)
+        check(field.typeParameters.size == callTypes.size)
+    }
+
     fun getValueType(): Type {
         val field = resolved
         val ownerNames = field.selfTypeTypeParams

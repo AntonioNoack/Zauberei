@@ -3,9 +3,9 @@ package me.anno.zauberei.astbuilder
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution
+import me.anno.zauberei.typeresolution.members.ResolvedMethod.Companion.selfTypeToTypeParams
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
-import me.anno.zauberei.types.impl.ClassType
 
 class Field(
     val declaredScope: Scope,
@@ -34,7 +34,7 @@ class Field(
     var setterExpr: Expression? = null
 
     val selfTypeTypeParams: List<Parameter>
-        get() = (selfType as? ClassType)?.clazz?.typeParameters ?: emptyList()
+        get() = selfTypeToTypeParams(selfType)
 
     var typeParameters: List<Parameter> = emptyList()
 

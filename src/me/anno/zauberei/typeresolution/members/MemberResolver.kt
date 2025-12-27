@@ -4,9 +4,9 @@ import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.typeresolution.FillInParameterList
 import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.InsertMode
-import me.anno.zauberei.typeresolution.members.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.typeresolution.ValueParameter
 import me.anno.zauberei.typeresolution.ValueParameterImpl
+import me.anno.zauberei.typeresolution.members.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.ArrayType
@@ -30,6 +30,10 @@ abstract class MemberResolver<Resource, Resolved : ResolvedCallable<Resource>> {
             expectedValueParameters: List<Parameter>,
             actualValueParameters: List<ValueParameter>
         ): List<Type>? { // found generic values for a match
+
+            if (expectedSelfType is ClassType && expectedSelfType.clazz.scopeType?.isClassType() != true) {
+                throw IllegalArgumentException("Expected type cannot be $expectedSelfType, because type is unknown")
+            }
 
             // todo objects don't need actualSelfType, if properly in scope or imported...
             if ((expectedSelfType != null) != (actualSelfType != null)) {
@@ -138,7 +142,8 @@ abstract class MemberResolver<Resource, Resolved : ResolvedCallable<Resource>> {
                 }
             }
 
-            val immutableList = if (resolvedTypes is FillInParameterList) resolvedTypes.types.asList() else resolvedTypes
+            val immutableList =
+                if (resolvedTypes is FillInParameterList) resolvedTypes.types.asList() else resolvedTypes
             println("Found match: $immutableList")
             return immutableList as List<Type>
         }

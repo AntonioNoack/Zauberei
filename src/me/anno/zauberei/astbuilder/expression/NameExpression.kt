@@ -15,11 +15,27 @@ class NameExpression(
 
     companion object {
         fun nameExpression(name: String, origin: Int, astBuilder: ASTBuilder, scope: Scope): Expression {
-            val nameAsImport = astBuilder.imports.firstOrNull { it.name == name }?.path
-            return if (nameAsImport != null) {
-                ImportedExpression(nameAsImport, scope, origin)
-            } else {
-                NameExpression(name, scope, origin)
+            // todo check whether something is in front (some sort of period/accessor)
+            val isChild = when {
+                astBuilder.tokens.equals(origin - 1, ".") ||
+                        astBuilder.tokens.equals(origin - 1, "?.") -> true
+                else -> false
+            }
+            return if (isChild) NameExpression(name, scope, origin)
+            else {
+                val nameAsImport = astBuilder.imports.firstOrNull { it.name == name }?.path
+                if (nameAsImport != null) {
+                    ImportedExpression(nameAsImport, scope, origin)
+                } else {
+                    // try to find the field:
+                    //  check super scopes until a class appears,
+                    //  then check hierarchy scopes
+                    //  -> inner classes (anonymous inline classes) have access to multiple scopes
+                    //  -> for the whole hierarchy, try to find fields and parent classes
+                    // when this is executed, the field might not yet be known
+                    //  -> and we must respect the hierarchy -> we can only execute this later on
+                    NameExpression(name, scope, origin)
+                }
             }
         }
     }
@@ -36,7 +52,7 @@ class NameExpression(
         if (type != null) return type
 
         throw IllegalStateException(
-            "Missing field/type '${name}' in ${context.selfType}, " +
+            "Missing field/type '${name}' in ${context.selfType}, ${context.codeScope}, " +
                     resolveOrigin(origin)
         )
     }

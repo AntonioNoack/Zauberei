@@ -8,7 +8,7 @@ class Constructor(
     val selfType: ClassType,
     val valueParameters: List<Parameter>,
     val innerScope: Scope,
-    val superCall: Expression?,
+    val superCall: InnerSuperCall?,
     val body: Expression?,
     val keywords: List<String>,
     val origin: Int

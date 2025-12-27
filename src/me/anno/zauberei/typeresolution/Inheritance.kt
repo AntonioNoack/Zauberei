@@ -259,13 +259,13 @@ object Inheritance {
                     return true
                 }
 
-                if (actualGenerics == null &&
+                if (actualGenerics == null /*&&
                     expectedGenerics.all {
                         it is GenericType &&
                                 expectedTypeParams.none { p -> p.scope == it.scope && p.name == it.name }
-                    }
+                    }*/
                 ) {
-                    println("Actual generics unknown, but all expected are just untracked generics -> continue with true")
+                    println("Actual generics unknown -> continue with true (?)")
                     return true
                 }
 

@@ -2,13 +2,16 @@ package me.anno.zauberei.typeresolution.members
 
 import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
+import me.anno.zauberei.typeresolution.FillInParameterList
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.typeresolution.TypeResolution.getSelfType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveType
 import me.anno.zauberei.typeresolution.ValueParameter
+import me.anno.zauberei.typeresolution.members.ResolvedMethod.Companion.selfTypeToTypeParams
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.impl.ClassType
 
 object FieldResolver : MemberResolver<Field, ResolvedField>() {
 
@@ -57,7 +60,9 @@ object FieldResolver : MemberResolver<Field, ResolvedField>() {
 
     fun findMemberMatch(
         field: Field,
-        valueType: Type?,
+        fieldReturnType: Type?,
+
+        // todo what is the difference between fieldReturnType and returnType here?
 
         returnType: Type?, // sometimes, we know what to expect from the return type
         selfType: Type?, // if inside Companion/Object/Class/Interface, this is defined; else null
@@ -66,15 +71,46 @@ object FieldResolver : MemberResolver<Field, ResolvedField>() {
         valueParameters: List<ValueParameter>
     ): ResolvedField? {
         check(valueParameters.isEmpty())
+        /* check(typeParameters == null) /* not yet supported ?!? */
 
+         val generics = findGenericsForMatch(
+             field.selfType, if (field.selfType == null) null else selfType,
+             valueType, returnType,
+             field.selfTypeTypeParams + field.typeParameters, selfTypePramas + typeParameters,
+             emptyList(), emptyList()
+         ) ?: return null
+         val context = ResolutionContext(field.declaredScope, field.selfType, false, null)
+         return ResolvedField(generics, field, emptyList(), context)*/
+
+        var methodSelfParams = selfTypeToTypeParams(field.selfType)
+        var fieldSelfType = field.selfType // todo we should clear these garbage types before type resolution
+        if (fieldSelfType is ClassType && fieldSelfType.clazz.scopeType?.isClassType() != true) {
+            println("Field had invalid selfType: $fieldSelfType")
+            fieldSelfType = null
+            methodSelfParams = emptyList()
+        }
+        var actualTypeParams = typeParameters
+        if (methodSelfParams.isNotEmpty() && actualTypeParams != null) {
+            // todo issue: actualTypeParams = null has a special meaning!!!
+            //  we need to avoid that meaning, or must not make it non-null
+            check(selfType != null)
+            check(selfType is ClassType)
+            check(selfType.typeParameters?.size == methodSelfParams.size)
+            check(actualTypeParams !is FillInParameterList)
+            actualTypeParams = selfType.typeParameters + (actualTypeParams ?: emptyList())
+        }
         val generics = findGenericsForMatch(
-            field.selfType, if (field.selfType == null) null else selfType,
-            valueType, returnType,
-            field.selfTypeTypeParams, typeParameters,
-            emptyList(), emptyList()
+            fieldSelfType, if (fieldSelfType == null) null else selfType,
+            fieldReturnType, returnType,
+            methodSelfParams + field.typeParameters, actualTypeParams,
+            emptyList(), valueParameters
         ) ?: return null
-        val context = ResolutionContext(field.declaredScope, field.selfType, false, null)
-        return ResolvedField(generics, field, emptyList(), context)
+        val selfType = selfType ?: fieldSelfType
+        val context = ResolutionContext(field.declaredScope, selfType, false, fieldReturnType)
+        return ResolvedField(
+            generics.subList(0, methodSelfParams.size), field,
+            generics.subList(methodSelfParams.size, generics.size), context
+        )
     }
 
     fun resolveFieldType(

@@ -1,6 +1,7 @@
 package me.anno.zauberei.typeresolution.members
 
 import me.anno.zauberei.astbuilder.Method
+import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.typeresolution.ResolutionContext
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.impl.ClassType
@@ -10,7 +11,7 @@ class ResolvedMethod(ownerTypes: List<Type>, method: Method, callTypes: List<Typ
 
     override fun getTypeFromCall(): Type {
         val method = resolved
-        val ownerNames = (method.selfType as? ClassType)?.clazz?.typeParameters ?: emptyList()
+        val ownerNames = selfTypeToTypeParams(method.selfType)
         val inGeneral = method.returnType!!
         val forSelf = resolveGenerics(inGeneral, ownerNames, ownerTypes)
         val forCall = resolveGenerics(forSelf, method.typeParameters, callTypes)
@@ -20,5 +21,11 @@ class ResolvedMethod(ownerTypes: List<Type>, method: Method, callTypes: List<Typ
 
     override fun toString(): String {
         return "ResolvedMethod(method=$resolved, generics=$callTypes)"
+    }
+
+    companion object {
+        fun selfTypeToTypeParams(selfType: Type?): List<Parameter> {
+            return (selfType as? ClassType)?.clazz?.typeParameters ?: emptyList()
+        }
     }
 }
