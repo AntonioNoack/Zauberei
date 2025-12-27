@@ -1,4 +1,4 @@
-package me.anno.zauberei.sample
+package me.anno.zauber.sample
 
 import zauber.types.Self
 import zauber.types.TreeLink

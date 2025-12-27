@@ -303,6 +303,7 @@ class Scope(val name: String, val parent: Scope? = null) {
     }
 
     fun resolveType(name: String, astBuilder: ASTBuilder): Type {
+        val name = if (name == "kotlin") "zauber" else name
         return resolveTypeOrNull(name, astBuilder)
             ?: throw IllegalStateException("Unresolved type '$name' in $this, children: ${children.map { it.name }}")
     }

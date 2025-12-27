@@ -2,7 +2,7 @@ package zauber
 
 import zauber.types.Self
 
-interface Number {
+interface Number : Comparable<Self> {
     operator fun plus(other: Self): Self
     operator fun minus(other: Self): Self
     operator fun times(other: Self): Self
@@ -10,7 +10,7 @@ interface Number {
     operator fun rem(other: Self): Self
 }
 
-value class Int: Number {
+value class Int : Number {
     operator fun plus(other: Int): Int = native("this + other")
     operator fun minus(other: Int): Int = native("this - other")
     operator fun times(other: Int): Int = native("this * other")
@@ -21,9 +21,13 @@ value class Int: Number {
     fun toLong(): Long = native("s64(this)")
     fun toFloat(): Float = native("f32(this)")
     fun toDouble(): Double = native("f64(this)")
+
+    override fun compareTo(other: Self): kotlin.Int {
+        return if (this > other) +1 else if (this >= other) 0 else -1
+    }
 }
 
-value class Long: Number {
+value class Long : Number {
     operator fun plus(other: Long): Long = native("this + other")
     operator fun minus(other: Long): Long = native("this - other")
     operator fun times(other: Long): Long = native("this * other")
@@ -34,9 +38,13 @@ value class Long: Number {
     fun toLong(): Long = this
     fun toFloat(): Float = native("f32(this)")
     fun toDouble(): Double = native("f64(this)")
+
+    override fun compareTo(other: Self): kotlin.Int {
+        return if (this > other) +1 else if (this >= other) 0 else -1
+    }
 }
 
-value class Float: Number {
+value class Float : Number {
     operator fun plus(other: Float): Float = native("this + other")
     operator fun minus(other: Float): Float = native("this - other")
     operator fun times(other: Float): Float = native("this * other")
@@ -47,9 +55,13 @@ value class Float: Number {
     fun toLong(): Long = native("s64(this)")
     fun toFloat(): Float = this
     fun toDouble(): Double = native("f64(this)")
+
+    override fun compareTo(other: Self): kotlin.Int {
+        return if (this > other) +1 else if (this >= other) 0 else -1
+    }
 }
 
-value class Double: Number {
+value class Double : Number {
     operator fun plus(other: Double): Double = native("this + other")
     operator fun minus(other: Double): Double = native("this - other")
     operator fun times(other: Double): Double = native("this * other")
@@ -60,4 +72,8 @@ value class Double: Number {
     fun toLong(): Long = native("s64(this)")
     fun toFloat(): Float = native("f32(this)")
     fun toDouble(): Double = this
+
+    override fun compareTo(other: Self): kotlin.Int {
+        return if (this > other) +1 else if (this >= other) 0 else -1
+    }
 }
