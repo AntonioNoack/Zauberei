@@ -69,6 +69,7 @@ object TypeResolution {
     }
 
     fun getSelfType(scope: Scope): Type? {
+        // todo if inside method, we need to check method.selfType
         var scope = scope
         while (true) {
             val scopeType = scope.scopeType

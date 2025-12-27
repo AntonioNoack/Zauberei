@@ -9,9 +9,7 @@ interface List<V> {
     fun isEmpty(): Boolean
 }
 
-fun List<*>.indices(): IntRange {
-    return 0 until size
-}
+val List<*>.indices: IntRange get() = 0 until size
 
 fun <V> List<V>.firstOrNull(): V? {
     return if (isEmpty()) null else this[0]
@@ -44,6 +42,12 @@ fun <V> List<V>.withIndex(): List<IndexedValue<V>> {
     return List(size) {
         IndexedValue(it, this[it])
     }
+}
+
+fun <V> listOf(vararg v: V): List<V> {
+    val dst = ArrayList<V>(1)
+    dst.addAll(v)
+    return dst
 }
 
 inline fun <V> List<V>.filter(predicate: (V) -> Boolean): List<V> {

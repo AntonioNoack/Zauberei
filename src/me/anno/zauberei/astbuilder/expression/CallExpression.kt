@@ -80,7 +80,7 @@ class CallExpression(
                         ?: findMemberInFile(
                             base.nameAsImport.parent, name,
                             returnType,
-                            base.nameAsImport.parent?.typeWithoutArgs,
+                            base.nameAsImport.parent.ifIsClassScope()?.typeWithoutArgs,
                             typeParameters, valueParameters
                         )
                 return resolveCallType(
@@ -93,5 +93,10 @@ class CallExpression(
                         "in ${resolveOrigin(origin)}"
             )
         }
+    }
+
+    fun Scope?.ifIsClassScope(): Scope? {
+        val scopeType = this?.scopeType ?: return null
+        return if (scopeType.isClassType()) this else null
     }
 }

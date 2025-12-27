@@ -22,7 +22,7 @@ value class Int : Number {
     fun toFloat(): Float = native("f32(this)")
     fun toDouble(): Double = native("f64(this)")
 
-    override fun compareTo(other: Self): kotlin.Int {
+    override fun compareTo(other: Self): Int {
         return if (this > other) +1 else if (this >= other) 0 else -1
     }
 }
@@ -44,6 +44,23 @@ value class Long : Number {
     }
 }
 
+value class Half : Number {
+    operator fun plus(other: Half): Half = native("this + other")
+    operator fun minus(other: Half): Half = native("this - other")
+    operator fun times(other: Half): Half = native("this * other")
+    operator fun div(other: Half): Half = native("this / other")
+    operator fun rem(other: Half): Half = native("this % other")
+
+    fun toInt(): Int = native("s32(this)")
+    fun toLong(): Long = native("s64(this)")
+    fun toFloat(): Float = native("s32(this)")
+    fun toDouble(): Double = native("f64(this)")
+
+    override fun compareTo(other: Half): Int {
+        return if (this > other) +1 else if (this >= other) 0 else -1
+    }
+}
+
 value class Float : Number {
     operator fun plus(other: Float): Float = native("this + other")
     operator fun minus(other: Float): Float = native("this - other")
@@ -56,7 +73,7 @@ value class Float : Number {
     fun toFloat(): Float = this
     fun toDouble(): Double = native("f64(this)")
 
-    override fun compareTo(other: Self): kotlin.Int {
+    override fun compareTo(other: Float): Int {
         return if (this > other) +1 else if (this >= other) 0 else -1
     }
 }
@@ -73,7 +90,7 @@ value class Double : Number {
     fun toFloat(): Float = native("f32(this)")
     fun toDouble(): Double = this
 
-    override fun compareTo(other: Self): kotlin.Int {
+    override fun compareTo(other: Double): Int {
         return if (this > other) +1 else if (this >= other) 0 else -1
     }
 }

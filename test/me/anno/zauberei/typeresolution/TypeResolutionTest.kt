@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 // todo test all type-resolution scenarios
+// todo test the special "Self" type
+
 class TypeResolutionTest {
 
     companion object {
