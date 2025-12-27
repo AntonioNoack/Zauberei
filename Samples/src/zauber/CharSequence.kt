@@ -1,3 +1,3 @@
-package zauberKt
+package zauber
 
 interface CharSequence: List<Char>

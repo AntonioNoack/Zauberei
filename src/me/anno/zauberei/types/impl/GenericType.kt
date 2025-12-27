@@ -18,11 +18,21 @@ class GenericType(val scope: Scope, val name: String) : Type() {
     val superBounds: Type
         get() = byTypeParameter.type
 
-    override fun toString(): String {
-        return if(superBounds == NullableAnyType) {
+    override fun toString(depth: Int): String {
+        return if (superBounds == NullableAnyType && depth > 0) {
             "${scope.pathStr}.$name"
         } else {
-            "(${scope.pathStr}.$name: $superBounds)"
+            "(${scope.pathStr}.$name: ${superBounds.toString(depth - 1)})"
         }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is GenericType &&
+                other.scope == scope &&
+                other.name == name
+    }
+
+    override fun hashCode(): Int {
+        return scope.hashCode() * 31 + name.hashCode()
     }
 }

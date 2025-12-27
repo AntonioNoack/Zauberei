@@ -18,7 +18,7 @@ import me.anno.zauberei.types.impl.UnionType
  * */
 object TypeResolution {
 
-    val langScope by lazy { Compile.root.getOrPut("zauberKt", null) }
+    val langScope by lazy { Compile.root.getOrPut("zauber", null) }
 
     fun resolveTypesAndNames(root: Scope) {
         forEachScope(root, ::resolveTypesAndNamesImpl)

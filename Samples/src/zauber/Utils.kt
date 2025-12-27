@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 fun <V : Comparable<V>> V.clamp(min: V, max: V): V {
     return if (this < min) min else if (this < max) this else max

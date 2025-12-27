@@ -19,5 +19,8 @@ abstract class Type {
         }
     }
 
+    abstract fun toString(depth: Int): String
+    override fun toString(): String = toString(10)
+
     open fun not(): Type = NotType(this)
 }

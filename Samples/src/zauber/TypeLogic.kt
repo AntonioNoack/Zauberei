@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 interface Or<A, B>
 typealias Or3<A, B, C> = Or<A, Or<B, C>>

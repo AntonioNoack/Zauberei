@@ -13,6 +13,7 @@ class ResolvedField(
 
     fun getValueType(): Type {
         val ownerNames = field.selfTypeTypeParams
+        println("ownerTypes: $ownerTypes")
         val forType = resolveGenerics( field.valueType!!, ownerNames, ownerTypes)
         val forCall = resolveGenerics(forType, field.typeParameters, callTypes)
         return forCall

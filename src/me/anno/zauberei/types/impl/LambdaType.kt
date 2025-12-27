@@ -8,8 +8,14 @@ import me.anno.zauberei.types.Type
  * (A,B,C) -> R
  * */
 class LambdaType(val parameters: List<LambdaParameter>, val returnType: Type) : Type() {
-    override fun toString(): String {
-        return "LambdaType((${parameters.joinToString(", ")}) -> $returnType)"
+    override fun toString(depth: Int): String {
+        val newDepth = depth - 1
+        return "LambdaType((${
+            parameters.joinToString(", ") {
+                if (it.name != null) "${it.name}=${it.type.toString(newDepth)}"
+                else it.type.toString(newDepth)
+            }
+        }) -> ${returnType.toString(newDepth)})"
     }
 
     override fun equals(other: Any?): Boolean {

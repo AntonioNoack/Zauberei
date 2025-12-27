@@ -100,6 +100,9 @@ class Scope(val name: String, val parent: Scope? = null) {
 
     fun getOrPut(name: String, scopeType: ScopeType?): Scope {
 
+        // hack, because Kotlin forbids us from defining functions inside Kotlin scope
+        val name = if (parent == null && name == "kotlin") "zauber" else name
+
         if (this.name == "Companion" && name == "ECSMeshShader")
             throw IllegalStateException("ECSMeshShader is not a part of a Companion")
 
@@ -321,5 +324,17 @@ class Scope(val name: String, val parent: Scope? = null) {
         }
 
     override fun toString(): String = pathStr
+
+    override fun equals(other: Any?): Boolean {
+        return other is Scope && path == other.path
+    }
+
+    override fun hashCode(): Int {
+        var hash = 1
+        for (i in path.indices) {
+            hash = hash * 31 + path[i].hashCode()
+        }
+        return hash
+    }
 
 }

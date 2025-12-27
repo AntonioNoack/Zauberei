@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 class String(
     private val content: ByteArray,

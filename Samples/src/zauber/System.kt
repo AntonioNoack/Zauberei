@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 object System {
     external fun nanoTime(): Long

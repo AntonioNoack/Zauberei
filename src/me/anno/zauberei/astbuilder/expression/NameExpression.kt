@@ -36,7 +36,7 @@ class NameExpression(
         if (type != null) return type
 
         throw IllegalStateException(
-            "Missing field/type '${name}' in ${context.codeScope},${context.selfType}, " +
+            "Missing field/type '${name}' in ${context.selfType}, " +
                     resolveOrigin(origin)
         )
     }

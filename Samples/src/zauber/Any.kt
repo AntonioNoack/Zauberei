@@ -1,6 +1,6 @@
-package zauberKt
+package zauber
 
-import zauberKt.types.Self
+import zauber.types.Self
 import kotlin.reflect.KClass
 
 class Any {

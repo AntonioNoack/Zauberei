@@ -3,6 +3,7 @@ package me.anno.zauberei.typeresolution.members
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.types.LambdaParameter
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.impl.*
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
@@ -23,7 +24,7 @@ interface ResolvedCallable {
             return when (type) {
                 is GenericType -> {
                     val idx = genericNames.indexOfFirst { it.name == type.name && it.scope == type.scope }
-                    if (idx >= 0) genericValues[idx] else type
+                    genericValues.getOrNull(idx) ?: type
                 }
                 is UnionType -> {
                     type.types.map { partType ->
@@ -32,9 +33,11 @@ interface ResolvedCallable {
                 }
                 is ClassType -> {
                     val typeArgs = type.typeParameters ?: return type
+                    println("old types: $typeArgs")
                     val newTypeArgs = typeArgs.map { partType ->
                         resolveGenerics(partType, genericNames, genericValues)
                     }
+                    println("new types: $newTypeArgs")
                     ClassType(type.clazz, newTypeArgs)
                 }
                 NullType -> type

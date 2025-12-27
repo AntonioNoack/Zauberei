@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 import kotlin.math.max
 

@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 fun <V> emptyList(): List<V> = Array(0)
 

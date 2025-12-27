@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 data class Pair<First, Second>(val first: First, val second: Second)
 

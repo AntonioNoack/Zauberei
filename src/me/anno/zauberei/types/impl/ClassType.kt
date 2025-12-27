@@ -9,6 +9,10 @@ import me.anno.zauberei.types.Type
  * */
 class ClassType(val clazz: Scope, val typeParameters: List<Type>?) : Type() {
 
+    init {
+        check(typeParameters == null || typeParameters.none { it == null })
+    }
+
     override fun equals(other: Any?): Boolean {
         return other is ClassType &&
                 clazz == other.clazz &&
@@ -26,11 +30,18 @@ class ClassType(val clazz: Scope, val typeParameters: List<Type>?) : Type() {
         return clazz.hasTypeParameters && clazz.typeParameters.isEmpty()
     }
 
-    override fun toString(): String {
+    override fun toString(depth: Int): String {
         val className = if (clazz.name == "Companion") clazz.pathStr else clazz.name
         var asString = className
         if (typeParameters == null || typeParameters.isNotEmpty()) {
-            asString += typeParameters?.joinToString(",", "<", ">") ?: "<?>"
+            asString += if (depth > 0) {
+                val newDepth = depth - 1
+                typeParameters?.joinToString(",", "<", ">") {
+                    it.toString(newDepth)
+                } ?: "<?>"
+            } else {
+                "..."
+            }
         }// else we know it's empty, because it's defined as such
         return asString
     }

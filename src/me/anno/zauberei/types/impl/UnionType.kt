@@ -25,8 +25,9 @@ class UnionType(val types: List<Type>) : Type() {
         check(types.size >= 2)
     }
 
-    override fun toString(): String {
-        return "UnionType(${types.joinToString()})"
+    override fun toString(depth: Int): String {
+        val newDepth = depth - 1
+        return "UnionType(${types.joinToString { it.toString(newDepth) }})"
     }
 
     override fun equals(other: Any?): Boolean {

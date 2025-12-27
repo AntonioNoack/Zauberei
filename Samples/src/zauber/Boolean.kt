@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 enum class Boolean {
     FALSE,

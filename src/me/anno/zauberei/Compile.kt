@@ -38,7 +38,7 @@ import java.io.File
 
 object Compile {
 
-    val stdlib = "zauberKt"
+    val stdlib = "zauber"
 
     val root = Scope("*")
 

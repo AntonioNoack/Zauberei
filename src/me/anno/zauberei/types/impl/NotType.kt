@@ -10,8 +10,8 @@ class NotType(val type: Type) : Type() {
 
     override fun not(): Type = type
 
-    override fun toString(): String {
-        return "NotType($type)"
+    override fun toString(depth: Int): String {
+        return "NotType(${type.toString(depth - 1)})"
     }
 
     override fun equals(other: Any?): Boolean {

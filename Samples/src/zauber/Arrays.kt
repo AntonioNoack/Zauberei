@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 // todo is this a MutableList? Kind of yes, kind of no...
 class Array<V>(override val size: Int) : List<V> {

@@ -6,6 +6,7 @@ import me.anno.zauberei.typeresolution.members.ResolvedCallable.Companion.resolv
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.AnyType
+import me.anno.zauberei.types.Types.NullableAnyType
 import me.anno.zauberei.types.impl.*
 
 /**
@@ -254,9 +255,14 @@ object Inheritance {
             if (expectedType.clazz == actualType.clazz) {
                 val actualGenerics = actualType.typeParameters
                 val expectedGenerics = expectedType.typeParameters
+                if (expectedGenerics == null) {
+                    println("Nothing is expected for generics, matching")
+                    return true
+                }
+
                 val sufficient = actualType.classHasNoTypeParams()
                 val actualSize = actualGenerics?.size ?: if (sufficient) 0 else -1
-                val expectedSize = expectedGenerics?.size ?: if (sufficient) 0 else -1
+                val expectedSize = expectedGenerics.size
                 println("Class vs Class (${actualType.clazz.name}), $actualSize vs $expectedSize, $insertMode")
 
                 if (actualSize != expectedSize) {
@@ -265,10 +271,11 @@ object Inheritance {
                 }
 
                 // todo in/out now matters for the direction of the isSubTypeOf...
-                if (actualGenerics != null && expectedGenerics != null) {
+                if (actualGenerics != null) {
                     for (i in actualGenerics.indices) {
-                        val expectedType = expectedGenerics[i]
-                        val actualType = actualGenerics[i]
+                        // these may be null, if so, just accept them
+                        val expectedType = expectedGenerics[i] ?: return false//?: NullableAnyType
+                        val actualType = actualGenerics[i] ?: return false//?: NullableAnyType
                         if (!isSubTypeOf(
                                 expectedType, actualType,
                                 expectedTypeParams, actualTypeParameters,

@@ -1,3 +1,3 @@
-package zauberKt.types
+package zauber.types
 
 annotation class TreeType

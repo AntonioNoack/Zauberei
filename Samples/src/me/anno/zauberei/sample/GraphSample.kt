@@ -1,8 +1,8 @@
 package me.anno.zauberei.sample
 
-import zauberKt.types.Self
-import zauberKt.types.TreeLink
-import zauberKt.types.TreeType
+import zauber.types.Self
+import zauber.types.TreeLink
+import zauber.types.TreeType
 
 @TreeType
 class Graph<NodeI : Graph.Node> {

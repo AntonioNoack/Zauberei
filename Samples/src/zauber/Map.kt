@@ -1,4 +1,4 @@
-package zauberKt
+package zauber
 
 interface Map<K, V> {}
 
