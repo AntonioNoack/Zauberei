@@ -9,6 +9,7 @@ import me.anno.zauberei.typeresolution.ResolveMethod.getMethodReturnType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.impl.AndType.Companion.andTypes
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.GenericType
 import me.anno.zauberei.types.impl.NullType
@@ -148,6 +149,8 @@ object TypeResolution {
     }
 
     fun List<Type>.reduceUnionOrNull(): Type? = reduceOrNull { a, b -> unionTypes(a, b) }
+
+    fun List<Type>.reduceAndOrNull(): Type? = reduceOrNull { a, b -> andTypes(a, b) }
 
     fun findType(
         scope: Scope, // 2nd, recursive as long as fileName == parentScope.fileName

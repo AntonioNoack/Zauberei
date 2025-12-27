@@ -323,8 +323,22 @@ object Inheritance {
         }
 
         if (insertMode == InsertMode.READ_ONLY) {
-            if (expectedType is GenericType || actualType is GenericType) {
-                return false
+            if (expectedType is GenericType) {
+                println("Using expectedType.superBounds")
+                return isSubTypeOf(
+                    expectedType.superBounds, actualType,
+                    expectedTypeParams, actualTypeParameters,
+                    insertMode,
+                )
+            }
+
+            if (actualType is GenericType) {
+                println("Using actualType.superBounds -> bad?")
+                return isSubTypeOf(
+                    expectedType, actualType.superBounds,
+                    expectedTypeParams, actualTypeParameters,
+                    insertMode,
+                )
             }
         }
 

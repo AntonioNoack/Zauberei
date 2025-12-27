@@ -7,6 +7,7 @@ import me.anno.zauberei.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.typeresolution.TypeResolution.getSelfType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
+import me.anno.zauberei.typeresolution.TypeResolution.reduceAndOrNull
 import me.anno.zauberei.typeresolution.TypeResolution.reduceUnionOrNull
 import me.anno.zauberei.typeresolution.TypeResolution.resolveType
 import me.anno.zauberei.typeresolution.TypeResolution.typeToScope
@@ -59,19 +60,22 @@ object ResolveField {
     }
 
     fun findField(
-        base: ClassType, name: String, generics: List<Type>,
+        base: ClassType, fieldName: String, generics: List<Type>,
         codeScope: Scope, origin: Int
     ): Field? {
+
+        println("Checking scope ${base.clazz} for field $fieldName")
+
         // todo field may be generic, inject the generics as needed...
         // todo check extension fields
 
         val fields = base.clazz.fields
-        val field = fields.firstOrNull { it.matches(base, name, generics) }
+        val field = fields.firstOrNull { it.matches(base, fieldName, generics) }
         if (field != null) return field
 
         if (base.clazz.scopeType == ScopeType.ENUM_CLASS) {
             val enumValues = base.clazz.enumValues
-            val enumValue = enumValues.firstOrNull { it.name == name }
+            val enumValue = enumValues.firstOrNull { it.name == fieldName }
             if (enumValue != null) {
                 return enumValue.scope.objectField!!
             }
@@ -83,7 +87,7 @@ object ResolveField {
         val superCalls = base.clazz.superCalls
         for (i in superCalls.indices) {
             val superClass = superCalls[i].type as ClassType
-            val bySuper = findFieldBySuperClass(base, name, generics, codeScope, origin, superClass)
+            val bySuper = findFieldBySuperClass(base, fieldName, generics, codeScope, origin, superClass)
             if (bySuper != null) return bySuper
         }
 
@@ -92,11 +96,11 @@ object ResolveField {
         // scopes to check:
         //  - langScope
         //  - codeScope (same file)
-        val type = findExtensionField(base, name, generics, codeScope)
-            ?: findExtensionField(base, name, generics, langScope)
+        val type = findExtensionField(base, fieldName, generics, codeScope)
+            ?: findExtensionField(base, fieldName, generics, langScope)
         if (type != null) return type
 
-        println("No field matched: ${base.clazz.pathStr}.$name: ${fields.map { it.name }}")
+        println("No field matched: ${base.clazz.pathStr}.$fieldName: ${fields.map { it.name }}")
         return null
     }
 
@@ -113,7 +117,7 @@ object ResolveField {
                 val field = findField(base, name, generics, codeScope, origin)
                 if (field != null) return resolveFieldType(field, codeScope, targetType)
 
-                println("No field matched: ${base.clazz.pathStr}.$name")
+                println("No field matched: ${base.clazz}.$name")
                 null
             }
             is UnionType -> {
@@ -124,7 +128,7 @@ object ResolveField {
             is AndType -> {
                 base.types.mapNotNull { subType ->
                     findFieldType(subType, name, generics, codeScope, origin, targetType)
-                }.reduceUnionOrNull()
+                }.reduceAndOrNull() // union or and?
             }
             else -> throw NotImplementedError("findFieldType($base, $name) @ ${resolveOrigin(origin)}")
         }
@@ -142,17 +146,20 @@ object ResolveField {
     }
 
     private fun Field.matches(
-        expectedSelfType: ClassType,
+        actualSelfType: ClassType,
         fieldName: String,
         generics: List<Type>
     ): Boolean {
         return name == fieldName &&
                 selfType != null &&
-                isSubTypeOf(
-                    expectedSelfType, selfType,
-                    expectedSelfType.clazz.typeParameters, generics,
-                    InsertMode.READ_ONLY
-                )
+                run {
+                    println("Field match? $actualSelfType vs $selfType for $this")
+                    isSubTypeOf(
+                        selfType!!,actualSelfType,
+                        actualSelfType.clazz.typeParameters, generics,
+                        InsertMode.READ_ONLY
+                    )
+                }
     }
 
     fun resolveFieldType(field: Field, scope: Scope, targetType: Type?): Type {

@@ -19,7 +19,7 @@ interface ResolvedCallable {
             if (genericValues.isEmpty()) return type
             return when (type) {
                 is GenericType -> {
-                    val idx = genericNames.indexOfFirst { it.name == type.name }
+                    val idx = genericNames.indexOfFirst { it.name == type.name && it.scope == type.scope }
                     if (idx >= 0) genericValues[idx] else type
                 }
                 is UnionType -> {

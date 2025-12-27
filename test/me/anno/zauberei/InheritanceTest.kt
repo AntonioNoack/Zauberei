@@ -155,18 +155,6 @@ class InheritanceTest {
         )
         scope.typeParameters = listOf(anyOrNullParameter)
 
-        // no type params to be defined -> cannot check -> false
-        assertFalse(isSubTypeOf(anyOrNullGeneric, classA))
-
-        // parameter is available, but readonly -> cannot check -> false
-        assertFalse(
-            isSubTypeOf(
-                map(anyOrNullGeneric), map(classA),
-                listOf(anyOrNullParameter), getClearedList(), InsertMode.READ_ONLY
-            )
-        )
-        assertNull(list[0])
-
         // parameter is available, writable -> true
         assertTrue(
             isSubTypeOf(
@@ -177,7 +165,7 @@ class InheritanceTest {
         assertEquals(classA, list[0])
 
         // using the same list, a B is fine, too
-        assertFalse(
+        assertTrue(
             isSubTypeOf(
                 map(anyOrNullGeneric), map(classB),
                 listOf(anyOrNullParameter), list, InsertMode.READ_ONLY
@@ -233,14 +221,6 @@ class InheritanceTest {
                 listOf(floatParameter), getClearedList(), InsertMode.STRONG
             )
         )
-        // but still not when insertMode = read only
-        assertFalse(
-            isSubTypeOf(
-                map(floatGeneric), map(FloatType),
-                listOf(floatParameter), getClearedList(), InsertMode.READ_ONLY
-            )
-        )
-
     }
 
     @Test
