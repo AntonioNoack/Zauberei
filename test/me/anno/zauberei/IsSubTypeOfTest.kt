@@ -25,7 +25,7 @@ import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
-class InheritanceTest {
+class IsSubTypeOfTest {
 
     companion object {
         fun String.testInheritance(): Scope {

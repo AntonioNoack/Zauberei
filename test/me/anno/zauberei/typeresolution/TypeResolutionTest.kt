@@ -58,7 +58,7 @@ class TypeResolutionTest {
             if (constructors.none { it.valueParameters.isEmpty() }) {
                 constructors.add(
                     Constructor(
-                        arrayListType, emptyList(),
+                        arrayListType.typeWithoutArgs, emptyList(),
                         arrayListType.getOrCreatePrimConstructorScope(), null, null,
                         emptyList(), -1
                     )
@@ -67,7 +67,7 @@ class TypeResolutionTest {
             if (constructors.none { it.valueParameters.size == 1 }) {
                 constructors.add(
                     Constructor(
-                        arrayListType, listOf(
+                        arrayListType.typeWithoutArgs, listOf(
                             Parameter(
                                 false, false, false, "size",
                                 IntType, null, arrayListType, -1
@@ -124,7 +124,7 @@ class TypeResolutionTest {
         if (constructors.none { it.valueParameters.size == 1 }) {
             constructors.add(
                 Constructor(
-                    intArrayType, listOf(
+                    intArrayType.typeWithoutArgs, listOf(
                         Parameter(
                             false, false, false,
                             "size", IntType, null, intArrayType, -1

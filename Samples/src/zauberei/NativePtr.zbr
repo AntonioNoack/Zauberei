@@ -1,3 +1,0 @@
-class NativePtr(Int64 value) {
-    operator fun
-}

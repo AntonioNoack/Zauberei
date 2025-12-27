@@ -16,7 +16,7 @@ class InheritanceFieldTest {
     }
 
     @Test
-    fun testDirectCall() {
+    fun testDirectField() {
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(
@@ -32,7 +32,7 @@ class InheritanceFieldTest {
     }
 
     @Test
-    fun testDirectCallWithGenerics() {
+    fun testDirectFieldWithGenerics() {
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(
@@ -48,7 +48,7 @@ class InheritanceFieldTest {
     }
 
     @Test
-    fun testSuperCallX1() {
+    fun testSuperFieldX1() {
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(
@@ -65,7 +65,7 @@ class InheritanceFieldTest {
     }
 
     @Test
-    fun testSuperCallX1WithGenerics() {
+    fun testSuperFieldX1WithGenerics() {
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(
@@ -82,7 +82,7 @@ class InheritanceFieldTest {
     }
 
     @Test
-    fun testSuperCallX2() {
+    fun testSuperFieldX2() {
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(
@@ -100,7 +100,7 @@ class InheritanceFieldTest {
     }
 
     @Test
-    fun testSuperCallX2WithGenerics() {
+    fun testSuperFieldX2WithGenerics() {
         assertEquals(
             IntType,
             TypeResolutionTest.testTypeResolution(

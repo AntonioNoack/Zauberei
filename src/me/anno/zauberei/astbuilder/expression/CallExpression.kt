@@ -3,11 +3,12 @@ package me.anno.zauberei.astbuilder.expression
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.TokenListIndex.resolveOrigin
 import me.anno.zauberei.typeresolution.ResolutionContext
-import me.anno.zauberei.typeresolution.ResolveMethod.findConstructor
-import me.anno.zauberei.typeresolution.ResolveMethod.findMethodInFile
-import me.anno.zauberei.typeresolution.ResolveMethod.resolveCallType
 import me.anno.zauberei.typeresolution.TypeResolution.langScope
 import me.anno.zauberei.typeresolution.TypeResolution.resolveValueParameters
+import me.anno.zauberei.typeresolution.members.ConstructorResolver
+import me.anno.zauberei.typeresolution.members.MethodResolver.findMemberInFile
+import me.anno.zauberei.typeresolution.members.MethodResolver.null1
+import me.anno.zauberei.typeresolution.members.MethodResolver.resolveCallType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
@@ -51,16 +52,19 @@ class CallExpression(
         println("Resolving call: ${base}<${typeParameters ?: "?"}>($valueParameters)")
         // todo base can be a constructor, field or a method
         // todo find the best matching candidate...
+        val returnType = context.targetType
         when (base) {
             is NamedCallExpression if base.name == "." -> {
                 TODO("Find method/field ${base}($valueParameters)")
             }
             is NameExpression -> {
                 val name = base.name
-                println("Find call '$name' with nameAsImport=null")
+                println("Find call '$name' with nameAsImport=null, tp: $typeParameters, vp: $valueParameters")
                 // findConstructor(selfScope, false, name, typeParameters, valueParameters)
-                val constructor = findConstructor(context.codeScope, name, typeParameters, valueParameters)
-                    ?: findConstructor(langScope, name, typeParameters, valueParameters)
+                val c = ConstructorResolver
+                val constructor = null1()
+                    ?: c.findMemberInFile(context.codeScope, name, returnType, null, typeParameters, valueParameters)
+                    ?: c.findMemberInFile(langScope, name, returnType, null, typeParameters, valueParameters)
                 return resolveCallType(
                     context, this, name, constructor,
                     typeParameters, valueParameters
@@ -70,11 +74,12 @@ class CallExpression(
                 val name = base.nameAsImport.name
                 println("Find call '$name' with nameAsImport=${base.nameAsImport}")
                 // findConstructor(selfScope, false, name, typeParameters, valueParameters)
+                val c = ConstructorResolver
                 val constructor =
-                    findConstructor(base.nameAsImport, name, typeParameters, valueParameters)
-                        ?: findMethodInFile(
+                    c.findMemberInFile(base.nameAsImport, name, returnType, null, typeParameters, valueParameters)
+                        ?: findMemberInFile(
                             base.nameAsImport.parent, name,
-                            context.targetType,
+                            returnType,
                             base.nameAsImport.parent?.typeWithoutArgs,
                             typeParameters, valueParameters
                         )

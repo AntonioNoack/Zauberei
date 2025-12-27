@@ -2,7 +2,8 @@ package me.anno.zauberei.astbuilder.expression
 
 import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.typeresolution.ResolutionContext
-import me.anno.zauberei.typeresolution.ResolveField.resolveFieldType
+import me.anno.zauberei.typeresolution.members.MemberResolver.Companion.findGenericsForMatch
+import me.anno.zauberei.typeresolution.members.ResolvedField
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 
@@ -14,5 +15,16 @@ class FieldExpression(
     override fun toString(): String = field.toString()
     override fun clone(scope: Scope) = FieldExpression(field, scope, origin)
     override fun hasLambdaOrUnknownGenericsType(): Boolean = false
-    override fun resolveType(context: ResolutionContext): Type = resolveFieldType(field, scope, context.targetType)
+
+    override fun resolveType(context: ResolutionContext): Type {
+        val generics = findGenericsForMatch(
+            field.selfType, context.selfType,
+            field.valueType, context.targetType,
+            emptyList(), emptyList(),
+            emptyList(), emptyList()
+        )
+        check(generics != null)
+        val resolved = ResolvedField(generics, field, emptyList())
+        return resolved.getValueType()
+    }
 }

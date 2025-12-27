@@ -1,20 +1,17 @@
 package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.Compile
-import me.anno.zauberei.astbuilder.Field
 import me.anno.zauberei.astbuilder.NamedParameter
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.expression.Expression
-import me.anno.zauberei.typeresolution.ResolveMethod.getMethodReturnType
+import me.anno.zauberei.typeresolution.members.MethodResolver.getMethodReturnType
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.ScopeType
 import me.anno.zauberei.types.Type
-import me.anno.zauberei.types.impl.AndType.Companion.andTypes
 import me.anno.zauberei.types.impl.ClassType
 import me.anno.zauberei.types.impl.GenericType
 import me.anno.zauberei.types.impl.NullType
 import me.anno.zauberei.types.impl.UnionType
-import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 /**
  * Resolve types step by step, might fail, but should be stable at least.
@@ -52,14 +49,15 @@ object TypeResolution {
             getMethodReturnType(scopeSelfType, method)
         }
         for (field in scope.fields) {
-            if (field.valueType == null && field.initialValue != null) {
+            val initialValue = field.initialValue ?: field.getterExpr
+            if (field.valueType == null && initialValue != null) {
                 println("Resolving field $field in scope ${scope.pathStr}")
                 println("fieldSelfType: ${field.selfType}")
                 println("scopeSelfType: $scopeSelfType")
                 //try {
                 val selfType = field.selfType ?: scopeSelfType
                 val context = ResolutionContext(field.declaredScope, selfType, false, null)
-                field.valueType = resolveType(context, field.initialValue)
+                field.valueType = resolveType(context, initialValue)
                 println("Resolved $field to ${field.valueType}")
                 /*} catch (e: Throwable) {
                     e.printStackTrace()
@@ -148,19 +146,11 @@ object TypeResolution {
         } else type
     }
 
-    fun List<Type>.reduceUnionOrNull(): Type? = reduceOrNull { a, b -> unionTypes(a, b) }
-
-    fun List<Type>.reduceAndOrNull(): Type? = reduceOrNull { a, b -> andTypes(a, b) }
-
     fun findType(
         scope: Scope, // 2nd, recursive as long as fileName == parentScope.fileName
         selfScope: Type?, // 1st, surface-level only
         name: String
     ): ClassType? = findType(typeToScope(selfScope), name) ?: findType(scope, name)
-
-    fun Field.resolveCall(): ResolvedField {
-        return ResolvedField(this)
-    }
 
     fun typeToScope(type: Type?): Scope? {
         return when (type) {

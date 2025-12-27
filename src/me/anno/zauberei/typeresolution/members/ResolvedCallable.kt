@@ -1,4 +1,4 @@
-package me.anno.zauberei.typeresolution
+package me.anno.zauberei.typeresolution.members
 
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.types.LambdaParameter
@@ -7,6 +7,9 @@ import me.anno.zauberei.types.impl.*
 import me.anno.zauberei.types.impl.UnionType.Companion.unionTypes
 
 interface ResolvedCallable {
+
+    val ownerTypes: List<Type>
+    val callTypes: List<Type>
 
     fun getTypeFromCall(): Type
 

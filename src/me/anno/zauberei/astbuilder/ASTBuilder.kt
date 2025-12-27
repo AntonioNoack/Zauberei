@@ -138,7 +138,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         }
 
         val primaryConstructor = Constructor(
-            clazz, constructorParams ?: emptyList(),
+            clazz.typeWithoutArgs, constructorParams ?: emptyList(),
             clazz.getOrCreatePrimConstructorScope(), null, null,
             if (privatePrimaryConstructor) listOf("private") else emptyList(),
             constructorOrigin
@@ -328,6 +328,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
             currPackage, isVar, !isVar, selfType,
             name, valueType, initialValue, keywords, origin
         )
+        field.typeParameters = typeParameters
         if (debug) println("read field $name: $valueType = $initialValue")
         lastField = field
     }
@@ -505,7 +506,7 @@ class ASTBuilder(val tokens: TokenList, val root: Scope) {
         }
 
         val constructor = Constructor(
-            clazz, parameters, innerScope,
+            clazz.typeWithoutArgs, parameters, innerScope,
             superCall, body, keywords, origin
         )
         currPackage.constructors.add(constructor)

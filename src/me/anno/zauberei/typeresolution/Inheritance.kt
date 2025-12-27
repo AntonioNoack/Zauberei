@@ -2,7 +2,7 @@ package me.anno.zauberei.typeresolution
 
 import me.anno.zauberei.astbuilder.Parameter
 import me.anno.zauberei.astbuilder.SuperCall
-import me.anno.zauberei.typeresolution.ResolvedCallable.Companion.resolveGenerics
+import me.anno.zauberei.typeresolution.members.ResolvedCallable.Companion.resolveGenerics
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
 import me.anno.zauberei.types.Types.AnyType

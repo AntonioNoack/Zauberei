@@ -3,6 +3,7 @@ package me.anno.zauberei.astbuilder
 import me.anno.zauberei.astbuilder.expression.Expression
 import me.anno.zauberei.types.Scope
 import me.anno.zauberei.types.Type
+import me.anno.zauberei.types.impl.ClassType
 
 class Field(
     val declaredScope: Scope,
@@ -29,6 +30,11 @@ class Field(
 
     var setterFieldName: String = "value"
     var setterExpr: Expression? = null
+
+    val selfTypeTypeParams: List<Parameter>
+        get() = (selfType as? ClassType)?.clazz?.typeParameters ?: emptyList()
+
+    var typeParameters: List<Parameter> = emptyList()
 
     init {
         declaredScope.addField(this)

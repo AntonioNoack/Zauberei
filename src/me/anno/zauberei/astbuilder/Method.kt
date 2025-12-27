@@ -15,7 +15,7 @@ class Method(
     val extraConditions: List<TypeCondition>,
     val body: Expression?,
     val keywords: List<String>,
-    origin: Int
+    val origin: Int
 ) {
     override fun toString(): String {
         val builder = StringBuilder()
