@@ -21,4 +21,8 @@ T* __gcNew(Args&&... args)
     return new (mem) T(std::forward<Args>(args)...);
 }
 
+#include "./zauber/String.hpp"
+
+zauber::String* __createString(const char* content, zauber::String* string);
+
 int32_t stdlibMain();

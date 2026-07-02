@@ -82,7 +82,7 @@ void* __gcNew(size_t size, uint32_t classIndex) {
 #include "zauber/String.h"
 #include <string.h> // for strlen
 
-void* __createString(char* content, void* newStr0) {
+void* __createString(const char* content, void* newStr0) {
     zauber_String* newStr = newStr0;
     if (!newStr->content) { // not yet initialized
         newStr->__class = 1;

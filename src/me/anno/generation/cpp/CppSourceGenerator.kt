@@ -12,6 +12,8 @@ import me.anno.support.jvm.FirstJVMClassReader.Companion.isPrivate
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.zauber.SpecialFieldNames.OBJECT_FIELD_NAME
 import me.anno.zauber.ast.reverse.CodeReconstruction
+import me.anno.zauber.ast.reverse.SimpleBranch
+import me.anno.zauber.ast.reverse.SimpleLoop
 import me.anno.zauber.ast.reverse.SimpleTailCall
 import me.anno.zauber.ast.rich.Annotation
 import me.anno.zauber.ast.rich.Flags
@@ -271,10 +273,16 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         valueType = resolveType(valueType)
 
         appendType(valueType, classScope, false)
+        appendOwnershipSuffix(valueType, false)
         builder.append(' ')
         appendFieldName(field)
-        val isNumber = valueType in nativeCppNumbers
-        builder.append(if (isNumber) " = 0;" else " = {};")
+        builder.append(
+            when {
+                valueType in nativeNumbers -> " = 0;"
+                valueType.isValue() -> ";"
+                else -> " = nullptr;"
+            }
+        )
         nextLine()
     }
 
@@ -406,7 +414,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         if (!headerOnly) return
 
         val elementType = specialization.typeParameters[0]
-        appendVisibility(isPrivate = true)
+        appendVisibility(isPrivate = false)
         appendType(elementType, classScope, false)
         appendOwnershipSuffix(elementType, false)
         builder.append("* content;")
@@ -480,13 +488,13 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
 
     override fun appendArrayContentInitialization(constructor: Constructor) {
         val elementType = specialization.typeParameters[0]
-        builder.append("this->content = (")
+        builder.append("this->content = size > 0 ? (")
         appendType(elementType, constructor.scope, false)
         appendOwnershipSuffix(elementType, false)
         builder.append("*) calloc(size, sizeof(")
         appendType(elementType, constructor.scope, false)
         appendOwnershipSuffix(elementType, false)
-        builder.append("));")
+        builder.append(")) : NULL;")
         nextLine()
     }
 
@@ -824,16 +832,20 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         builder.setLength(l0)
     }
 
+    open fun declareStaticStringField(name: String, scope: Scope) {
+        strBuilder.append("static ") // means only accessible in this file
+        copyInto(strBuilder) {
+            appendType(Types.String, scope, true)
+        }
+        strBuilder.append(' ').append(name).append("(nullptr);\n")
+    }
+
     fun appendStringImpl(value: String, scope: Scope) {
         ensureImport(Types.String)
 
         val tmp = strings.getOrPut(value) {
             val tmp = "__str${strIndex++}"
-            strBuilder.append("static ") // means only accessible in this file
-            copyInto(strBuilder) {
-                appendType(Types.String, scope, true)
-            }
-            strBuilder.append(' ').append(tmp).append(";\n")
+            declareStaticStringField(tmp, scope)
             tmp
         }
 
@@ -914,7 +926,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             for (i in blocks.indices) {
                 val block = graph.blocks[i]
                 if (i == 0 || block.inputBlocks.isNotEmpty()) {
-                    appendSimpleBlock(graph, block)
+                    appendSimpleBlockI(graph, block, true)
                 }
             }
             removeTailingReturn()
@@ -935,11 +947,18 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
     }
 
     override fun appendSimpleBlock(graph: SimpleGraph, block: SimpleBlock) {
-        // mark block as jumpable
-        if (block.inputBlocks.isNotEmpty()) {
+        appendSimpleBlockI(graph, block, true)
+    }
+
+    fun appendSimpleBlockI(graph: SimpleGraph, block: SimpleBlock, withBlock: Boolean) {
+        if (withBlock) {
             dedent()
-            builder.append("b").append(block.id).append(':')
-            nextLine()
+            // mark block as jumpable
+            if (block.inputBlocks.isNotEmpty()) {
+                builder.append("b").append(block.id).append(": ")
+            }
+
+            builder.append("{"); nextLine()
         }
 
         val instructions = block.instructions
@@ -960,6 +979,11 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             }
             nextLine()
         }
+
+        if (withBlock) {
+            dedent()
+            builder.append("}"); nextLine()
+        }
     }
 
     override fun appendInstrImpl(graph: SimpleGraph, expr: SimpleInstruction) {
@@ -976,6 +1000,37 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                 } else {
                     appendType(expr.allocatedType, expr.scope, true)
                     appendValueParams(graph, expr.paramsForLater)
+                }
+            }
+            is SimpleBranch -> {
+                builder.append("if (")
+                appendFieldName(graph, expr.condition)
+                builder.append(')')
+                writeBlock {
+                    appendSimpleBlockI(graph, expr.ifTrue, false)
+                }
+                if (expr.ifFalse != null) {
+                    removeTrailingWhitespace()
+                    builder.append(" else ")
+                    writeBlock {
+                        appendSimpleBlockI(graph, expr.ifFalse, false)
+                    }
+                }
+            }
+            is SimpleLoop -> {
+                builder.append("while (true)")
+                writeBlock {
+                    if (expr.condition != null) {
+                        appendSimpleBlockI(graph, expr.conditionBlock!!, false)
+                        builder.append("if (")
+                        if (!expr.negate) builder.append("!(")
+                        appendFieldName(graph, expr.condition)
+                        if (!expr.negate) builder.append(')')
+                        builder.append(") break;")
+                        nextLine()
+                        nextLine()
+                    }
+                    appendSimpleBlockI(graph, expr.body, false)
                 }
             }
             is SimpleString -> appendStringImpl(expr.base.value, expr.scope)

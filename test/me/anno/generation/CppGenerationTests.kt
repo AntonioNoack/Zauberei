@@ -2,12 +2,10 @@ package me.anno.generation
 
 import me.anno.compilation.MinimalCppCompiler
 import me.anno.generation.cpp.CppSourceGenerator.Companion.nativeCppTypes
-import me.anno.generation.java.JavaSourceGenerator
 import me.anno.generation.java.JavaSourceGenerator.Companion.register
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.getNumBits
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.toUnsigned
 import me.anno.zauber.ast.simple.ASTSimplifier.nativeInts
-import me.anno.zauber.ast.simple.ASTSimplifier.nativeNumbers
 import me.anno.zauber.typeresolution.TypeResolution
 import me.anno.zauber.types.Types
 import org.junit.jupiter.api.Test

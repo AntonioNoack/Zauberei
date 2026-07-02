@@ -629,4 +629,12 @@ open class CSourceGenerator : CppSourceGenerator() {
             builder.append("(uint16_t) ").append(expr.asInt.toUShort())
         } else super.appendNumber(type, expr)
     }
+
+    override fun declareStaticStringField(name: String, scope: Scope) {
+        strBuilder.append("static ") // means only accessible in this file
+        copyInto(strBuilder) {
+            appendType(Types.String, scope, true)
+        }
+        strBuilder.append(' ').append(name).append(";\n")
+    }
 }
