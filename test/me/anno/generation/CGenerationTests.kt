@@ -128,7 +128,7 @@ class CGenerationTests : CodeGenerationTests() {
             external fun isdigit(c: Char): Int
             
             fun main() {
-                println(if(isdigit('A')) 2 else 1)
+                println(if(isdigit('7')) 2 else 1)
             }
             
             package zauber

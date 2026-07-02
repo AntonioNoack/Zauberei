@@ -580,7 +580,18 @@ open class CSourceGenerator : CppSourceGenerator() {
                             builder.append(")->content = ")
                             appendFieldName(graph, src)
                         } else {
-                            TODO("Copy over all fields into new instance for $expr")
+                            val fields = src.type.clazz.fields
+                            for (field in fields) {
+                                builder.append("((")
+                                appendType(src.type, expr.scope, true)
+                                appendOwnershipSuffix(src.type, true)
+                                builder.append(") ")
+                                appendFieldName(graph, dst)
+                                builder.append(")->").append(field.newName).append(" = ")
+                                appendFieldName(graph, src)
+                                builder.append(".").append(field.newName).append(';')
+                                nextLine()
+                            }
                         }
                     }
                     srcRef && dstNum -> {

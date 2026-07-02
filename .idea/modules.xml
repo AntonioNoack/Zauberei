@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/LanguageServer/LanguageServer.iml" filepath="$PROJECT_DIR$/LanguageServer/LanguageServer.iml" />
-      <module fileurl="file://$PROJECT_DIR$/Samples/Samples.iml" filepath="$PROJECT_DIR$/Samples/Samples.iml" />
       <module fileurl="file://$PROJECT_DIR$/Zauberei.iml" filepath="$PROJECT_DIR$/Zauberei.iml" />
     </modules>
   </component>

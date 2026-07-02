@@ -178,8 +178,10 @@ open class JavaSourceGenerator : Generator() {
             }
             var needsSlash = false
             while (i < import.size) {
+                // todo use underscores instead of slashes, if the scope is not a package
                 if (needsSlash) append("/")
-                append(import[i])
+                val importI = import[i]
+                append(if (i < import.lastIndex) importI.lowercase() else importI.capitalize1())
                 needsSlash = true
                 i++
             }

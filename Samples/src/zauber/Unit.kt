@@ -1,3 +1,0 @@
-package zauber
-
-object Unit
