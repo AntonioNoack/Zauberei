@@ -119,6 +119,7 @@ object CodeReconstruction {
 
     private fun simplifyLoop(graph: SimpleGraph): Boolean {
 
+        // positive loop
         for (i in graph.blocks.indices) {
             val curr = graph.blocks[i]
             val body = curr.ifBranch
@@ -135,6 +136,7 @@ object CodeReconstruction {
             }
         }
 
+        // negative loop
         for (i in graph.blocks.indices) {
             val curr = graph.blocks[i]
             val body = curr.elseBranch
@@ -150,6 +152,20 @@ object CodeReconstruction {
                 return true
             }
         }
+
+        // infinite loop
+        for (i in graph.blocks.indices) {
+            val curr = graph.blocks[i]
+            val body = curr.ifBranch
+            if (!curr.isBranch && curr != body &&
+                body != null && !body.isBranch &&
+                body.nextBranch == body &&
+                body.inputBlocks.size == 2 // body and curr
+            ) {
+                createSimplifyLoop(graph, curr, body, null, false)
+                return true
+            }
+        }
         return false
     }
 
@@ -159,15 +175,20 @@ object CodeReconstruction {
         body: SimpleBlock, after: SimpleBlock?,
         negate: Boolean
     ) {
-        val condition = curr.branchCondition!!
-
+        val condition = curr.branchCondition
         if (LOGGER.isInfoEnabled) LOGGER.info("Loop in ${curr.idStr()} -> while $condition != $negate { ${body.idStr()} } -> ${after?.idStr()}")
 
-        val conditionBlock = graph.addBlock()
-        conditionBlock.instructions.addAll(curr.instructions)
-        curr.instructions.clear()
+        val loop = if (condition != null) {
+            val conditionBlock = graph.addBlock()
+            conditionBlock.instructions.addAll(curr.instructions)
+            curr.instructions.clear()
+            SimpleLoop(conditionBlock, condition, negate, body)
+        } else {
+            check(!negate)
+            SimpleLoop(body)
+        }
 
-        curr.instructions.add(SimpleLoop(conditionBlock, condition, negate, body))
+        curr.instructions.add(loop)
         curr.elseBranch = null
         curr.ifBranch = after
         curr.branchCondition = null

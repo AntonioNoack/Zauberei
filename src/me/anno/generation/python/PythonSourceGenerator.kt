@@ -280,7 +280,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
         declareLocalFields(graph)
 
         if (graph.hasTailCalls()) appendTailCallCode(graph)
-        else appendSimpleBlock(graph, graph.startBlock)
+        else appendBlock(graph, graph.startBlock)
 
         removeTailingReturn()
 
@@ -590,12 +590,12 @@ class PythonSourceGenerator : JavaSourceGenerator() {
                 builder.append("if ")
                 appendFieldName(graph, expr.condition)
                 writeBlock {
-                    appendSimpleBlock(graph, expr.ifTrue)
+                    appendBlock(graph, expr.ifTrue)
                 }
                 if (expr.ifFalse != null) {
                     builder.append("else")
                     writeBlock {
-                        appendSimpleBlock(graph, expr.ifFalse)
+                        appendBlock(graph, expr.ifFalse)
                     }
                 }
             }
@@ -603,7 +603,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
                 builder.append("while True")
                 writeBlock {
                     if (expr.condition != null) {
-                        appendSimpleBlock(graph, expr.conditionBlock!!)
+                        appendBlock(graph, expr.conditionBlock!!)
                         builder.append("if ")
                         if (!expr.negate) builder.append("not ")
                         appendFieldName(graph, expr.condition)
@@ -611,7 +611,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
                         builder.append("  break"); nextLine()
                         nextLine()
                     }
-                    appendSimpleBlock(graph, expr.body)
+                    appendBlock(graph, expr.body)
                 }
             }
             is SimpleTailCall -> {
@@ -732,7 +732,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
                         if (i == 0 || targets[block.id]) {
                             builder.append("case ").append(block.id)
                             writeBlock {
-                                appendSimpleBlock(graph, block)
+                                appendBlock(graph, block)
                             }
                         }
                     }

@@ -1,13 +1,15 @@
 
-// for strlen
-#include <cstring>
-
 #include "CppStandardLib.hpp"
-#include "zauber/Array_zauberByte.hpp"
 
 int32_t stdlibMain() {
     return 0;
 }
+
+#ifdef HAS_STRINGS
+
+// for strlen
+#include <cstring>
+#include "zauber/Array_zauberByte.hpp"
 
 zauber::String* __createString(const char* content, zauber::String* string) {
     if (!string->content) { // initialize
@@ -18,3 +20,5 @@ zauber::String* __createString(const char* content, zauber::String* string) {
     }
     return string;
 }
+
+#endif

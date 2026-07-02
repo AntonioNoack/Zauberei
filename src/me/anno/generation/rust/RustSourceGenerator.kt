@@ -576,7 +576,7 @@ class RustSourceGenerator : JavaSourceGenerator() {
                     if (i == 0 || targets[block.id]) {
                         builder.append(block.id).append(" => ")
                         writeBlock {
-                            appendSimpleBlock(graph, block)
+                            appendBlock(graph, block)
                         }
                         removeTrailingWhitespace()
                         builder.append(',')
@@ -674,13 +674,13 @@ class RustSourceGenerator : JavaSourceGenerator() {
                 appendFieldName(graph, expr.condition)
                 builder.append(' ')
                 writeBlock {
-                    appendSimpleBlock(graph, expr.ifTrue)
+                    appendBlock(graph, expr.ifTrue)
                 }
                 if (expr.ifFalse != null) {
                     removeTrailingWhitespace()
                     builder.append(" else ")
                     writeBlock {
-                        appendSimpleBlock(graph, expr.ifFalse)
+                        appendBlock(graph, expr.ifFalse)
                     }
                 }
             }
@@ -689,7 +689,7 @@ class RustSourceGenerator : JavaSourceGenerator() {
                 // builder.append("'b").append(expr.body.blockId).append(": ") // todo check if we use the label anywhere
                 builder.append("loop ")
                 writeBlock {
-                    appendSimpleBlock(graph, expr.body)
+                    appendBlock(graph, expr.body)
                 }
             }
             is SimpleTailCall -> {

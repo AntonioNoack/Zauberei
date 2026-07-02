@@ -926,7 +926,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             for (i in blocks.indices) {
                 val block = graph.blocks[i]
                 if (i == 0 || block.inputBlocks.isNotEmpty()) {
-                    appendSimpleBlockI(graph, block, true)
+                    appendBlockI(graph, block, true)
                 }
             }
             removeTailingReturn()
@@ -946,11 +946,11 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         strIndex = 0
     }
 
-    override fun appendSimpleBlock(graph: SimpleGraph, block: SimpleBlock) {
-        appendSimpleBlockI(graph, block, true)
+    override fun appendBlock(graph: SimpleGraph, block: SimpleBlock) {
+        appendBlockI(graph, block, true)
     }
 
-    fun appendSimpleBlockI(graph: SimpleGraph, block: SimpleBlock, withBlock: Boolean) {
+    fun appendBlockI(graph: SimpleGraph, block: SimpleBlock, withBlock: Boolean) {
         if (withBlock) {
             dedent()
             // mark block as jumpable
@@ -968,16 +968,36 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         }
 
         // jump to next blocks
-        if (block.nextBranch != null) {
+        val nextBranch = block.nextBranch
+        if (nextBranch != null) {
             if (block.isBranch) {
-                builder.append("if (")
-                appendFieldName(graph, block.branchCondition!!)
-                builder.append(") goto b").append(block.ifBranch!!.id)
-                builder.append("; else goto b").append(block.elseBranch!!.id).append(';')
-            } else {
-                builder.append("goto b").append(block.nextBranch!!.id).append(';')
+                val ifBranch = block.ifBranch!!
+                val elseBranch = block.elseBranch!!
+                when {
+                    ifBranch.id == block.id + 1 -> {
+                        builder.append("if (!")
+                        appendFieldName(graph, block.branchCondition!!)
+                        builder.append(") goto b").append(elseBranch.id).append(';')
+                        nextLine()
+                    }
+                    elseBranch.id == block.id + 1 -> {
+                        builder.append("if (")
+                        appendFieldName(graph, block.branchCondition!!)
+                        builder.append(") goto b").append(ifBranch.id).append(";")
+                        nextLine()
+                    }
+                    else -> {
+                        builder.append("if (")
+                        appendFieldName(graph, block.branchCondition!!)
+                        builder.append(") goto b").append(ifBranch.id)
+                        builder.append("; else goto b").append(elseBranch.id).append(';')
+                        nextLine()
+                    }
+                }
+            } else if (nextBranch.id != block.id + 1) {
+                builder.append("goto b").append(nextBranch.id).append(';')
+                nextLine()
             }
-            nextLine()
         }
 
         if (withBlock) {
@@ -1007,13 +1027,13 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                 appendFieldName(graph, expr.condition)
                 builder.append(')')
                 writeBlock {
-                    appendSimpleBlockI(graph, expr.ifTrue, false)
+                    appendBlockI(graph, expr.ifTrue, false)
                 }
                 if (expr.ifFalse != null) {
                     removeTrailingWhitespace()
                     builder.append(" else ")
                     writeBlock {
-                        appendSimpleBlockI(graph, expr.ifFalse, false)
+                        appendBlockI(graph, expr.ifFalse, false)
                     }
                 }
             }
@@ -1021,7 +1041,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                 builder.append("while (true)")
                 writeBlock {
                     if (expr.condition != null) {
-                        appendSimpleBlockI(graph, expr.conditionBlock!!, false)
+                        appendBlockI(graph, expr.conditionBlock!!, false)
                         builder.append("if (")
                         if (!expr.negate) builder.append("!(")
                         appendFieldName(graph, expr.condition)
@@ -1030,7 +1050,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                         nextLine()
                         nextLine()
                     }
-                    appendSimpleBlockI(graph, expr.body, false)
+                    appendBlockI(graph, expr.body, false)
                 }
             }
             is SimpleString -> appendStringImpl(expr.base.value, expr.scope)

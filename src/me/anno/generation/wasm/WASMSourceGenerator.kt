@@ -714,7 +714,7 @@ class WASMSourceGenerator : JavaSourceGenerator() {
 
         // write all code
         if (graph.hasTailCalls()) appendTailCallCode(graph)
-        else appendSimpleBlock(graph, graph.startBlock)
+        else appendBlock(graph, graph.startBlock)
     }
 
     override fun prepareGraph(graph: SimpleGraph) {
@@ -775,7 +775,7 @@ class WASMSourceGenerator : JavaSourceGenerator() {
         // content blocks
         for (i in options.indices) {
             currBlockTableIndex = i
-            appendSimpleBlock(graph, options[i])
+            appendBlock(graph, options[i])
             indentation--
             dedent()
             endLoop() // contains blockTableDepth--
@@ -1280,10 +1280,10 @@ class WASMSourceGenerator : JavaSourceGenerator() {
             is SimpleBranch -> {
                 appendGetField(graph, expr.condition)
                 beginIf()
-                /**/appendSimpleBlock(graph, expr.ifTrue)
+                /**/appendBlock(graph, expr.ifTrue)
                 if (expr.ifFalse != null) {
                     beginElse()
-                    appendSimpleBlock(graph, expr.ifFalse)
+                    appendBlock(graph, expr.ifFalse)
                 }
                 endIfElse()
             }
@@ -1292,7 +1292,7 @@ class WASMSourceGenerator : JavaSourceGenerator() {
                 if (expr.condition == null) {
 
                     beginLoop(name)
-                    appendSimpleBlock(graph, expr.body)
+                    appendBlock(graph, expr.body)
                     continueLoop(name, 0)
                     endLoop()
 
@@ -1302,12 +1302,12 @@ class WASMSourceGenerator : JavaSourceGenerator() {
                 } else {
 
                     beginLoop(name)
-                    appendSimpleBlock(graph, expr.conditionBlock!!)
+                    appendBlock(graph, expr.conditionBlock!!)
                     appendGetField(graph, expr.condition)
 
                     beginIf()
                     if (expr.negate) beginElse()
-                    /**/appendSimpleBlock(graph, expr.body)
+                    /**/appendBlock(graph, expr.body)
                     /**/continueLoop(name, 1)
                     endIfElse()
 

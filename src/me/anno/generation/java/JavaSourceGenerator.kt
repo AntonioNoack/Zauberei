@@ -997,7 +997,7 @@ open class JavaSourceGenerator : Generator() {
             declareLocalFields(graph)
 
             if (graph.hasTailCalls()) appendTailCallCode(graph)
-            else appendSimpleBlock(graph, graph.startBlock)
+            else appendBlock(graph, graph.startBlock)
 
             removeTailingReturn()
 
@@ -1030,7 +1030,7 @@ open class JavaSourceGenerator : Generator() {
                     if (i == 0 || targets[block.id]) {
                         builder.append("case ").append(block.id).append(':')
                         writeBlock {
-                            appendSimpleBlock(graph, block)
+                            appendBlock(graph, block)
                         }
                     }
                 }
@@ -1299,7 +1299,7 @@ open class JavaSourceGenerator : Generator() {
         if (withBrackets) builder.append(')')
     }
 
-    open fun appendSimpleBlock(graph: SimpleGraph, block: SimpleBlock) {
+    open fun appendBlock(graph: SimpleGraph, block: SimpleBlock) {
         val instructions = block.instructions
         for (i in instructions.indices) {
             val instr = instructions[i]
@@ -1369,13 +1369,13 @@ open class JavaSourceGenerator : Generator() {
                 appendFieldName(graph, expr.condition)
                 builder.append(')')
                 writeBlock {
-                    appendSimpleBlock(graph, expr.ifTrue)
+                    appendBlock(graph, expr.ifTrue)
                 }
                 if (expr.ifFalse != null) {
                     removeTrailingWhitespace()
                     builder.append(" else ")
                     writeBlock {
-                        appendSimpleBlock(graph, expr.ifFalse)
+                        appendBlock(graph, expr.ifFalse)
                     }
                 }
             }
@@ -1383,7 +1383,7 @@ open class JavaSourceGenerator : Generator() {
                 builder.append("while (true)")
                 writeBlock {
                     if (expr.condition != null) {
-                        appendSimpleBlock(graph, expr.conditionBlock!!)
+                        appendBlock(graph, expr.conditionBlock!!)
                         builder.append("if (")
                         if (!expr.negate) builder.append("!(")
                         appendFieldName(graph, expr.condition)
@@ -1392,7 +1392,7 @@ open class JavaSourceGenerator : Generator() {
                         nextLine()
                         nextLine()
                     }
-                    appendSimpleBlock(graph, expr.body)
+                    appendBlock(graph, expr.body)
                 }
             }
             is SimpleConstructorCall -> {

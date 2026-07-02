@@ -468,13 +468,13 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         val blocks = graph.blocks
         check(blocks.first() == graph.startBlock)
         for (i in blocks.indices) {
-            appendSimpleBlock(graph, blocks[i])
+            appendBlock(graph, blocks[i])
         }
 
         appendMissingDeclarations(graph, pos0)
     }
 
-    override fun appendSimpleBlock(graph: SimpleGraph, block: SimpleBlock) {
+    override fun appendBlock(graph: SimpleGraph, block: SimpleBlock) {
         val instructions = block.instructions
         startNextBlock(block)
         for (i in instructions.indices) {

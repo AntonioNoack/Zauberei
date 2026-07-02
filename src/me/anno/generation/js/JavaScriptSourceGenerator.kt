@@ -25,7 +25,6 @@ import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.rich.member.MethodLike
 import me.anno.zauber.ast.rich.parameter.InnerSuperCall
 import me.anno.zauber.ast.rich.parameter.InnerSuperCallTarget
-import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.rich.parameter.SuperCall
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.expression.SimpleAllocateInstance
@@ -857,7 +856,7 @@ open class JavaScriptSourceGenerator : JavaSourceGenerator() {
                     if (i == 0 || targets[block.id]) {
                         builder.append("case ").append(block.id).append(':')
                         writeBlock {
-                            appendSimpleBlock(graph, block)
+                            appendBlock(graph, block)
                         }
                     }
                 }

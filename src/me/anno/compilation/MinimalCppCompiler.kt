@@ -5,6 +5,8 @@ import me.anno.utils.StdlibLoader.loadBytes
 import me.anno.utils.StdlibLoader.loadText
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.expansion.DependencyData
+import me.anno.zauber.types.Specialization
+import me.anno.zauber.types.Types
 import java.io.File
 
 open class MinimalCppCompiler(preserveFolder: Boolean = false) :
@@ -34,6 +36,10 @@ open class MinimalCppCompiler(preserveFolder: Boolean = false) :
             .writeText(
                 loadText("files/CMakeLists.txt")
                     .replace("FILES_LIST", filesList)
+                    .replace(
+                        "DEFINITIONS",
+                        if (Specialization(Types.String) in dependencies.createdClasses) "HAS_STRINGS" else ""
+                    )
             )
 
         File(srcFolder, "CppStandardLib.cpp")

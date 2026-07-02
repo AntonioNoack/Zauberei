@@ -78,6 +78,8 @@ void* __gcNew(size_t size, uint32_t classIndex) {
     return instance;
 }
 
+#ifdef HAS_STRINGS
+
 #include "zauber/Array_zauberByte.h"
 #include "zauber/String.h"
 #include <string.h> // for strlen
@@ -94,3 +96,5 @@ void* __createString(const char* content, void* newStr0) {
     }
     return newStr;
 }
+
+#endif

@@ -3,6 +3,8 @@ package me.anno.compilation
 import me.anno.generation.c.CSourceGenerator
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.expansion.DependencyData
+import me.anno.zauber.types.Specialization
+import me.anno.zauber.types.Types
 import java.io.File
 
 open class MinimalCCompiler :
@@ -53,6 +55,10 @@ open class MinimalCCompiler :
             .writeText(
                 minimalCMakeListsForC
                     .replace("FILES_LIST", filesList)
+                    .replace(
+                        "DEFINITIONS",
+                        if (Specialization(Types.String) in dependencies.createdClasses) "HAS_STRINGS" else ""
+                    )
                     .replace(
                         "FIND_PACKAGES",
                         libraries.entries.joinToString("\n") { (name, _) ->
