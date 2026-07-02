@@ -207,6 +207,7 @@ object LinearTreeSimplification {
             if (node === start || node === end) continue
             for (input in node.inputBlocks) {
                 check(input in visited) {
+                    println(start.graph)
                     "Expected ${input.headerStr()} to be in ${start.headerStr()} .. ${end.headerStr()}"
                 }
             }

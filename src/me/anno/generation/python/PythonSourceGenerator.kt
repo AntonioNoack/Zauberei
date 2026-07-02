@@ -21,6 +21,7 @@ import me.anno.zauber.ast.rich.expression.constants.NumberExpression
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isFloat
 import me.anno.zauber.ast.rich.expression.constants.SpecialValue
 import me.anno.zauber.ast.rich.expression.constants.SpecialValueExpression
+import me.anno.zauber.ast.rich.expression.constants.StringExpression
 import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.Method
@@ -30,10 +31,7 @@ import me.anno.zauber.ast.rich.parameter.InnerSuperCallTarget
 import me.anno.zauber.ast.rich.parameter.SuperCall
 import me.anno.zauber.ast.simple.ASTSimplifier
 import me.anno.zauber.ast.simple.SimpleGraph
-import me.anno.zauber.ast.simple.expression.SimpleAllocateInstance
-import me.anno.zauber.ast.simple.expression.SimpleAssignment
-import me.anno.zauber.ast.simple.expression.SimpleConstructorCall
-import me.anno.zauber.ast.simple.expression.SimpleMethodCall
+import me.anno.zauber.ast.simple.expression.*
 import me.anno.zauber.ast.simple.fields.LocalField
 import me.anno.zauber.ast.simple.fields.SimpleField
 import me.anno.zauber.ast.simple.fields.SimpleInstruction
@@ -421,8 +419,16 @@ class PythonSourceGenerator : JavaSourceGenerator() {
 
     override fun appendNativeImplementation(nativeImpl: String, method: MethodLike) {
         val i0 = builder.length
-        builder.append(nativeImpl)
-        nextLine()
+        if ('\n' in nativeImpl) {
+            val lines = nativeImpl.lines()
+            for (line in lines) {
+                builder.append(line)
+                nextLine()
+            }
+        } else {
+            builder.append(nativeImpl)
+            nextLine()
+        }
         appendReturnIfMissing(method, i0)
     }
 
@@ -445,7 +451,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
     }
 
     override fun appendReturnIfMissing(method: MethodLike, i0: Int) {
-        if (builder.indexOf("return", i0) < 0) {
+        if (hasReturn(method) && builder.indexOf("return", i0) < 0) {
             builder.append("return ")
             appendGetObjectInstance(Types.Unit.clazz, method.scope)
             nextLine()
@@ -631,6 +637,13 @@ class PythonSourceGenerator : JavaSourceGenerator() {
                     appendCallImpl(graph, expr)
                 }
             }
+            is SimpleInstanceOf -> {
+                builder.append("isinstance(")
+                appendFieldName(graph, expr.value)
+                builder.append(", ")
+                appendType(expr.type, expr.scope, false)
+                builder.append(')')
+            }
             else -> super.appendInstrImpl(graph, expr)
         }
     }
@@ -686,9 +699,12 @@ class PythonSourceGenerator : JavaSourceGenerator() {
             Types.Long -> builder.append(expr.asInt)
             Types.ULong -> builder.append(expr.asInt.toULong())
             Types.Char -> builder.append(expr.asInt.toInt())
-            Types.Half -> builder.append(expr.asFloat.toHalf().toFloat())
+            Types.Half -> {
+                if (!expr.asFloat.toHalf().isFinite()) appendInfinite(expr.asFloat)
+                else builder.append(expr.asFloat.toHalf().toFloat())
+            }
             Types.Float -> {
-                if (!expr.asFloat.isFinite()) appendInfinite(expr.asFloat)
+                if (!expr.asFloat.toFloat().isFinite()) appendInfinite(expr.asFloat)
                 else builder.append(expr.asFloat.toFloat())
             }
             Types.Double -> {
@@ -786,6 +802,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
             val field = field.dst
             when (val expr = field.constantRef) {
                 is NumberExpression -> appendNumber(field.type, expr)
+                is StringExpression -> appendString(expr.value)
                 is SpecialValueExpression -> when (expr.type) {
                     SpecialValue.NULL -> builder.append("None")
                     SpecialValue.TRUE -> builder.append("True")

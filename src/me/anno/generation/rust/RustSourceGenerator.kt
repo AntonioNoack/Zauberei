@@ -7,9 +7,11 @@ import me.anno.generation.Specializations.specialization
 import me.anno.generation.c.CSourceGenerator.Companion.hashMethodParameters
 import me.anno.generation.java.Import2
 import me.anno.generation.java.JavaSourceGenerator
+import me.anno.support.java.tokenizer.JavaTokenizer
 import me.anno.utils.Half.Companion.toHalf
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.zauber.SpecialFieldNames.OBJECT_FIELD_NAME
+import me.anno.zauber.ast.reverse.CodeReconstruction
 import me.anno.zauber.ast.reverse.SimpleBranch
 import me.anno.zauber.ast.reverse.SimpleLoop
 import me.anno.zauber.ast.reverse.SimpleTailCall
@@ -20,8 +22,11 @@ import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.rich.member.MethodLike
 import me.anno.zauber.ast.rich.parameter.Parameter
+import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.expression.SimpleAllocateInstance
+import me.anno.zauber.ast.simple.expression.SimpleBoxCast
+import me.anno.zauber.ast.simple.expression.SimpleInstanceOf
 import me.anno.zauber.ast.simple.expression.SimpleMethodCall
 import me.anno.zauber.ast.simple.fields.LocalField
 import me.anno.zauber.ast.simple.fields.SimpleField
@@ -260,12 +265,14 @@ class RustSourceGenerator : JavaSourceGenerator() {
             builder.append("self.content[index as usize] = value;")
             nextLine()
 
-            imports["MutexGuard"] = Import2(mutexGuardImport, null)
+            if (hasReturn(method0.method)) {
+                imports["MutexGuard"] = Import2(mutexGuardImport, null)
 
-            builder.append("return ")
-            appendGetObjectInstance(Types.Unit.clazz, method0.method.memberScope)
-            builder.append(';')
-            nextLine()
+                builder.append("return ")
+                appendGetObjectInstance(Types.Unit.clazz, method0.method.memberScope)
+                builder.append(';')
+                nextLine()
+            }
         }
     }
 
@@ -350,15 +357,17 @@ class RustSourceGenerator : JavaSourceGenerator() {
         assignSelfType(classScope, method)
         appendValueParameterDeclaration(method, classScope)
 
-        builder.append(" -> ")
-        val returnType = resolveType(method.resolveReturnType(method0))
-        val ownership = getOwnership(returnType)
-        val isObject = returnType is ClassType && returnType.clazz.isObjectLike()
-        if (isObject) builder.append("MutexGuard<'static, ")
-        else builder.append(ownership.typePrefix)
-        appendType(returnType, classScope, false)
-        if (isObject) builder.append(">")
-        else builder.append(ownership.typeSuffix)
+        if (hasReturn(method)) {
+            builder.append(" -> ")
+            val returnType = resolveType(method.resolveReturnType(method0))
+            val ownership = getOwnership(returnType)
+            val isObject = returnType is ClassType && returnType.clazz.isObjectLike()
+            if (isObject) builder.append("MutexGuard<'static, ")
+            else builder.append(ownership.typePrefix)
+            appendType(returnType, classScope, false)
+            if (isObject) builder.append(">")
+            else builder.append(ownership.typeSuffix)
+        }
     }
 
     override fun appendMethods(
@@ -429,6 +438,21 @@ class RustSourceGenerator : JavaSourceGenerator() {
         builder.append(ownership.typePrefix)
         appendType(valueType, classScope, false)
         builder.append(ownership.typeSuffix)
+    }
+
+    override fun prepareGraph(graph: SimpleGraph) {
+        graph.removeWriteOnlyFields()
+        graph.removeObjectFields()
+        graph.removeConstantFields()
+        graph.giveLocalFieldsUniqueNames(JavaTokenizer.KEYWORDS)
+        graph.removeSimpleGetObject()
+        graph.removeMergeInfoInstructions()
+        graph.renumberFields()
+        // graph.markSimpleReadImmediatelyAfterAssignment()
+        graph.findBoxingAndUnboxing()
+
+        CodeReconstruction.createCodeFromGraph(graph)
+        graph.renumberFields() // necessary
     }
 
     override fun appendConstructorHeader(
@@ -613,7 +637,6 @@ class RustSourceGenerator : JavaSourceGenerator() {
                         builder.append("tmp").append(field.id)
                         usedFields.add(field)
                     }
-
                 }
                 else -> throw NotImplementedError("Append constant field $expr")
             }
@@ -696,6 +719,71 @@ class RustSourceGenerator : JavaSourceGenerator() {
                 builder.append("nextBlockId = ").append(expr.toBeCalled.id).append(';')
                 nextLine()
                 builder.append("continue 'blockTable;")
+            }
+            is SimpleInstanceOf -> {
+                // https://doc.rust-lang.org/std/any/index.html
+                // use std::any::{Any, TypeId};
+                // (&*boxed).type_id() == TypeId::of::<i32>()
+                TODO("Implement $expr for Rust")
+            }
+            is SimpleBoxCast -> {
+
+                // todo to support this properly, we need <dyn Any> instead of just Any,
+                //  https://doc.rust-lang.org/std/any/index.html
+
+                val srcType = expr.src.type
+                val dstType = expr.dst.type
+                val srcNum = srcType in nativeNumbers
+                val dstNum = dstType in nativeNumbers
+
+                val srcRef = !srcNum && !srcType.isValue()
+                val dstRef = !dstNum && !dstType.isValue()
+
+                when {
+                    srcNum && dstNum -> {
+                        appendFieldName(graph, expr.src)
+                        builder.append(" as ")
+                        appendType(dstType, expr.scope, false)
+                    }
+                    srcNum -> {
+                        check(dstRef) { "Expected $expr with srcNum to have dstRef" }
+                        val ownership = getOwnership(dstType)
+                        builder.append(ownership.allocPrefix)
+                        appendType(srcType, expr.scope, true)
+                        builder.append("::new(")
+                        ensureImport(srcType as ClassType)
+                        appendFieldName(graph, expr.src)
+                        builder.append(')')
+                        builder.append(ownership.allocSuffix)
+                    }
+                    dstNum -> {
+                        check(srcRef) { "Expected $expr with dstNum to have srcRef" }
+                        // appendOwnershipSuffix(expr.dst.type, true)
+                        builder.append("(")
+                        appendFieldName(graph, expr.src)
+                        builder.append(" as ")
+                        val ownership = getOwnership(srcType)
+                        builder.append(ownership.typePrefix)
+                        appendType(dstType, expr.scope, true)
+                        builder.append(ownership.typeSuffix)
+                        builder.append(").content")
+                    }
+                    srcRef && dstRef -> {
+                        builder.append("dynamic_cast<")
+                        appendType(dstType, expr.scope, true)
+                        // appendOwnershipSuffix(expr.dst.type, true)
+                        builder.append(">(")
+                        appendFieldName(graph, expr.src)
+                        builder.append(')')
+                    }
+                    else -> {
+                        builder.append('(')
+                        appendType(dstType, expr.scope, true)
+                        // appendOwnershipSuffix(expr.dst.type, true)
+                        builder.append(") ")
+                        appendFieldName(graph, expr.src)
+                    }
+                }
             }
             else -> super.appendInstrImpl(graph, expr)
         }
