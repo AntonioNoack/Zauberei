@@ -50,6 +50,7 @@ object Zauber {
                 StdlibLoader.loadCode("src/Exceptions.kt")
                 StdlibLoader.loadCode("src/Reflection.kt")
                 StdlibLoader.loadCode("src/Lambdas.kt")
+                StdlibLoader.loadCode("src/Macros.kt")
             }
         }
     }

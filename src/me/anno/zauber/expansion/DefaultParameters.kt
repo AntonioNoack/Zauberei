@@ -1,6 +1,6 @@
 package me.anno.zauber.expansion
 
-import me.anno.zauber.ast.rich.*
+import me.anno.zauber.ast.rich.Flags
 import me.anno.zauber.ast.rich.controlflow.ReturnExpression
 import me.anno.zauber.ast.rich.expression.ExpressionList
 import me.anno.zauber.ast.rich.expression.resolved.ThisExpression
@@ -125,17 +125,17 @@ object DefaultParameters {
 
             // check if class has another function with that parameter defined
             val expectedParamsForMatch = self.valueParameters.subList(0, i)
-            val match = classScope.children.firstOrNull {
-                val method = it[ScopeInitType.DEFAULT_PARAMETERS].selfAsConstructor
-                method != null &&
+            for (i in classScope.children.indices) {
+                val childScope = classScope.children[i]
+                val method = childScope[ScopeInitType.DEFAULT_PARAMETERS].selfAsConstructor
+                val matches = method != null &&
                         method.selfType == self.selfType &&
                         matchesParameters(expectedParamsForMatch, method.valueParameters)
+                if (matches) {
+                    LOGGER.info("Unused default-parameter: '$self'.${param.name} is already defined by $childScope")
+                    continue
+                }
             }
-            if (match != null) {
-                LOGGER.info("Unused default-parameter: '$self'.${param.name} is already defined by $match")
-                continue
-            }
-
 
             val scopeName = classScope.generateName("synthetic:constructor")
             val scope = classScope.getOrPut(scopeName, ScopeType.CONSTRUCTOR)

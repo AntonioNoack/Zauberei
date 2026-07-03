@@ -151,8 +151,6 @@ class FibonacciTests {
             return go(i)
         }
         val tested = fib(5)
-        package zauber
-        typealias IntArray = Array<Int>
         """.trimIndent()
 
         val value = testExecute(code)

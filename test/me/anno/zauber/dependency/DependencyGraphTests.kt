@@ -25,13 +25,6 @@ class DependencyGraphTests {
             fun main() {
                 println(x)
             }
-            
-            package zauber
-            external class Int {
-                external operator fun plus(other: Int): Int
-            }
-            
-            external fun println(line: Int)
         """.trimIndent()
         val testScope = ResolutionUtils.typeResolveScope(code)
         val method = testScope[ScopeInitType.AFTER_DISCOVERY].methods0.first { it.name == "main" }

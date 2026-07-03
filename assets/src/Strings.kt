@@ -11,8 +11,11 @@ class String(val content: ByteArray) {
     val length get() = content.size
     val size get() = content.size
 
-    operator fun get(index: Int) = content[index].toChar()
+    fun get(index: Int) = content[index].toChar()
 
+    fun plus(other: String): String {
+        return String(content + other.content)
+    }
     fun trim(): String {
         var i0 = 0
         var i1 = length-1

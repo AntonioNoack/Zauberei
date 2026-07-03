@@ -240,7 +240,6 @@ fun main() {
 }
 
 package zauber
-
 class Ref<V>(var value: V) {
     fun equals(other: Ref<*>?): Boolean = this === other
 }
@@ -248,45 +247,7 @@ class Ref<V>(var value: V) {
 typealias CString = Ref<Byte>
 typealias NativePointer = Ref<Nothing?>
 
-class Any {
-    open fun equals(other: Any?): Boolean = (this === other)
-}
-external class Int(val content: Int) {
-    external fun plus(other: Int): Int
-    external fun times(other: Int): Int
-    external fun compareTo(other: Int): Int
-}
-external class UInt(val content: UInt) {
-    external fun equals(other: UInt): Boolean
-}
-external class Char(val content: Char)
-
-class Array<V>(val size: Int) {
-    external fun get(index: Int): V
-    external fun set(index: Int, v: V)
-    
-    external val content: NativePointer
-    
-    fun copyOfRange(i0: Int, i1: Int): Array<V> {
-        val clone = Array<V>(i1-i0)
-        var i = i0
-        while (i < i1) {
-            clone[i - i0] = this[i]
-            i++
-        }
-        return clone
-    }
-    
-    fun getDataPointer(): NativePointer = content
-    
-}
-
-fun <V> arrayOf(vararg vs: V): Array<V> = vs
-
-class String(val content: CString) {
-    external fun plus(other: String): String
-    external fun toCString(): CString = content
-}
+fun String.toCString(): CString = content.content
 
 @CInclude("<stdlib.h>")
 private external fun exit(exitCode: Int)
@@ -303,8 +264,6 @@ annotation class CInclude(val source: String)
 
     // todo Ref is an issue: the data would be read at ~classIndex, but we want it at ~value
     //  -> shall we move all pointers over classIndex? would be a possibility...
-
-    // todo put __createString in String.h
 
     LogManager.enableAllLoggers()
 

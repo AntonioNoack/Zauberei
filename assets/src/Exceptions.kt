@@ -6,6 +6,8 @@ class RuntimeException(message: String) : Exception(message)
 class NullPointerException(message: String) : RuntimeException(message)
 class IllegalArgumentException(message: String) : RuntimeException(message)
 
+class ClassCastException(): Exception("Cast failed")
+
 /**
  * not yet initialized
  * */

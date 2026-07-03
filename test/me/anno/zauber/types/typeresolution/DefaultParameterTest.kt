@@ -14,10 +14,6 @@ class DefaultParameterTest {
                 fun call(x: Int = 0): Float
                 
                 val tested = call()
-                
-                package zauber
-                external class Int
-                external class Float
             """.trimIndent()
         )
         assertEquals(Types.Float, actual)

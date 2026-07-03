@@ -13,25 +13,6 @@ class LinkedListIssueTest {
         val tested = LinkedList<Int>(1)
         
         package zauber
-        interface Iterator<V> {
-            fun hasNext(): Boolean
-            fun next(): V
-        }
-
-        interface Iterable<V> {
-            operator fun iterator(): Iterator<V>
-        }
-        
-        abstract class List<V>: Iterable<V> {
-            operator fun get(index: Int): V
-        }
-        
-        class Array<V>(override val size: Int) : List<V> {
-            external override operator fun get(index: Int): V
-            external operator fun set(index: Int, value: V)
-            external operator fun get(index: Int): V
-        }
-        
         fun repeat(count: Int, runnable: () -> Unit) {
             var i = count
             while (i > 0) {
@@ -45,6 +26,8 @@ class LinkedListIssueTest {
             private val content = Array<V>(capacity)
             private val previous = Array<Int>(capacity)
             private val next = Array<Int>(capacity)
+            
+            override val size: Int = 0
         
             var head = -1
             var tail = -1
@@ -76,11 +59,6 @@ class LinkedListIssueTest {
                     }
                 }
             }
-        }
-        
-        external class Int {
-            external fun unaryMinus(): Int
-            external fun minus(other: Int): Int
         }
             """.trimIndent(), true
         )

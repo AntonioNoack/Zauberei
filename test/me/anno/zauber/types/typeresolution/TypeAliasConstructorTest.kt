@@ -61,13 +61,6 @@ class TypeAliasConstructorTest {
                 typealias Int32 = Int
                 return arrayOf<Int32>()
             }
-            
-            package zauber
-            class Any
-            class Array<V>(val size: Int) {
-                external operator fun set(index: Int, value: V)
-            }
-            fun <X> arrayOf(vararg v: X): Array<X> = v
         """.trimIndent(), reset = true
         )
         assertEquals(Types.Array.withTypeParameter(Types.Int), actualType)

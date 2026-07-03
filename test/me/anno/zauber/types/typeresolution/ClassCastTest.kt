@@ -14,13 +14,6 @@ class ClassCastTest {
             """
                 val x: Int? = null
                 val tested = if (x == null) "Test" else x + 1f
-                
-                package zauber
-                external class Int {
-                    external operator fun plus(other: Float): Float
-                }
-                external class Float
-                class String
             """.trimIndent(), reset = true
         )
         assertEquals(unionTypes(Types.Float, Types.String), actual)
@@ -37,13 +30,6 @@ class ClassCastTest {
                 val tested get() {
                     if (x == null) return null
                     return x+1f
-                }
-                
-                package zauber
-                external class Int {
-                    external fun plus(other: Int): Int
-                    external fun compareTo(other: Int): Int
-                    external fun equals(other: Int): Boolean
                 }
             """.trimIndent()
         )

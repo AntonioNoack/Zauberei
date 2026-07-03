@@ -44,7 +44,6 @@ class FieldResolutionTest {
                 val tested = x
             }
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val tested0 = findFieldType(scope)
@@ -75,7 +74,6 @@ class FieldResolutionTest {
                 val tested = x
             }
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val tested0 = findFieldType(scope)
@@ -94,7 +92,6 @@ class FieldResolutionTest {
                 }
             }
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val tested0 = findFieldType(scope)
@@ -116,7 +113,6 @@ class FieldResolutionTest {
         object Helper {
             val x : Int = 0
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val tested0 = findField(scope)
@@ -141,7 +137,6 @@ class FieldResolutionTest {
         object Helper {
             val x : Float = 0
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val tested0 = findFieldType(scope)
@@ -163,7 +158,6 @@ class FieldResolutionTest {
         object Helper {
             val y : Int = 0
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val tested0 = findFieldType(scope)
@@ -188,7 +182,6 @@ class FieldResolutionTest {
                 }
             }
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val misleading = scope["Target"]["MisleadingNoInstance"]
@@ -217,7 +210,6 @@ class FieldResolutionTest {
                 }
             }
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val misleading = scope["Target"]["MisleadingNoInstance"]
@@ -246,7 +238,6 @@ class FieldResolutionTest {
                 }
             }
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val misleading = scope["Target"]["MisleadingNoInstance"]
@@ -265,8 +256,6 @@ class FieldResolutionTest {
         class Inner {
             val tested = Color.RED.ordinal
         }
-        package zauber
-        class Array<V>(val size: Int)
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -283,8 +272,6 @@ class FieldResolutionTest {
                 val tested = RED.ordinal
             }
         }
-        package zauber
-        class Array<V>(val size: Int)
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -305,7 +292,6 @@ class FieldResolutionTest {
                         val tested = 0.x
                     }
                 }
-                package zauber
                 """.trimIndent()
             )
             val actualType = findFieldType(scope).resolvedName
@@ -322,8 +308,6 @@ class FieldResolutionTest {
                 RED;
             }
         }
-        package zauber
-        class Array<V>(val size: Int)
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -339,8 +323,6 @@ class FieldResolutionTest {
         class Inner {
             val tested = Color.RED
         }
-        package zauber
-        class Array<V>(val size: Int)
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -358,8 +340,6 @@ class FieldResolutionTest {
                 val tested = RED
             }
         }
-        package zauber
-        class Array<V>(val size: Int)
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -376,8 +356,6 @@ class FieldResolutionTest {
                 RED;
             }
         }
-        package zauber
-        class Array<V>(val size: Int)
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -489,7 +467,6 @@ class FieldResolutionTest {
                 val x = 0
             }
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -506,9 +483,6 @@ class FieldResolutionTest {
                 val tested = next
             }
         }
-        package zauber
-        external class Int
-        external class Float
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -527,9 +501,6 @@ class FieldResolutionTest {
                 }
             }
         }
-        package zauber
-        external class Int
-        external class Float
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -548,10 +519,6 @@ class FieldResolutionTest {
         
         package helper003
         val Int.next get() = 0f
-        
-        package zauber
-        external class Int
-        external class Float
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -574,7 +541,6 @@ class FieldResolutionTest {
         val code = """
         val Int.target = 0
         val tested = 0.target
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -589,7 +555,6 @@ class FieldResolutionTest {
             val tested = 0.next
             return tested
         }
-        package zauber
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)
@@ -601,11 +566,6 @@ class FieldResolutionTest {
         val code = """
             val tested = sq(5)
             fun sq(x: Int) = x*x
-            
-            package zauber
-            external class Int {
-                external fun times(other: Int): Int
-            }
         """.trimIndent()
         val scope = typeResolveScope(code)
         val actualType = findFieldType(scope)

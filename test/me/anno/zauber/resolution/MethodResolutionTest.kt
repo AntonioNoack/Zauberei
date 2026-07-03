@@ -224,8 +224,6 @@ class MethodResolutionTest {
         class Inner {
             val tested = Color.RED.x()
         }
-        package zauber
-        class Array<V>(val size: Int)
         """.trimIndent()
         val scope = typeResolveScope(code)
         assertEquals(Types.Int, findFieldType(scope))
@@ -243,8 +241,6 @@ class MethodResolutionTest {
                 val tested = RED.x()
             }
         }
-        package zauber
-        class Array<V>(val size: Int)
         """.trimIndent()
         val scope = typeResolveScope(code)
         assertEquals(Types.Int, findFieldType(scope))
@@ -279,8 +275,6 @@ class MethodResolutionTest {
                 fun x(): Int = 0
             }
         }
-        package zauber
-        class Array<V>(val size: Int)
         """.trimIndent()
         val scope = typeResolveScope(code)
         assertEquals(Types.Int, findFieldType(scope))
@@ -295,9 +289,6 @@ class MethodResolutionTest {
                 val tested = next()
             }
         }
-        package zauber
-        external class Int
-        external class Float
         """.trimIndent()
         val scope = typeResolveScope(code)
         assertEquals(Types.Float, findFieldType(scope))
@@ -320,9 +311,6 @@ class MethodResolutionTest {
                 return Tested().inTested
             }
         }
-        package zauber
-        external class Int
-        external class Float
         """.trimIndent()
         val scope = typeResolveScope(code)
         assertEquals(Types.Float, findFieldType(scope))

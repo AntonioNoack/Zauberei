@@ -27,7 +27,7 @@ class JavaASTBuilderTest {
     //  -> just like in C++, we theoretically know all type names
 
     private val javaStdlib = """
-package zauber;
+package zauber
 class Any
 class Object extends Any
 class System

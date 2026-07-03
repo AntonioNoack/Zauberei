@@ -36,6 +36,7 @@ import me.anno.zauber.ast.simple.SimpleBlock.Companion.needsCopy
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.SimpleMerge
 import me.anno.zauber.ast.simple.constants.SimpleNumber
+import me.anno.zauber.ast.simple.constants.SimpleSpecialValue
 import me.anno.zauber.ast.simple.controlflow.SimpleReturn
 import me.anno.zauber.ast.simple.expression.*
 import me.anno.zauber.ast.simple.fields.*
@@ -1432,6 +1433,16 @@ class WASMSourceGenerator : JavaSourceGenerator() {
                 appendGetField(graph, expr.left)
                 appendGetField(graph, expr.right)
                 appendNativeCompare(ownerType, expr.type)
+            }
+            is SimpleSpecialValue -> {
+                when (expr.type) {
+                    SpecialValue.NULL -> {
+                        binary.u8(WASMOpcode.REF_NULL)
+                        builder.append("ref.null")
+                    }
+                    SpecialValue.TRUE -> i32Const(1)
+                    SpecialValue.FALSE -> i32Const(0)
+                }
             }
             is SimpleCheckEquals -> {
                 val method = expr.method.resolved

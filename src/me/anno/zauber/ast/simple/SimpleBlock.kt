@@ -164,7 +164,11 @@ class SimpleBlock(val graph: SimpleGraph) {
             }
 
             // println("Creating simple-this: $thisScope, $isExplicitSelf, type: $type")
-            val localField = if (isExplicitSelf) graph.selfField!! else graph.thisField!!
+            val localField = if (isExplicitSelf) graph.selfField else graph.thisField
+            if (localField == null) {
+                error("Missing localField $isExplicitSelf in ${graph.method}")
+            }
+
             val dst = field(localField.type)
 
             // todo 'this' from the Lambda gets incorrectly passed here...
@@ -173,13 +177,15 @@ class SimpleBlock(val graph: SimpleGraph) {
             //  -> else, we should be in our own method-body, and it should be defined well
 
             if (!isSubTypeOf(dst.type, localField.type)) {
-                LOGGER.warn("Cannot assign $localField to $dst, ${(dst.type as? ClassType)?.clazz?.scopeType}\n" +
-                        "  isAmbiguous: $isAmbiguous\n" +
-                        "  isExplicitSelf: $isExplicitSelf\n" +
-                        "  ThisScope: $thisScope\n" +
-                        "  this: ${graph.thisField}\n" +
-                        "  self: ${graph.selfField}\n" +
-                        "  type: $type")
+                LOGGER.warn(
+                    "Cannot assign $localField to $dst, ${(dst.type as? ClassType)?.clazz?.scopeType}\n" +
+                            "  isAmbiguous: $isAmbiguous\n" +
+                            "  isExplicitSelf: $isExplicitSelf\n" +
+                            "  ThisScope: $thisScope\n" +
+                            "  this: ${graph.thisField}\n" +
+                            "  self: ${graph.selfField}\n" +
+                            "  type: $type"
+                )
             }
 
             add(SimpleGetLocalField(dst, localField, scope, origin))

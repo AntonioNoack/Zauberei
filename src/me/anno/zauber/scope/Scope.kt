@@ -302,7 +302,7 @@ class Scope(val name: String, val parent: Scope? = null) {
     }
 
     fun addField(field: Field): Field {
-        val other = fields.firstOrNull { it.name == field.name }
+        val other = fields.firstOrNull { oldField -> oldField.name == field.name }
         if (other != null) {
             if (other === field) return field
             error(

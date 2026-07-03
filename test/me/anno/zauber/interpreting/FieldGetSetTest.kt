@@ -54,12 +54,6 @@ class FieldGetSetTest {
                 return v.x + v.y
             }
             val tested = calculate(Vector(3,4))
-            
-            package zauber
-            class Any
-            external class Int {
-                external operator fun plus(other: Int): Int
-            }
         """.trimIndent()
         val value = testExecute(code)
         assertEquals(5, value.castToInt())
@@ -74,13 +68,6 @@ class FieldGetSetTest {
                 return v.x + v.y
             }
             val tested = calculate(Vector(3,4))
-            
-            package zauber
-            class Any
-            external class Int {
-                external operator fun times(other: Int): Int
-                external operator fun plus(other: Int): Int
-            }
         """.trimIndent()
         val value = testExecute(code)
         assertEquals(10, value.castToInt())

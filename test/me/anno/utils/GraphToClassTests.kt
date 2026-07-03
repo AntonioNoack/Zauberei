@@ -56,24 +56,6 @@ class GraphToClassTests {
         fun main() {
             println(classifyNumber(7))
         }
-        package zauber
-        class Any
-        external class Int(val content: Int) {
-            external operator fun plus(other: Int): Int
-            external operator fun minus(other: Int): Int
-            external operator fun times(other: Int): Int
-            external operator fun div(other: Int): Int
-            external operator fun rem(other: Int): Int
-            external operator fun compareTo(other: Int): Int
-            external operator fun equals(other: Int): Boolean
-            operator fun inc(): Int = this + 1
-        }
-        enum class Boolean { TRUE, FALSE }
-        class Array<V>(val size: Int) {
-            external operator fun get(index: Int): V
-            external operator fun set(index: Int, value: V)
-        }
-        external fun println(arg0: Int)
         """.trimIndent()
 
         val printed = WASMGenerationTests().generator()

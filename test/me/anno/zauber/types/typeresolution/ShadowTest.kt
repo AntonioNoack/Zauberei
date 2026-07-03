@@ -19,10 +19,6 @@ class ShadowTest {
                 operator fun Int.plus(other: Int): Int
                 
                 val tested = main(0)
-                
-                package zauber
-                external class Int
-                external class Float
             """.trimIndent(), true
         )
         assertEquals(Types.Float, actualType)

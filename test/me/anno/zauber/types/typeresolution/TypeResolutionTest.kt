@@ -49,10 +49,6 @@ class TypeResolutionTest {
         val actual = testTypeResolution(
             """
             val tested = IntArray(5)
-            
-            package zauber
-            class Array<V>(val size: Int)
-            typealias IntArray = Array<Int>
         """.trimIndent(), true
         )
         assertEquals(Types.Array.withTypeParameter(Types.Int), actual)

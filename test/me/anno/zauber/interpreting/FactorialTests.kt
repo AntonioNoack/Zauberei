@@ -18,27 +18,6 @@ class FactorialTests {
                 return i * fac(i-1)
             }
             val tested = fac(5)
-            
-            package zauber
-            class Any
-            external class Int {
-                external fun compareTo(other: Int): Int
-                external fun times(other: Int): Int
-                external fun minus(other: Int): Int
-            }
-            
-            enum class Boolean {
-                TRUE, FALSE
-            }
-            
-            object Unit
-            
-            interface List<V>
-            class Array<V>(val size: Int): List<V> {
-                external operator fun set(index: Int, value: V)
-            }
-            fun <V> arrayOf(vararg vs: V): Array<V> = vs
-            external fun println(arg0: Int)
         """.trimIndent()
         MultiTest(code)
             .type { Types.Int }
@@ -61,28 +40,6 @@ class FactorialTests {
                 return f
             }
             val tested = fac(10)
-            
-            package zauber
-            class Any
-            external class Int(val content: Int) {
-                external fun compareTo(other: Int): Int
-                external fun times(other: Int): Int
-                external fun minus(other: Int): Int
-                fun dec() = this - 1
-            }
-            
-            enum class Boolean {
-                TRUE, FALSE
-            }
-            
-            object Unit
-            
-            interface List<V>
-            class Array<V>(val size: Int): List<V> {
-                external operator fun set(index: Int, value: V)
-            }
-            fun <V> arrayOf(vararg vs: V): Array<V> = vs
-            external fun println(arg0: Int)
         """.trimIndent()
         val value1 = 10 * 9 * 8 * 7 * 6 * 5 * 4 * 3 * 2
         MultiTest(code)

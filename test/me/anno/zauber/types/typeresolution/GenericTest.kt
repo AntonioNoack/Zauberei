@@ -82,15 +82,6 @@ class GenericTest {
                 fun <V> emptyList(): List<V>
                 fun <V,R> List<V>.map(map: (V) -> R): List<R>
                 val tested = emptyList<Int>().map { it + 1f }
-                
-                // mark Int as a class (that extends Any)
-                package $STDLIB_NAME
-                external class Int: Any() {
-                    operator fun plus(other: Int): Int
-                    operator fun plus(other: Float): Float
-                }
-                // mark Any as a class
-                class Any()
             """.trimIndent(), true
         )
         assertEquals(Types.List.withTypeParameter(Types.Float), actual)
@@ -129,20 +120,6 @@ class GenericTest {
                 fun <V> emptyList(): List<V>
                 fun <V> List<V>.reduce(map: (V, V) -> V): V
                 val tested = emptyList<Int>().reduce { a,b -> a + b }
-                
-                // mark Int as a class (that extends Any)
-                package $STDLIB_NAME
-                external class Int: Any() {
-                    operator fun plus(other: Int): Int
-                    operator fun plus(other: Float): Float
-                }
-                // mark Any as a class
-                class Any()
-                // give some List-details
-                interface List<V> {
-                    val size: Int
-                    operator fun get(index: Int): V
-                }
             """.trimIndent(), true
         )
         assertEquals(Types.Int, actualType)
@@ -155,20 +132,6 @@ class GenericTest {
                 fun <V> emptyList(): List<V>
                 fun <V> List<V>.reduce(map: (V, V) -> V): V
                 val tested = emptyList<Int>().reduce(Int::plus)
-                
-                // mark Int as a class (that extends Any)
-                package $STDLIB_NAME
-                external class Int: Any() {
-                    operator fun plus(other: Int): Int
-                    operator fun plus(other: Float): Float
-                }
-                // mark Any as a class
-                class Any()
-                // give some List-details
-                interface List<V> {
-                    val size: Int
-                    operator fun get(index: Int): V
-                }
             """.trimIndent(), true
         )
         assertEquals(Types.Int, actual)
@@ -209,13 +172,6 @@ class GenericTest {
                 fun String.toInt(): Int
                 
                 val tested = listOf("1,2,3").map{it.split(',').map{it.toInt()}}
-                
-                // define types as classes
-                package zauber
-                interface List<V>
-                external class Int
-                class String
-                class Char
             """.trimIndent(), true
         )
         val listOfInt = Types.List.withTypeParameter(Types.Int)
@@ -229,13 +185,6 @@ class GenericTest {
                 fun <V> listOf(vararg values: V): List<V>
                 
                 val tested = listOf("1", 1, 1f)
-                
-                // define types as classes
-                package zauber
-                interface List<V>
-                external class Int
-                class String
-                external class Float
             """.trimIndent(), true
         )
         val mixedType = unionTypes(listOf(Types.String, Types.Int, Types.Float))
