@@ -1,7 +1,9 @@
 package me.anno.zauber.ast.rich.member
 
+import me.anno.utils.MutableLazy
 import me.anno.utils.StringStyles.GREEN
 import me.anno.utils.StringStyles.style
+import me.anno.utils.assertEquals
 import me.anno.zauber.SpecialFieldNames.OBJECT_FIELD_NAME
 import me.anno.zauber.ast.FlagSet
 import me.anno.zauber.ast.rich.Annotation
@@ -204,7 +206,9 @@ class Field(
     override val ownerScope get() = scope
     override val memberScope: Scope get() = fieldScope
 
-    private val fieldScopeImpl: Scope by lazy {
+    private val fieldScopeImpl = MutableLazy { createFieldScope() }
+
+    private fun createFieldScope(): Scope {
         val scope = ownerScope.getOrPut(name, ScopeType.FIELD)
         check(scope.selfAsField == null || scope.selfAsField === this) {
             LOGGER.warn("Field1: ${resolveOrigin(scope.selfAsField!!.origin)}")
@@ -212,19 +216,25 @@ class Field(
             "selfAsField is defined twice?? ${scope.selfAsField} vs $this"
         }
         scope.selfAsField = this
-        scope
+        return scope
     }
 
     val fieldScope: Scope
         get() {
-            val solution = fieldScopeImpl
-            check(solution.parent == ownerScope)
+            val solution = fieldScopeImpl.value
+            assertEquals(solution.parent, ownerScope) {
+                "Field was probably moved by a split"
+            }
             return solution
         }
 
     fun moveToScope(newScope: Scope) {
         check(scope.fields.remove(this)) { "Failed to remove field from scope" }
         scope = newScope
+        if (fieldScopeImpl.isInitialized()) {
+            fieldScopeImpl.value.removeFromParent()
+            fieldScopeImpl.value = createFieldScope()
+        }
         newScope.addField(this)
     }
 

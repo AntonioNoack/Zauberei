@@ -99,6 +99,11 @@ class CppGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testSuperAndSelfConstructorBeingCalled() {
+        testSuperAndSelfConstructorBeingCalledImpl()
+    }
+
+    @Test
     fun testGenericClass() {
         testGenericClassImpl()
     }

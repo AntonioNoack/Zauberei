@@ -27,7 +27,6 @@ import me.anno.zauber.expansion.AddSuperCallToPackages
 import me.anno.zauber.expansion.DefaultParameters
 import me.anno.zauber.expansion.EarlyTypeResolution
 import me.anno.zauber.expansion.MethodOverrides
-import me.anno.zauber.logging.LogManager
 import me.anno.zauber.typeresolution.TypeResolution.langScope
 import me.anno.zauber.types.Import
 import me.anno.zauber.types.StandardTypes
@@ -720,8 +719,12 @@ class Scope(val name: String, val parent: Scope? = null) {
         return isInterface() || (isClass() && flags.hasFlag(Flags.ABSTRACT))
     }
 
+    @Deprecated("Avoid this function, other things may already depend on this scope existing")
+    fun removeFromParent() {
+        parent?.children?.remove(this)
+    }
+
     companion object {
-        private val LOGGER = LogManager.getLogger(Scope::class)
         private val nextAnonymousName = AtomicInteger(0)
         private val rootIndex = AtomicInteger(0)
     }

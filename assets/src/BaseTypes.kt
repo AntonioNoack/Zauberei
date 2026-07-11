@@ -21,3 +21,5 @@ enum class Boolean {
     fun toInt() = ordinal
     fun not(): Boolean = if (this) false else true
 }
+
+class Ref<V>(var value: V)

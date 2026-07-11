@@ -255,9 +255,8 @@ class Specialization(val scope: Scope?, typeParameters: ParameterList) {
     val clazz: Scope
         get() {
             check(scope != null)
-            check(scope.isClassLike()) {
-                "$scope is not class-like: ${scope.scopeType}"
-            }
+            check(scope.scopeType != null) { "Unknown scope $scope" }
+            check(scope.isClassLike()) { "$scope is not class-like: ${scope.scopeType}" }
             return scope
         }
 

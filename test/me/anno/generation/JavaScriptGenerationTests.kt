@@ -51,6 +51,11 @@ class JavaScriptGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testSuperAndSelfConstructorBeingCalled() {
+        testSuperAndSelfConstructorBeingCalledImpl()
+    }
+
+    @Test
     fun testGenericClass() {
         testGenericClassImpl()
     }

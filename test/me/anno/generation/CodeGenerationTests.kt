@@ -68,6 +68,34 @@ abstract class CodeGenerationTests {
         assertEquals("${(1 * 31 + 2) * 31 + 3}\n", printed)
     }
 
+    fun testSuperAndSelfConstructorBeingCalledImpl() {
+        val code = """
+            open class Parent {
+                init {
+                    println("Parent")
+                }
+            }
+            
+            class Child {
+                init {
+                    println("Child")
+                }
+                
+                constructor(x: Int): this() {
+                    println("Constructor")
+                }
+            }
+            
+            fun main() {
+                Child()
+            }
+        """.trimIndent()
+
+        val printed = generator()
+            .testCompileMainAndRun(code, ::registerLib)
+        assertEquals("Parent\nChild\nConstructor\n", printed)
+    }
+
     fun testGenericClassImpl() {
         val code = """
             class Vector<V>(val x: V)

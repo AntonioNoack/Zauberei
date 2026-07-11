@@ -1,36 +1,22 @@
 package me.anno.generation
 
-import me.anno.compilation.MinimalCompiler
-import me.anno.compilation.MinimalPythonCompiler
-import me.anno.generation.java.JavaSourceGenerator
-import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isFloat
-import me.anno.zauber.ast.simple.ASTSimplifier.nativeNumbers
-import me.anno.zauber.typeresolution.TypeResolution
+import me.anno.compilation.GLSLTarget
+import me.anno.compilation.MinimalGLSLCompiler
+import me.anno.utils.assertEquals
 import org.junit.jupiter.api.Test
 
 /**
- * execution time: ~0.4s for all
+ * todo we must implement lots of things on our own...
+ * todo we must bind native functions like sin, cos etc in all targets
  * */
-class PythonGenerationTests : CodeGenerationTests() {
+class GLSLGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
-        for (type in nativeNumbers) {
-            if (type.isFloat()) {
-                JavaSourceGenerator.register(
-                    TypeResolution.langScope, "println", listOf(type),
-                    "import math\n" +
-                            "print('Infinity' if math.isinf(arg0) and arg0 > 0 else ('-Infinity' if math.isinf(arg0) and arg0 < 0 else arg0))"
-                )
-            } else {
-                JavaSourceGenerator.register(
-                    TypeResolution.langScope, "println", listOf(type),
-                    "print(arg0)"
-                )
-            }
-        }
+        // todo stdlib is different from C++...
+        CppGenerationTests().registerLib()
     }
 
-    override fun generator(): MinimalCompiler = MinimalPythonCompiler()
+    override fun generator() = MinimalGLSLCompiler(GLSLTarget.COMPUTE_SHADER)
 
     @Test
     fun testOperationOrder() {
@@ -144,13 +130,21 @@ class PythonGenerationTests : CodeGenerationTests() {
 
     @Test
     fun testUseNativeLibrary() {
-        TODO("Call into a native library")
+        val code = """
+            
+            @CInclude("<ctype.h>")
+            external fun isdigit(c: Char): Int
+            
+            fun main() {
+                println(if(isdigit('7')) 2 else 1)
+            }
+            
+            package zauber
+            annotation class CInclude(val source: String)
+        """.trimIndent()
+
+        val printed = generator()
+            .testCompileMainAndRun(code, ::registerLib)
+        assertEquals("2\n", printed)
     }
-
-    // todo somehow describe and connect to a Python library
-    // todo should we implement weird number comparisons? could be useful...
-    //  like Int and UInt, Float and Long, etc...
-    //  e.g. Int vs UInt must look at the sign, too
-    // to do disable specialization, where not necessary???
-
 }

@@ -2,7 +2,6 @@ package me.anno.generation
 
 import me.anno.compilation.MinimalCompiler
 import me.anno.compilation.MinimalLLVMCompiler
-import me.anno.zauber.logging.LogManager
 import org.junit.jupiter.api.Test
 
 // todo we need more tests:
@@ -33,6 +32,11 @@ class LLVMGenerationTests : CodeGenerationTests() {
     @Test
     fun testDataClassAndAllocation() {
         testDataClassAndAllocationImpl()
+    }
+
+    @Test
+    fun testSuperAndSelfConstructorBeingCalled() {
+        testSuperAndSelfConstructorBeingCalledImpl()
     }
 
     @Test
