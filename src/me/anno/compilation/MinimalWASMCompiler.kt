@@ -2,6 +2,7 @@ package me.anno.compilation
 
 import me.anno.generation.java.JavaSourceGenerator
 import me.anno.generation.wasm.WASMSourceGenerator
+import me.anno.utils.StdlibLoader.loadText
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.expansion.DependencyData
 import me.anno.zauber.types.Types
@@ -11,9 +12,7 @@ class MinimalWASMCompiler : MinimalCompiler() {
 
     companion object {
         val minimalJS by lazy {
-            MinimalRustCompiler::class.java
-                .classLoader.getResourceAsStream("files/CallWASMFromJS.js")!!
-                .readBytes().decodeToString()
+            loadText("files/CallWASMFromJS.js")
                 .split("IMPORTED_FUNCTIONS")
         }
 

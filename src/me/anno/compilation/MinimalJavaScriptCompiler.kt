@@ -1,17 +1,14 @@
 package me.anno.compilation
 
 import me.anno.generation.js.JavaScriptSourceGenerator
+import me.anno.utils.StdlibLoader.loadBytes
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.expansion.DependencyData
 import java.io.File
 
 class MinimalJavaScriptCompiler : MinimalCompiler() {
     companion object {
-        val minPackageJson by lazy {
-            MinimalJavaScriptCompiler::class.java
-                .classLoader.getResourceAsStream("files/package.json")!!
-                .readBytes()
-        }
+        val minPackageJson by lazy { loadBytes("files/package.json") }
     }
 
     override fun compile(projectFolder: File, srcFolder: File, dependencies: DependencyData, mainMethod: Method) {

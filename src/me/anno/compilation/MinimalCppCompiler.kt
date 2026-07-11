@@ -14,9 +14,7 @@ open class MinimalCppCompiler(preserveFolder: Boolean = false) :
 
     companion object {
         val minimalCMakeLists by lazy {
-            MinimalCppCompiler::class.java
-                .classLoader.getResourceAsStream("files/CMakeLists.txt")!!
-                .readBytes().decodeToString()
+            loadText("files/CMakeLists.txt")
         }
     }
 
@@ -34,7 +32,7 @@ open class MinimalCppCompiler(preserveFolder: Boolean = false) :
 
         File(projectFolder, "CMakeLists.txt")
             .writeText(
-                loadText("files/CMakeLists.txt")
+                minimalCMakeLists
                     .replace("FILES_LIST", filesList)
                     .replace(
                         "DEFINITIONS",

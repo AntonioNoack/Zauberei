@@ -1,6 +1,8 @@
 package me.anno.compilation
 
 import me.anno.generation.c.CSourceGenerator
+import me.anno.utils.StdlibLoader.loadBytes
+import me.anno.utils.StdlibLoader.loadText
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.expansion.DependencyData
 import me.anno.zauber.types.Specialization
@@ -12,9 +14,7 @@ open class MinimalCCompiler :
 
     companion object {
         val minimalCMakeListsForC by lazy {
-            MinimalCCompiler::class.java
-                .classLoader.getResourceAsStream("files/CMakeLists-C.txt")!!
-                .readBytes().decodeToString()
+            loadText("files/CMakeLists-C.txt")
         }
 
         val cStandardLibList = (
@@ -25,9 +25,7 @@ open class MinimalCCompiler :
 
         val cStandardLib by lazy {
             cStandardLibList.associateWith { fileName ->
-                MinimalCCompiler::class.java
-                    .classLoader.getResourceAsStream("files/$fileName")!!
-                    .readBytes()
+                loadBytes("files/$fileName")
             }
         }
 

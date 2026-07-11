@@ -1,6 +1,7 @@
 package me.anno.compilation
 
 import me.anno.generation.java.JavaSourceGenerator
+import me.anno.utils.StdlibLoader.loadBytes
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.expansion.DependencyData
 import java.io.File
@@ -8,9 +9,7 @@ import java.io.File
 class MinimalJavaMavenCompiler : MinimalCompiler() {
     companion object {
         val minimalPom by lazy {
-            MinimalJavaMavenCompiler::class.java
-                .classLoader.getResourceAsStream("files/minimal.pom")!!
-                .readBytes()
+            loadBytes("files/minimal.pom")
         }
     }
 
