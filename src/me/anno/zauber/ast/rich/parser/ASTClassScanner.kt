@@ -158,7 +158,6 @@ abstract class ASTClassScanner(tokens: TokenList, language: Language) :
 
             if (readBody) {
                 addAnySuperCall(classScope)
-                addSuperCallToInit(classScope)
             }
 
             if (scopeType == ScopeType.OBJECT || scopeType == ScopeType.COMPANION_OBJECT) {
@@ -177,17 +176,6 @@ abstract class ASTClassScanner(tokens: TokenList, language: Language) :
         }
     }
 
-    fun addSuperCallToInit(classScope: Scope) {
-        for (call in classScope.superCalls) {
-            if (call.valueParameters != null) {
-                val primBody = classScope.getOrCreatePrimaryConstructorScope()
-                val origin = call.origin
-                val base = SuperExpression(call.type.clazz, false, classScope, origin)
-                primBody.code.add(SuperCallExpression(base, null, call.valueParameters, origin))
-            }
-        }
-    }
-
     open fun readClassBody(classScope: Scope, readBody: Boolean) {
         if (readBody) readClassBody(classScope)
         else if (tokens.equals(i, TokenType.OPEN_BLOCK)) skipBlock()
@@ -202,8 +190,8 @@ abstract class ASTClassScanner(tokens: TokenList, language: Language) :
     }
 
     fun readSuperCallsImpl(classScope: Scope, readBody: Boolean) {
-        val scope = classScope.getOrCreatePrimaryConstructorScope()
-        pushScope(scope) {
+        val primConstrScope = classScope.getOrCreatePrimaryConstructorScope()
+        pushScope(primConstrScope) {
             do {
                 val origin = origin(i)
                 val type = readTypeNotNull(classScope.typeWithArgs, true)
@@ -217,10 +205,11 @@ abstract class ASTClassScanner(tokens: TokenList, language: Language) :
                     if (readBody) readLazyValue(false)
                     else skipLazyValue(false)
                 } else null
+
                 if (readBody) {
                     classScope.superCalls.add(SuperCall(type, valueParameters, delegate, origin))
                     if (valueParameters != null) {
-                        val constructor = classScope.getOrCreatePrimaryConstructorScope().selfAsConstructor!!
+                        val constructor = primConstrScope.selfAsConstructor!!
                         constructor.superCall = InnerSuperCall(InnerSuperCallTarget.SUPER, valueParameters, origin)
                     }
                 }
@@ -618,30 +607,10 @@ abstract class ASTClassScanner(tokens: TokenList, language: Language) :
             val valueParameters = readParameterDeclarations(selfType, extra, ParameterType.VALUE_PARAMETER)
             val superCall = if (consumeIf(":")) readInnerSuperCall() else null
 
-            // add explicit super-invocation
-            val list = ArrayList<Expression>(2)
-            if (superCall != null) {
-                val label = when (superCall.target) {
-                    InnerSuperCallTarget.THIS -> classScope
-                    InnerSuperCallTarget.SUPER -> {
-                        println("SuperCalls for $classScope: ${classScope.superCalls}")
-                        val call = classScope.superCalls
-                            .firstOrNull { it.isClassCall }
-                            ?: error("Missing super call in class for $superCall")
-                        call.type.clazz
-                    }
-                }
-                val isThis = superCall.target == InnerSuperCallTarget.THIS
-                val base = SuperExpression(label, isThis, constrScope, superCall.origin)
-                // println("Super-call for $superCall in $constrScope")
-                list.add(SuperCallExpression(base, null, superCall.valueParameters, origin))
-            }
+            val body =
+                if (tokens.equals(i, TokenType.OPEN_BLOCK)) readLazyBody()
+                else ExpressionList(emptyList(), constrScope, origin)
 
-            if (tokens.equals(i, TokenType.OPEN_BLOCK)) {
-                list.add(readLazyBody())
-            }
-
-            val body = ExpressionList(list, constrScope, origin)
             constrScope.selfAsConstructor = Constructor(
                 valueParameters,
                 constrScope, superCall, body,

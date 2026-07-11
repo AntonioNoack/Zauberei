@@ -9,6 +9,11 @@ import me.anno.zauber.ast.rich.Flags
 import me.anno.zauber.ast.rich.Flags.hasFlag
 import me.anno.zauber.ast.rich.controlflow.ReturnExpression
 import me.anno.zauber.ast.rich.expression.Expression
+import me.anno.zauber.ast.rich.expression.ExpressionList
+import me.anno.zauber.ast.rich.expression.resolved.SuperExpression
+import me.anno.zauber.ast.rich.expression.unresolved.SuperCallExpression
+import me.anno.zauber.ast.rich.parameter.InnerSuperCall
+import me.anno.zauber.ast.rich.parameter.InnerSuperCallTarget
 import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.expansion.IsMethodRecursive
 import me.anno.zauber.expansion.IsMethodThrowing
@@ -76,9 +81,27 @@ open class MethodLike(
 
         return specializations.getOrPut(specialization) {
             specialization.use {
-                body.resolve(createContext(specialization))
+                val context = createContext(specialization)
+                val resolvedBody = body.resolve(context)
+                val superCall = (this as? Constructor)?.superCall
+                if (superCall != null) {
+                    val part1 = resolveSuperCall(superCall, context)
+                    ExpressionList(scope, origin, part1, resolvedBody)
+                } else {
+                    resolvedBody
+                }
             }
         }
+    }
+
+    private fun resolveSuperCall(superCall: InnerSuperCall, context: ResolutionContext): Expression {
+        val isThis = superCall.target == InnerSuperCallTarget.THIS
+        val superCallType = ownerScope.superCalls.first { it.isClassCall }.type
+        val scope = if (isThis) ownerScope else superCallType.clazz
+        return SuperCallExpression(
+            SuperExpression(scope, isThis, this.scope, superCall.origin),
+            superCallType.typeParameters, superCall.valueParameters, superCall.origin
+        ).resolve(context)
     }
 
     fun createContext(specialization: Specialization): ResolutionContext {

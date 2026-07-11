@@ -76,7 +76,7 @@ abstract class CodeGenerationTests {
                 }
             }
             
-            class Child {
+            class Child: Parent() {
                 init {
                     println("Child")
                 }
@@ -88,12 +88,13 @@ abstract class CodeGenerationTests {
             
             fun main() {
                 Child()
+                Child(1)
             }
         """.trimIndent()
 
         val printed = generator()
             .testCompileMainAndRun(code, ::registerLib)
-        assertEquals("Parent\nChild\nConstructor\n", printed)
+        assertEquals("Parent\nChild\nParent\nChild\nConstructor\n", printed)
     }
 
     fun testGenericClassImpl() {

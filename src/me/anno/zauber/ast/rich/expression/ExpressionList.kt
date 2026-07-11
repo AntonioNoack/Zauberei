@@ -9,7 +9,7 @@ import me.anno.zauber.typeresolution.TypeResolution
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
 
-class ExpressionList(val list: List<Expression>, scope: Scope, origin: Long) : Expression(scope, origin) {
+class ExpressionList(var list: List<Expression>, scope: Scope, origin: Long) : Expression(scope, origin) {
 
     constructor(scope: Scope, origin: Long, vararg expr: Expression) : this(expr.asList(), scope, origin)
 

@@ -30,11 +30,6 @@ class SuperCallExpression(
         private val LOGGER = LogManager.getLogger(SuperCallExpression::class)
     }
 
-    init {
-        if (base.label.pathStr == "zauber.Any" && valueParameters.isNotEmpty())
-            throw IllegalArgumentException("Cannot call $this")
-    }
-
     override fun toStringImpl(depth: Int): String {
         val valueParameters = valueParameters.joinToString(", ", "(", ")") { it.toString(depth) }
         val base = self.toString(depth)
