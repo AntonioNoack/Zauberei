@@ -33,9 +33,6 @@ abstract class CodeGenerationTests {
             fun main() {
                 println(x)
             }
-            
-            package zauber
-            external fun println(arg0: Int)
         """.trimIndent()
 
         val printed = generator()
@@ -774,8 +771,6 @@ abstract class CodeGenerationTests {
                 fun isWhitespace() = this in " \t\r\n"
                 external fun equals(other: Char): Boolean
             }
-            typealias ByteArray = Array<Byte>
-            external fun println(arg0: String)
             external class Ref<T>
         """.trimIndent()
 

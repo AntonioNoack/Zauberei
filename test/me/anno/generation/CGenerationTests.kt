@@ -132,12 +132,7 @@ class CGenerationTests : CodeGenerationTests() {
             }
             
             package zauber
-            external class Char(val content: Char)
-            
-            class String
             annotation class CInclude(val source: String)
-            
-            external fun println(arg0: Int)
         """.trimIndent()
 
         val printed = generator()

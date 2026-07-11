@@ -260,7 +260,7 @@ object DataClassGenerator {
         val body = ReturnExpression(builder.expr ?: special.iTrue, null, methodScope, origin)
         methodScope.selfAsMethod = Method(
             null, false, "equals", emptyList(), listOf(parameter),
-            methodScope, Types.Boolean, emptyList(), body, KEYWORDS, origin
+            methodScope, Types.Boolean, emptyList(), body, KEYWORDS_NO_OVERRIDE, origin
         )
     }
 

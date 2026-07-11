@@ -59,7 +59,7 @@ abstract class Type {
         }
     }
 
-    fun isResolved(): Boolean {
+    open fun isResolved(): Boolean {
         return when (this) {
             NullType, UnknownType, is SelfType, is ThisType -> true
             is GenericType -> !specialization.contains(this)
@@ -113,11 +113,6 @@ abstract class Type {
 
     open fun resolveImpl(selfScope: Scope?): Type {
         return when (this) {
-            is LambdaType -> {
-                LambdaType(selfType?.resolve(selfScope), parameters.map {
-                    LambdaParameter(it.name, it.type.resolve(selfScope), it.origin)
-                }, returnType.resolve(selfScope))
-            }
             is GenericType -> specialization[this] ?: superBounds
             is ClassType -> {
                 if (clazz.isTypeAlias()) {
@@ -358,7 +353,16 @@ abstract class Type {
             is UnresolvedType -> resolvedName.adjustTo(superClass, childClass, superMethod, childMethod)
             is LambdaType -> LambdaType(
                 selfType?.adjustTo(superClass, childClass, superMethod, childMethod),
-                parameters.map { param -> param.withType(param.type.adjustTo(superClass, childClass, superMethod, childMethod)) },
+                parameters.map { param ->
+                    param.withType(
+                        param.type.adjustTo(
+                            superClass,
+                            childClass,
+                            superMethod,
+                            childMethod
+                        )
+                    )
+                },
                 returnType.adjustTo(superClass, childClass, superMethod, childMethod)
             )
             else -> TODO("Replace generics in $this (${javaClass.simpleName}), $superMethod -> $childMethod")

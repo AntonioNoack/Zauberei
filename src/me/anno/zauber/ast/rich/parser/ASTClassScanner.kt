@@ -41,6 +41,7 @@ import me.anno.zauber.tokenizer.TokenList
 import me.anno.zauber.tokenizer.TokenType
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
+import me.anno.zauber.types.impl.TypeOfExpr
 import kotlin.math.max
 
 /**
@@ -496,6 +497,10 @@ abstract class ASTClassScanner(tokens: TokenList, language: Language) :
                 readBodyForField(fieldName, ScopeType.FIELD_SETTER)
             } else null
         } else null
+
+        if (valueType == null && getterBody != null) {
+            valueType = TypeOfExpr(getterBody)
+        }
 
         val field = ownerScope.addField(
             selfType0, selfType0 != null, isMutable, null,

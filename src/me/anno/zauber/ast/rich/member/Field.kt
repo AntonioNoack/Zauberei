@@ -148,9 +148,11 @@ class Field(
             // todo check if inside getter/setter, if so, get the real field
             val scope = getGetterOrSetterScope()
             if (scope != null) {
-                val sam = scope.selfAsMethod!!
+                val getterOrSetter = scope.selfAsMethod!!
                 val owner = scope.parent!!
-                val matchingField = owner.fields.first { it.setter == sam || it.getter == sam }
+                val matchingField = owner.fields
+                    .firstOrNull { it.setter == getterOrSetter || it.getter == getterOrSetter }
+                    ?: error("Missing getter/setter field in $scope for $this")
                 return TypeOfField(matchingField, scope)
             }
         }

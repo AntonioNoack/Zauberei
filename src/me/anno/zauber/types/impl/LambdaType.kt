@@ -59,6 +59,12 @@ class LambdaType(
         return ClassType(base, typeParams, origin)
     }
 
+    override fun resolveImpl(selfScope: Scope?): Type {
+        return  LambdaType(selfType?.resolve(selfScope), parameters.map {
+            LambdaParameter(it.name, it.type.resolve(selfScope), it.origin)
+        }, returnType.resolve(selfScope))
+    }
+
     override fun hashCode(): Int {
         return parameters.hashCode() * 31 + returnType.hashCode()
     }

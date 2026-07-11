@@ -45,5 +45,3 @@ class String(val content: ByteArray) {
         return false
     }
 }
-
-external fun println(arg0: String)

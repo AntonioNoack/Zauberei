@@ -1,22 +1,13 @@
 package me.anno.zauber.interpreting
 
-import me.anno.zauber.interpreting.BasicRuntimeTests.Companion.testExecute
-import me.anno.zauber.logging.LogManager
 import me.anno.utils.assertEquals
+import me.anno.zauber.interpreting.BasicRuntimeTests.Companion.testExecute
 import org.junit.jupiter.api.Test
 
 class StringTests {
 
     val smallStdlib = "\n" + """
         package zauber
-        
-        class Byte {
-            external fun toChar(): Char
-        }
-        class Char {
-            external operator fun compareTo(other: Char): Int
-            operator fun equals(other: Char): Boolean = this >= other && this <= other
-        }
         
         fun min(a: Int, b: Int): Int = if (a < b) a else b
         
@@ -27,13 +18,6 @@ class StringTests {
         
             val size: Int get() = content.size
             val length: Int get() = content.size
-        
-            constructor(str: String, startIndex: Int, endIndex: Int):
-                this(str.content.copyOfRange(startIndex, endIndex))
-            
-            operator fun get(index: Int): Char {
-                return content[index].toChar()
-            }
             
             operator fun plus(other: String): String {
                 return String(content + other.content)
@@ -60,11 +44,6 @@ class StringTests {
     fun testStringConcat() {
         val code = """
             val tested = "Some " + "String"
-            
-            package zauber
-            class String {
-                external operator fun plus(other: String) : String
-            }
         """.trimIndent()
         val value = testExecute(code)
         assertEquals("Some String", value.castToString())

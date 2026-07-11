@@ -9,6 +9,14 @@ val pages = ArrayList<Page>()
 
 fun mark() {
     // todo iterate over all static roots somehow...
+    // read their classes
+    // iterate over all field slots...
+}
+
+external fun readClassIndex(instance: Long): Int
+
+fun mark(instance: Long) {
+    val classIndex = readClassIndex(instance)
 
 }
 

@@ -31,14 +31,9 @@ object TypeResolution {
     var depth = 0
 
     /**
-     * resolve the type for a given expression;
-     * todo expr can be a lambda,
-     *  and then the type not only depends on expr, but what it's used for, too,
-     *  e.g. List<Int>.map { it * 2 } -> List<Int>.map(Function1<S,T>),
-     *  S <= Int, because there is a only a function List<V>.map(Function1<V,R>).
+     * resolve the type for a given expression
      * */
     fun resolveType(context: ResolutionContext, expr: Expression): Type {
-        // if already resolved, just use that type
         val withLogging = LOGGER.isInfoEnabled
         if (withLogging) LOGGER.info("[${++depth}] Resolving type of (${expr.javaClass.simpleName}) $expr (targetType=${context.targetType})")
         val type = expr.resolveValueType(context).resolvedName.specialize(context)
