@@ -2,6 +2,7 @@ package me.anno.generation
 
 import me.anno.compilation.GLSLTarget
 import me.anno.compilation.MinimalGLSLCompiler
+import me.anno.utils.StdlibLoader.loadCode
 import me.anno.utils.assertEquals
 import me.anno.zauber.interpreting.Stdlib
 import org.junit.jupiter.api.Test
@@ -13,8 +14,10 @@ import org.junit.jupiter.api.Test
 class GLSLGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
-        // todo stdlib is different from C++...
-        Stdlib.registerAllMethods()
+        // todo we must allow duplicate definitions to override those without code
+        // todo we must implement StringBuilder.append(char/number)
+        loadCode("files/GLSLPrintln.kt")
+        Stdlib.registerAllMethods() // for creating objects at compile time
     }
 
     override fun generator() = MinimalGLSLCompiler(GLSLTarget.COMPUTE_SHADER)
