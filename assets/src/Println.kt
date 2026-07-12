@@ -1,14 +1,23 @@
 package zauber
 
-external fun println(arg0: Byte)
-external fun println(arg0: UByte)
-external fun println(arg0: Short)
-external fun println(arg0: UShort)
-external fun println(arg0: Int)
-external fun println(arg0: UInt)
-external fun println(arg0: Long)
-external fun println(arg0: ULong)
-external fun println(arg0: Half)
-external fun println(arg0: Float)
-external fun println(arg0: Double)
-external fun println(arg0: String)
+private val printed = StringBuilder()
+
+fun println(value: Char)   { printed.append(value).append('\n'); flushConsole() }
+fun println(value: Byte)   { printed.append(value).append('\n'); flushConsole() }
+fun println(value: UByte)  { printed.append(value).append('\n'); flushConsole() }
+fun println(value: Short)  { printed.append(value).append('\n'); flushConsole() }
+fun println(value: UShort) { printed.append(value).append('\n'); flushConsole() }
+fun println(value: Int)    { printed.append(value).append('\n'); flushConsole() }
+fun println(value: UInt)   { printed.append(value).append('\n'); flushConsole() }
+fun println(value: Long)   { printed.append(value).append('\n'); flushConsole() }
+fun println(value: ULong)  { printed.append(value).append('\n'); flushConsole() }
+fun println(value: Half)   { printed.append(value).append('\n'); flushConsole() }
+fun println(value: Float)  { printed.append(value).append('\n'); flushConsole() }
+fun println(value: Double) { printed.append(value).append('\n'); flushConsole() }
+
+fun println(instance: Any?) {
+    if (instance == null) printed.append("null\n")
+    else printed.append(instance).append('\n')
+
+    flushConsole()
+}

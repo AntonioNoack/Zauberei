@@ -1,4 +1,6 @@
 package zauber
+import zauber.math.max
+
 external class Char(val content: Char) {
     external fun compareTo(other: Char): Int
 }
@@ -16,6 +18,7 @@ class String(val content: ByteArray) {
     fun plus(other: String): String {
         return String(content + other.content)
     }
+
     fun trim(): String {
         var i0 = 0
         var i1 = length-1
@@ -44,4 +47,109 @@ class String(val content: ByteArray) {
         }
         return false
     }
+}
+
+class StringBuilder(capacity: Int = 16): CharSequence {
+
+    private val buffer = ByteArray(max(capacity, 4))
+    private var size = 0
+
+    fun ensureExtraCapacity(extra: Int): StringBuilder {
+        if (size + extra >= buffer.size) {
+            buffer = buffer.copyOf(buffer.size + max(size, extra))
+        }
+        return this
+    }
+
+    fun append(char: Char): StringBuilder {
+        // todo if high bits are set, encode this...
+        // todo if we have a 17+ bit value, this gets more complicated...
+        ensureExtraCapacity(1)
+        buffer[size++] = char
+        return this
+    }
+
+    fun append(value: UInt): StringBuilder {
+        var v = value
+        val i0 = size
+        while (v >= 10) {
+            append('0' + (v % 10))
+            v = v / 10
+        }
+        append('0' + v)
+        return this
+    }
+
+    // separated, so we don't need to work with i64 if we don't have to
+    fun append(value: Int): StringBuilder {
+        if (value == Int.MIN_VALUE) return append("-2147483648")
+        if (value < 0) {
+            append('-')
+            append((-value).toUInt())
+        } else {
+            append(value.toUInt())
+        }
+        return this
+    }
+
+    fun append(value: ULong): StringBuilder {
+        var v = value
+        val i0 = size
+        while (v >= 10) {
+            append('0' + (v % 10))
+            v = v / 10
+        }
+        append('0' + v)
+        return this
+    }
+
+    // separated, so we don't need to work with i64 if we don't have to
+    fun append(value: Long): StringBuilder {
+        if (value == Long.MIN_VALUE) return append("-9223372036854775808")
+        if (value < 0) {
+            append('-')
+            append((-value).toULong())
+        } else {
+            append(value.toULong())
+        }
+        return this
+    }
+
+    fun append(value: Half): StringBuilder {
+        when {
+            value.isNaN() -> append("NaN")
+            value == Half.POSITIVE_INFINITY -> append("Infinity")
+            value == Half.NEGATIVE_INFINITY -> append("-Infinity")
+            else -> appendFloaty<Float>(value.toFloat(), 3)
+        }
+        return this
+    }
+
+    fun append(value: Float): StringBuilder {
+        when {
+            value.isNaN() -> append("NaN")
+            value == Float.POSITIVE_INFINITY -> append("Infinity")
+            value == Float.NEGATIVE_INFINITY -> append("-Infinity")
+            else -> appendFloaty<Float>(value, 7)
+        }
+        return this
+    }
+
+    fun append(value: Double): StringBuilder {
+        when {
+            value.isNaN() -> append("NaN")
+            value == Double.POSITIVE_INFINITY -> append("Infinity")
+            value == Double.NEGATIVE_INFINITY -> append("-Infinity")
+            else -> appendFloaty<Double>(value, 16)
+        }
+        return this
+    }
+
+    private fun <F> appendFloaty(value: F) {
+        // todo append float
+        append("some float")
+    }
+
+    override fun toString(): String = String(buffer.copyOf(size))
+
 }
