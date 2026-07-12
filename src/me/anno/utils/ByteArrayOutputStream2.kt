@@ -36,8 +36,12 @@ class ByteArrayOutputStream2 : OutputStream() {
 
     fun writeTo(wasmBinaryFile: File) {
         FileOutputStream(wasmBinaryFile).use { fos ->
-            fos.write(bytes, 0, size)
+            writeTo(fos)
         }
+    }
+
+    fun writeTo(wasmBinaryFile: OutputStream) {
+        wasmBinaryFile.write(bytes, 0, size)
     }
 
     fun removeSection(i0: Int, i1: Int) {

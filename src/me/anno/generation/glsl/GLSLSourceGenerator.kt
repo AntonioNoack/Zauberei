@@ -5,17 +5,21 @@ import me.anno.generation.FileEntry
 import me.anno.generation.FileWithImportsWriter
 import me.anno.generation.InheritanceTable
 import me.anno.generation.c.CSourceGenerator
+import me.anno.generation.llvm.LLVMStructures
+import me.anno.generation.structs.Structures.Companion.align
+import me.anno.utils.ByteArrayOutputStream2
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.expansion.DependencyData
+import me.anno.zauber.interpreting.Instance
+import me.anno.zauber.interpreting.Runtime
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
 import me.anno.zauber.types.impl.ClassType
 import me.anno.zauber.types.impl.GenericType
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.OutputStream
 
@@ -76,11 +80,51 @@ class GLSLSourceGenerator : CSourceGenerator() {
     }
 
     // todo all strings and such will be entered into this buffer
-    val memory = ByteArrayOutputStream()
+    val memory = ByteArrayOutputStream2()
 
     init {
         // ensure not empty & we want no data to have address 0
-        memory.write(ByteArray(64))
+        writeNullsUntil(64)
+    }
+
+    val memoryName = "__memory"
+    val gcCounter = 60
+
+    private fun writeNullsUntil(length: Int) {
+        while (length > memory.size) {
+            memory.write(0)
+        }
+    }
+
+    fun StringBuilder.appendMemoryAccess(slot: Int): StringBuilder {
+        append(memoryName).append('[').append(slot).append(']')
+        return this
+    }
+
+    fun OutputStream.writeI32(value: Int) {
+        // little endian
+        write(value)
+        write(value shr 8)
+        write(value shr 16)
+        write(value shr 24)
+    }
+
+    val instanceAddress = HashMap<Instance, Int>()
+
+    val structures = LLVMStructures(this)
+
+    private fun getSizeInBytes(instance: Instance): Int {
+        val spec = Specialization(instance.clazz.type as ClassType)
+        val struct = structures.getStruct(spec)
+        return struct.sizeInBytes
+    }
+
+    fun getInstanceAddress(instance: Instance): Int {
+        return instanceAddress.getOrPut(instance) {
+            val ptr = align(memory.size, 4)
+            writeNullsUntil(ptr + getSizeInBytes(instance))
+            ptr
+        }
     }
 
     override fun generateCode(dst: File, data: DependencyData, mainMethod: Method) {
@@ -90,10 +134,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
 
         // todo inheritance tables belong into memory, too...
         val folder = File(dst.parentFile, "data"); folder.mkdirs()
-        File(folder, "memory.bin")
-            .outputStream().use { fos ->
-                memory.writeTo(fos)
-            }
+        memory.writeTo(File(folder, "memory.bin"))
     }
 
     private fun generateCodeImpl1(dst: File, data: DependencyData, mainMethod: Method) {
@@ -117,6 +158,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
         builder.append("#version 430\n\n")
 
         val imports = HashSet<String>()
+        val written = HashSet<FileEntry>()
 
         fun handleImports(content: FileEntry) {
             for ((import) in content.imports) {
@@ -125,12 +167,14 @@ class GLSLSourceGenerator : CSourceGenerator() {
                     val srcFile1 = File(dst, keyName)
                     val content1 = newContent[srcFile1]
                     if (content1 != null) {
-                        handleImports(content1)
+                        if (written.add(content1)) {
+                            handleImports(content1)
 
-                        builder
-                            .append("// ").append(keyName).append('\n')
-                            .append(content1.content).trimEnd()
-                            .append("\n\n")
+                            builder
+                                .append("// ").append(keyName).append('\n')
+                                .append(content1.content).trimEnd()
+                                .append("\n\n")
+                        }
                     }
                 }
             }
@@ -141,19 +185,24 @@ class GLSLSourceGenerator : CSourceGenerator() {
                 val headerFile = File(srcFile.parentFile, srcFile.nameWithoutExtension + ".h")
                 val headerContent = newContent[headerFile]
                 if (headerContent != null) {
-                    handleImports(headerContent)
+                    if (written.add(headerContent)) {
+                        handleImports(headerContent)
+
+                        builder
+                            .append("// ").append(headerFile).append('\n')
+                            .append(headerContent.content).trimEnd()
+                            .append("\n\n")
+                    }
+                }
+
+                if (written.add(content)) {
+                    handleImports(content)
+
                     builder
-                        .append("// ").append(headerFile).append('\n')
+                        .append("// ").append(srcFile).append('\n')
                         .append(content.content).trimEnd()
                         .append("\n\n")
                 }
-
-                handleImports(content)
-
-                builder
-                    .append("// ").append(srcFile).append('\n')
-                    .append(content.content).trimEnd()
-                    .append("\n\n")
             }
         }
 
@@ -180,68 +229,13 @@ class GLSLSourceGenerator : CSourceGenerator() {
             nextLine()
         } else {
             writeBlock {
-                val instanceSlot = generateSlot(0)
-                builder.append("uint instance = ")
-                    .appendMemoryAccess(instanceSlot).append(';')
-                nextLine()
-
-                // this needs to use atomic safety using exchange...
-                // todo we must not only make sure that it's initialized only once,
-                //  but we must also make sure that it is ready before we use it...
-                //  -> we really should execute this at compile-time
-
-                builder.append("if (instance == 0u) ")
-                writeBlock {
-                    val type = classScope.typeWithArgs2
-                    val classIdx = inheritanceTable.getClassIndex(type)
-                    builder.append("instance = gcNew(")
-                        .append(classIdx).append(", ").append(getClassSize(type)).append(");"); nextLine()
-
-                    builder.append("uint safeInstance = atomicCompSwap(")
-                        .appendMemoryAccess(instanceSlot)
-                        .append(", 0u, instance);"); nextLine()
-                    builder.append("if (safeInstance == 0u) ")
-                    writeBlock {
-                        val method = classScope.getOrCreatePrimaryConstructorScope().selfAsConstructor!!
-                        val methodSpec = Specialization.fromSimple(method.memberScope)
-                        builder.append(getMethodName(methodSpec))
-                            .append("(instance);")
-                        nextLine()
-                    }
-                    removeTrailingWhitespace()
-                    builder.append(" else ")
-                    writeBlock {
-                        builder.append("instance = safeInstance;"); nextLine()
-                    }
-                }
-                builder.append("return instance;")
+                // executed at compile time, because running it on the GPU would only cause congestion
+                val instance = Runtime.runtime.getObjectInstance(classScope)
+                val instanceSlot = getInstanceAddress(instance)
+                builder.append("return ").append(instanceSlot).append(';')
                 nextLine()
             }
         }
-    }
-
-    val memoryName = "__memory"
-
-    fun StringBuilder.appendMemoryAccess(slot: Int): StringBuilder {
-        append(memoryName).append('[').append(slot).append(']')
-        return this
-    }
-
-    fun getClassSize(type: ClassType): Int {
-        return 10 // todo count all fields and define layout...
-    }
-
-    fun generateSlot(initialValue: Int): Int {
-        memory.writeI32(initialValue)
-        return memory.size() - 4
-    }
-
-    fun OutputStream.writeI32(value: Int) {
-        // little endian
-        write(value)
-        write(value shr 8)
-        write(value shr 16)
-        write(value shr 24)
     }
 
     override fun declareStruct(

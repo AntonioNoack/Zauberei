@@ -3,6 +3,7 @@ package me.anno.generation
 import me.anno.compilation.GLSLTarget
 import me.anno.compilation.MinimalGLSLCompiler
 import me.anno.utils.assertEquals
+import me.anno.zauber.interpreting.Stdlib
 import org.junit.jupiter.api.Test
 
 /**
@@ -13,6 +14,7 @@ class GLSLGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
         // todo stdlib is different from C++...
+        Stdlib.registerAllMethods()
         CppGenerationTests().registerLib()
     }
 

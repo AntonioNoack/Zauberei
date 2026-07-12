@@ -1,14 +1,13 @@
 package me.anno.generation.llvm
 
-data class LLVMStruct(
+import me.anno.generation.structs.LateinitStruct
+
+class LLVMStruct(
     val superType: LLVMStruct?,
     val typeIndex: Int,
     val typeName: String,
-    val isNullable: Boolean,
-    var sizeInBytes: Int
-) {
-
-    val properties = ArrayList<LLVMProperty>()
+    val isNullable: Boolean
+) : LateinitStruct<LLVMProperty>() {
 
     override fun toString(): String {
         return if (superType != null) {

@@ -27,7 +27,6 @@ import me.anno.zauber.ast.simple.expression.*
 import me.anno.zauber.ast.simple.fields.*
 import me.anno.zauber.expansion.DependencyData
 import me.anno.zauber.scope.Scope
-import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.typeresolution.ParameterList.Companion.emptyParameterList
 import me.anno.zauber.typeresolution.ResolutionContext
 import me.anno.zauber.types.Specialization
@@ -44,7 +43,9 @@ import kotlin.math.max
  * */
 class LLVMSourceGenerator : JavaSourceGenerator() {
 
-    val typeList = ArrayList<LLVMStruct>()
+    companion object {
+
+    }
 
     var nextRegisterId = 0
     var nextLabelId = 0
@@ -61,8 +62,6 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
 
     lateinit var objectGetters: Map<Scope, Int>
     lateinit var objects: List<Specialization>
-
-    val structs = HashMap<Specialization, LLVMStruct>()
 
     lateinit var inheritanceTable: InheritanceTable
 
@@ -153,6 +152,8 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         nextLine()
     }
 
+    fun getLLVMType(type: Type) = structures.getInnerType(type)
+
     override fun comment(body: () -> Unit) {
         commentDepth++
         try {
@@ -172,7 +173,7 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
     }
 
     fun writeStructTypes() {
-        for (struct in structs.values) {
+        for (struct in structures.structs.values) {
 
             builder.append(struct.typeName)
                 .append(" = type { ")
@@ -184,31 +185,6 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
 
             builder.append(" }")
             nextLine()
-        }
-    }
-
-    fun getLLVMType(type: Type): LLVMType {
-        return when (val type = resolveType(type)) {
-
-            Types.Boolean -> LLVMType.I1
-
-            Types.Byte, Types.UByte -> LLVMType.I8
-            Types.Short, Types.UShort, Types.Char -> LLVMType.I16
-            Types.Int, Types.UInt -> LLVMType.I32
-
-            Types.Long, Types.ULong -> LLVMType.I64
-
-            Types.Float, Types.Half -> LLVMType.F32
-            Types.Double -> LLVMType.F64
-
-            is ClassType -> {
-                val struct0 = getStruct(Specialization(type))
-                val structName = struct0.typeName
-                val isValue = type.isValue()
-                val struct = LLVMType.Struct(structName, isValue, struct0.sizeInBytes)
-                LLVMType.Ptr(struct, isValue)
-            }
-            else -> getLLVMType(Types.Any) // fallback
         }
     }
 
@@ -554,71 +530,10 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         }
     }
 
-    val classIndexProp = LLVMProperty(null, LLVMType.I32, 0)
+    val structures = LLVMStructures(this)
 
     fun getStruct(classSpecialization: Specialization): LLVMStruct {
-        check(classSpecialization.clazz.isClassLike()) {
-            "Invalid struct: $classSpecialization"
-        }
-        var created = false
-        val clazz = classSpecialization.clazz
-        val s = structs.getOrPut(classSpecialization) {
-            classSpecialization.use {
-
-                val superType0 = classSpecialization.superType
-                val superType = if (superType0 != null) getStruct(superType0) else null
-
-                created = true
-                val typeIndex = typeList.size
-                val typeName = "%" + getClassName(clazz, classSpecialization)
-                val struct = LLVMStruct(superType, typeIndex, typeName, false, 0)
-                typeList.add(struct)
-                struct
-            }
-        }
-        if (created) {
-
-            // classIndexProp + props,
-            s.properties.add(classIndexProp)
-            s.sizeInBytes += 4
-
-            if (clazz == Types.Array.clazz) {
-                val elementType = classSpecialization.typeParameters[0]
-                val elementLLVMType = getLLVMType(elementType)
-                val property = LLVMProperty(
-                    null,
-                    LLVMType.Ptr(elementLLVMType, elementType.isValue()),
-                    s.properties.size
-                )
-                s.properties.add(property)
-                s.sizeInBytes = align(s.sizeInBytes, 8) + 8
-            }
-
-            for (field in clazz.fields) {
-                if (!isStoredField(field)) continue
-
-                field.ownerScope[ScopeInitType.AFTER_RESOLVE_TYPES]
-
-                val type = getLLVMType(field.resolveValueType(ResolutionContext.minimal))
-                s.properties.add(LLVMProperty(field, type, s.properties.size))
-
-                var alignment = 0
-                val size = when (type) {
-                    LLVMType.I1, LLVMType.I8 -> 1
-                    LLVMType.I16 -> 2
-                    LLVMType.I32, LLVMType.F32 -> 4
-                    else -> if (type is LLVMType.Struct && type.isValueType) {
-                        alignment = 8
-                        type.sizeInBytes
-                    } else 8
-                }
-                if (alignment == 0) alignment = size
-
-                s.sizeInBytes = align(s.sizeInBytes, alignment)
-                s.sizeInBytes += size
-            }
-        }
-        return s
+        return structures.getStruct(classSpecialization)
     }
 
     override fun getClassName(scope: Scope, specialization: Specialization): String {
