@@ -538,7 +538,7 @@ open class JavaScriptSourceGenerator : JavaSourceGenerator() {
         }
     }
 
-    override fun appendType(type: Type, scope: Scope, needsBoxedType: Boolean) {
+    override fun appendType(type: Type, scope: Scope, needsBoxedType: Boolean, withSuffix: Boolean) {
         val type = resolveType(type)
 
         if (!needsBoxedType) {

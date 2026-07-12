@@ -58,6 +58,9 @@ open class CSourceGenerator : CppSourceGenerator() {
 
     lateinit var inheritanceTable: InheritanceTable
 
+    var onlyCheapSimplifications = true
+    var thisParamName = "this"
+
     // todo non-boxed types don't need classIndex, but boxed-types do:
     //  - for all non-boxed types, create a boxed type, if it is cast to non-boxed
     //  - find these boxing transitions in dependency analysis
@@ -170,64 +173,75 @@ open class CSourceGenerator : CppSourceGenerator() {
             appendSpecializationInfoComment()
 
             if (headerOnly) {
-                appendClassFlags(classScope)
-                appendClassPrefix(classScope, className)
-
-                writeBlock {
-                    // append fields; todo initialize this in constructor
-                    if (!classScope.isValueType()) {
-                        builder.append("uint32_t ").append(CLASS_INDEX_NAME).append(';')
-                        nextLine()
-                    }
-                    appendFields(classScope, fields, true, headerOnly)
-                }
-                removeTrailingWhitespace()
-
-                builder.append(' ')
-                builder.append(packagePrefix)
-                builder.append(className)
-                builder.append(";")
-                nextLine()
+                declareStruct(classScope, className, packagePrefix, fields)
             }
 
             appendConstructors(classScope, className, methods, headerOnly)
             appendMethods(classScope, className, methods, headerOnly)
 
             if (classScope.isObjectLike()) {
-
-                nextLine()
-                builder.append(packagePrefix)
-                builder.append(className)
-                builder.append("* ")
-                builder.append(packagePrefix)
-                builder.append(className)
-                builder.append("__getObject()")
-
-                if (headerOnly) {
-                    builder.append(';')
-                    nextLine()
-                } else {
-                    writeBlock {
-                        builder.append("static ")
-                            .append(packagePrefix).append(className)
-                            .append(" instance;"); nextLine()
-                        builder.append("static char isInitialized = 0;"); nextLine()
-                        builder.append("if (!isInitialized) ")
-                        writeBlock {
-                            builder.append("isInitialized = 1;"); nextLine()
-                            val method = classScope.getOrCreatePrimaryConstructorScope().selfAsConstructor!!
-                            val methodSpec = Specialization.fromSimple(method.memberScope)
-                            builder.append(getMethodName(methodSpec))
-                                .append("(&instance);")
-                            nextLine()
-                        }
-                        builder.append("return &instance;")
-                        nextLine()
-                    }
-                }
-
+                appendObjectGetter(classScope, className, packagePrefix, headerOnly)
             }
         }
+    }
+
+    open fun appendObjectGetter(
+        classScope: Scope, className: String, packagePrefix: String,
+        headerOnly: Boolean
+    ) {
+        nextLine()
+        builder.append(packagePrefix)
+        builder.append(className)
+        builder.append("* ")
+        builder.append(packagePrefix)
+        builder.append(className)
+        builder.append("__getObject()")
+
+        if (headerOnly) {
+            builder.append(';')
+            nextLine()
+        } else {
+            writeBlock {
+                builder.append("static ")
+                    .append(packagePrefix).append(className)
+                    .append(" instance;"); nextLine()
+                builder.append("static char isInitialized = 0;"); nextLine()
+                builder.append("if (!isInitialized) ")
+                writeBlock {
+                    builder.append("isInitialized = 1;"); nextLine()
+                    val method = classScope.getOrCreatePrimaryConstructorScope().selfAsConstructor!!
+                    val methodSpec = Specialization.fromSimple(method.memberScope)
+                    builder.append(getMethodName(methodSpec))
+                        .append("(&instance);")
+                    nextLine()
+                }
+                builder.append("return &instance;")
+                nextLine()
+            }
+        }
+    }
+
+    open fun declareStruct(
+        classScope: Scope, className: String,
+        packagePrefix: String, fields: Collection<Specialization>,
+    ) {
+        appendClassFlags(classScope)
+        builder.append("typedef struct")
+        writeBlock {
+            // append fields; todo initialize this in constructor
+            if (!classScope.isValueType()) {
+                builder.append("uint32_t ").append(CLASS_INDEX_NAME).append(';')
+                nextLine()
+            }
+            appendFields(classScope, fields, true, headerOnly = true)
+        }
+        removeTrailingWhitespace()
+
+        builder.append(' ')
+        builder.append(packagePrefix)
+        builder.append(className)
+        builder.append(";")
+        nextLine()
     }
 
     override fun appendGetObjectInstance(objectScope: Scope, exprScope: Scope) {
@@ -251,31 +265,29 @@ open class CSourceGenerator : CppSourceGenerator() {
         constructor: Constructor, headerOnly: Boolean
     ) {
         if (hasReturn(constructor)) {
-            appendType(Types.Unit, classScope, false)
-            builder.append("* ")
+            appendType(Types.Unit, classScope, false, withSuffix = true)
         } else {
-            builder.append("void ")
+            builder.append("void")
         }
-        builder.append(getMethodName(specialization))
+        builder.append(' ').append(getMethodName(specialization))
         appendValueParameterDeclaration(constructor, classScope)
     }
 
     override fun appendValueParameterDeclaration(method: MethodLike, scope: Scope) {
         builder.append('(')
         if (hasThis(method)) {
-            appendType(scope.typeWithArgs.specialize(), scope, true)
-            builder.append("* this")
+            appendType(scope.typeWithArgs.specialize(), scope, true, withSuffix = true)
+            builder.append(' ').append(thisParamName)
         }
         val selfTypeIfNecessary = method.selfTypeIfNecessary
         if (selfTypeIfNecessary != null) {
             if (!builder.endsWith('(')) builder.append(", ")
-            appendType(selfTypeIfNecessary, scope, false)
+            appendType(selfTypeIfNecessary, scope, false, withSuffix = true)
             builder.append(" __self")
         }
         for (param in method.valueParameters) {
             if (!builder.endsWith('(')) builder.append(", ")
-            appendType(param.type, scope, false)
-            appendOwnershipSuffix(param.type, false)
+            appendType(param.type, scope, false, withSuffix = true)
             builder.append(' ')
             appendFieldName(param)
         }
@@ -289,8 +301,7 @@ open class CSourceGenerator : CppSourceGenerator() {
         valueType = valueType.resolve(classScope)
         valueType = resolveType(valueType)
 
-        appendType(valueType, classScope, false)
-        appendOwnershipSuffix(valueType, false)
+        appendType(valueType, classScope, false, withSuffix = true)
         builder.append(' ')
         appendFieldName(field)
         builder.append(";")
@@ -374,8 +385,7 @@ open class CSourceGenerator : CppSourceGenerator() {
             if (withCast) {
                 builder.append('(')
                 val ownerType = inheritanceTable.getMethodOwnerType(method0)
-                appendType(ownerType, expr.scope, true)
-                appendOwnershipSuffix(ownerType, true)
+                appendType(ownerType, expr.scope, true, withSuffix = true)
                 builder.append(") ")
             }
 
@@ -423,7 +433,7 @@ open class CSourceGenerator : CppSourceGenerator() {
 
         // create temporary instance on stack
         val tmpName = "__tmp${builder.length}"
-        appendType(selfType, expr.scope, true)
+        appendType(selfType, expr.scope, true, withSuffix = false)
         builder.append(' ').append(tmpName).append(";"); nextLine()
         // assign content
         builder.append(tmpName).append(".content = ")
@@ -501,7 +511,7 @@ open class CSourceGenerator : CppSourceGenerator() {
         graph.removeMergeInfoInstructions()
         graph.renumberFields()
 
-        CodeReconstruction.createCodeFromGraph(graph, true)
+        CodeReconstruction.createCodeFromGraph(graph, onlyCheapSimplifications)
         graph.renumberFields() // necessary
     }
 
@@ -517,12 +527,11 @@ open class CSourceGenerator : CppSourceGenerator() {
                 if (!expr.allocatedType.isValue()) {
                     // call GC-aware alloc instead
                     builder.append('(')
-                    appendType(expr.allocatedType, expr.scope, true)
-                    appendOwnershipSuffix(expr.allocatedType, true)
+                    appendType(expr.allocatedType, expr.scope, true, withSuffix = true)
                     builder.append(") ")
 
                     builder.append("__gcNew(sizeof(")
-                    appendType(expr.allocatedType, expr.scope, true)
+                    appendType(expr.allocatedType, expr.scope, true, withSuffix = false)
                     builder.append("), ")
                         .append(inheritanceTable.getClassIndex(expr.specialization))
                         .append(')')
@@ -560,12 +569,11 @@ open class CSourceGenerator : CppSourceGenerator() {
                     srcValue -> {
 
                         builder.append('(')
-                        appendType(dst.type, expr.scope, true)
-                        appendOwnershipSuffix(src.type, true)
+                        appendType(dst.type, expr.scope, true, withSuffix = true)
                         builder.append(") ")
 
                         builder.append("__gcNew(sizeof(")
-                        appendType(src.type, expr.scope, true)
+                        appendType(src.type, expr.scope, true, withSuffix = false)
                         val spec = Specialization(src.type as ClassType)
                         builder.append("), ")
                             .append(inheritanceTable.getClassIndex(spec))
@@ -573,8 +581,7 @@ open class CSourceGenerator : CppSourceGenerator() {
 
                         if (src.type in nativeNumbers) {
                             builder.append("((")
-                            appendType(src.type, expr.scope, true)
-                            appendOwnershipSuffix(src.type, true)
+                            appendType(src.type, expr.scope, true, withSuffix = true)
                             builder.append(") ")
                             appendFieldName(graph, dst)
                             builder.append(")->content = ")
@@ -583,8 +590,7 @@ open class CSourceGenerator : CppSourceGenerator() {
                             val fields = src.type.clazz.fields
                             for (field in fields) {
                                 builder.append("((")
-                                appendType(src.type, expr.scope, true)
-                                appendOwnershipSuffix(src.type, true)
+                                appendType(src.type, expr.scope, true, withSuffix = true)
                                 builder.append(") ")
                                 appendFieldName(graph, dst)
                                 builder.append(")->").append(field.newName).append(" = ")
@@ -597,8 +603,7 @@ open class CSourceGenerator : CppSourceGenerator() {
                     srcRef && dstNum -> {
                         // unboxing
                         builder.append("((")
-                        appendType(dst.type, expr.scope, true)
-                        appendOwnershipSuffix(dst.type, true)
+                        appendType(dst.type, expr.scope, true, withSuffix = true)
                         builder.append(") ")
                         appendFieldName(graph, src)
                         builder.append(")->content")
@@ -606,8 +611,7 @@ open class CSourceGenerator : CppSourceGenerator() {
                     dstValue -> error("Unboxing $src to $dst")
                     else -> {
                         builder.append('(')
-                        appendType(expr.dst.type, expr.scope, true)
-                        appendOwnershipSuffix(expr.dst.type, true)
+                        appendType(expr.dst.type, expr.scope, true, withSuffix = true)
                         builder.append(") ")
                         appendFieldName(graph, expr.src)
                     }
@@ -644,7 +648,7 @@ open class CSourceGenerator : CppSourceGenerator() {
     override fun declareStaticStringField(name: String, scope: Scope) {
         strBuilder.append("static ") // means only accessible in this file
         copyInto(strBuilder) {
-            appendType(Types.String, scope, true)
+            appendType(Types.String, scope, true, withSuffix = false)
         }
         strBuilder.append(' ').append(name).append(";\n")
     }

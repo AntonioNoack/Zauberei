@@ -1768,7 +1768,12 @@ open class JavaSourceGenerator : Generator() {
         }
     }
 
-    open fun appendType(type: Type, scope: Scope, needsBoxedType: Boolean) {
+    open fun appendType(
+        type: Type, scope: Scope, needsBoxedType: Boolean,
+        withSuffix: Boolean
+    ) {
+        check(!withSuffix) { "Suffix needs to be implemented for ${javaClass.simpleName}" }
+
         val type = resolveType(type)
 
         val protected = protectedTypes[type]
@@ -1779,6 +1784,10 @@ open class JavaSourceGenerator : Generator() {
         }
 
         appendTypeImpl(type, scope, needsBoxedType)
+    }
+
+    open fun appendType(type: Type, scope: Scope, needsBoxedType: Boolean) {
+        appendType(type, scope, needsBoxedType, withSuffix = false)
     }
 
     open fun appendTypeImpl(type: Type, scope: Scope, needsBoxedType: Boolean) {

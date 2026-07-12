@@ -188,7 +188,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
             if (superCall.isInterfaceCall) continue
             val type = superCall.type
             if (!builder.endsWith('(')) builder.append(", ")
-            appendType(type, scope, true)
+            appendType(type, scope, true,)
         }
         builder.append(')')
     }
@@ -658,7 +658,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
         builder.append(forFieldAccess)
     }
 
-    override fun appendType(type: Type, scope: Scope, needsBoxedType: Boolean) {
+    override fun appendType(type: Type, scope: Scope, needsBoxedType: Boolean, withSuffix: Boolean) {
         val type = resolveType(type)
 
         if (!needsBoxedType) {

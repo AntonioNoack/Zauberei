@@ -216,14 +216,14 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             val type = superCall0.type
             if (!(scope.isInterface() && type == Types.Any)) {
                 builder.append(" : ")
-                appendType(type, scope, true)
+                appendType(type, scope, true, withSuffix = false)
                 hasSuper = true
             }
         } else if (scope != Types.Any.clazz) {
             val type = Types.Any
             if (!scope.isInterface()) {
                 builder.append(" : ")
-                appendType(type, scope, true)
+                appendType(type, scope, true, withSuffix = false)
                 hasSuper = true
             }
         }
@@ -233,7 +233,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             if (superCall.isInterfaceCall) {
                 val type = superCall.type
                 builder.append(implementsKeyword)
-                appendType(type, scope, true)
+                appendType(type, scope, true, withSuffix = false)
                 implementsKeyword = ", "
             }
         }
@@ -272,8 +272,8 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         valueType = valueType.resolve(classScope)
         valueType = resolveType(valueType)
 
-        appendType(valueType, classScope, false)
-        appendOwnershipSuffix(valueType, false)
+        appendType(valueType, classScope, false, withSuffix = true)
+
         builder.append(' ')
         appendFieldName(field)
         builder.append(
@@ -415,8 +415,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
 
         val elementType = specialization.typeParameters[0]
         appendVisibility(isPrivate = false)
-        appendType(elementType, classScope, false)
-        appendOwnershipSuffix(elementType, false)
+        appendType(elementType, classScope, false, withSuffix = true)
         builder.append("* content;")
         nextLine()
     }
@@ -489,11 +488,9 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
     override fun appendArrayContentInitialization(constructor: Constructor) {
         val elementType = specialization.typeParameters[0]
         builder.append("this->content = size > 0 ? (")
-        appendType(elementType, constructor.scope, false)
-        appendOwnershipSuffix(elementType, false)
+        appendType(elementType, constructor.scope, false, withSuffix = true)
         builder.append("*) calloc(size, sizeof(")
-        appendType(elementType, constructor.scope, false)
-        appendOwnershipSuffix(elementType, false)
+        appendType(elementType, constructor.scope, false, withSuffix = true)
         builder.append(")) : NULL;")
         nextLine()
     }
@@ -531,13 +528,12 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         builder.append('(')
         val selfTypeIfNecessary = method.selfTypeIfNecessary
         if (selfTypeIfNecessary != null) {
-            appendType(selfTypeIfNecessary, scope, false)
+            appendType(selfTypeIfNecessary, scope, false, withSuffix = true)
             builder.append(" __self")
         }
         for (param in method.valueParameters) {
             if (!builder.endsWith("(")) builder.append(", ")
-            appendType(param.type, scope, false)
-            appendOwnershipSuffix(param.type, false)
+            appendType(param.type, scope, false, withSuffix = true)
             builder.append(' ')
             appendFieldName(param)
         }
@@ -552,7 +548,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         if (superCall.target == InnerSuperCallTarget.THIS) {
             builder.append(className) // is this supported? yes
         } else {
-            appendType(superType, constructor.scope, false)
+            appendType(superType, constructor.scope, false, withSuffix = false)
         }
     }
 
@@ -649,8 +645,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
 
         if (hasReturn(method)) {
             val returnType = resolveType(method.resolveReturnType(method0))
-            appendType(returnType, classScope, false)
-            appendOwnershipSuffix(returnType, false)
+            appendType(returnType, classScope, false, withSuffix = true)
         } else {
             builder.append("void")
         }
@@ -699,15 +694,14 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         if (objectScope == outsideClassLike(exprScope)) {
             builder.append("this")
         } else {
-            appendType(objectScope.typeWithArgs, objectScope, false)
+            appendType(objectScope.typeWithArgs, objectScope, false, withSuffix = false)
             builder.append("::get").append(OBJECT_FIELD_NAME).append("()")
         }
     }
 
     override fun appendDeclare(graph: SimpleGraph, dst: SimpleField, scope: Scope, withEquals: Boolean) {
         // without final
-        appendType(dst.type, scope, false)
-        appendOwnershipSuffix(dst.type, false)
+        appendType(dst.type, scope, false, withSuffix = true)
         builder.append(' ')
         appendFieldName(graph, dst)
         if (withEquals) builder.append(" = ")
@@ -746,10 +740,11 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
     // check if is object type -> reference
     // check if is nullable -> pointer
 
+    @Deprecated("Should use appendType with withSuffix=true")
     fun appendOwnershipSuffix(type: Type, needsBoxedType: Boolean) {
         val type = resolveType(type)
-        val symbol = if (!needsBoxedType && type.isValue()) "" else "*"
-        builder.append(symbol)
+        if (!needsBoxedType && type.isValue()) return
+        builder.append("*")
     }
 
     override fun filterImports(name: String, packageScope: Scope, headerOnly: Boolean) {
@@ -814,8 +809,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
 
     override fun declareLocalField(graph: SimpleGraph, field: LocalField) {
         val type = field.type
-        appendType(type, graph.method.memberScope, false)
-        appendOwnershipSuffix(type, false)
+        appendType(type, graph.method.memberScope, false, withSuffix = true)
         builder.append(' ')
         appendFieldName(field)
         builder.append(" = ")
@@ -835,7 +829,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
     open fun declareStaticStringField(name: String, scope: Scope) {
         strBuilder.append("static ") // means only accessible in this file
         copyInto(strBuilder) {
-            appendType(Types.String, scope, true)
+            appendType(Types.String, scope, true, withSuffix = false)
         }
         strBuilder.append(' ').append(name).append("(nullptr);\n")
     }
@@ -865,30 +859,40 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         }
     }
 
-    override fun appendType(type: Type, scope: Scope, needsBoxedType: Boolean) {
+    override fun appendType(
+        type: Type, scope: Scope, needsBoxedType: Boolean,
+        withSuffix: Boolean
+    ) {
         val type = resolveType(type)
-
         if (!needsBoxedType) {
             val protected = protectedTypes[type]
             if (protected != null) {
                 builder.append(protected.native)
+                // no suffix necessary
                 return
             }
         }
 
-        if (type is GenericType) {
-            return appendTypeImpl(type.superBounds, scope, needsBoxedType)
+        var printedType = type
+        while (printedType is GenericType) {
+            printedType = printedType.superBounds
         }
+        appendTypeImpl(printedType, scope, needsBoxedType)
 
-        appendTypeImpl(type, scope, needsBoxedType)
+        if (withSuffix) {
+            appendOwnershipSuffix(type, needsBoxedType)
+        }
+    }
+
+    @Deprecated("Use appendType with suffix option")
+    override fun appendType(type: Type, scope: Scope, needsBoxedType: Boolean) {
+        appendType(type, scope, needsBoxedType, withSuffix = false)
     }
 
     override fun appendNativeCall(needsCastForFirstValue: BoxedType, expr: SimpleMethodCall, graph: SimpleGraph) {
         // ensure import
         val selfType = expr.thisInstance.type
-        val position = builder.length
-        appendType(selfType, expr.scope, true)
-        builder.setLength(position)
+        ensureImport(selfType as ClassType)
 
         builder.append(needsCastForFirstValue.boxed).append("(")
         appendFieldName(graph, expr.thisInstance)
@@ -1014,11 +1018,11 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                 if (!expr.allocatedType.isValue()) {
                     // call GC-aware alloc instead
                     builder.append("__gcNew<")
-                    appendType(expr.allocatedType, expr.scope, true)
+                    appendType(expr.allocatedType, expr.scope, true, withSuffix = false)
                     builder.append(">")
                     appendValueParams(graph, expr.paramsForLater)
                 } else {
-                    appendType(expr.allocatedType, expr.scope, true)
+                    appendType(expr.allocatedType, expr.scope, true, withSuffix = false)
                     appendValueParams(graph, expr.paramsForLater)
                 }
             }
@@ -1071,7 +1075,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                 when {
                     srcNum && dstNum -> {
                         builder.append("static_cast<")
-                        appendType(dstType, expr.scope, false)
+                        appendType(dstType, expr.scope, false, withSuffix = false)
                         builder.append(">(")
                         appendFieldName(graph, expr.src)
                         builder.append(')')
@@ -1079,7 +1083,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                     srcNum -> {
                         check(dstRef) { "Expected $expr with srcNum to have dstRef" }
                         builder.append("__gcNew<")
-                        appendType(srcType, expr.scope, true)
+                        appendType(srcType, expr.scope, true, withSuffix = false)
                         builder.append(">(")
                         appendFieldName(graph, expr.src)
                         builder.append(')')
@@ -1087,24 +1091,21 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                     dstNum -> {
                         check(srcRef) { "Expected $expr with dstNum to have srcRef" }
                         builder.append("dynamic_cast<")
-                        appendType(dstType, expr.scope, true)
-                        appendOwnershipSuffix(expr.dst.type, true)
+                        appendType(dstType, expr.scope, true, withSuffix = true)
                         builder.append(">(")
                         appendFieldName(graph, expr.src)
                         builder.append(")->content")
                     }
                     srcRef && dstRef -> {
                         builder.append("dynamic_cast<")
-                        appendType(dstType, expr.scope, true)
-                        appendOwnershipSuffix(expr.dst.type, true)
+                        appendType(dstType, expr.scope, true, withSuffix = true)
                         builder.append(">(")
                         appendFieldName(graph, expr.src)
                         builder.append(')')
                     }
                     else -> {
                         builder.append('(')
-                        appendType(dstType, expr.scope, true)
-                        appendOwnershipSuffix(expr.dst.type, true)
+                        appendType(dstType, expr.scope, true, withSuffix = true)
                         builder.append(") ")
                         appendFieldName(graph, expr.src)
                     }
@@ -1112,7 +1113,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             }
             is SimpleInstanceOf -> {
                 builder.append("dynamic_cast<")
-                appendType(expr.type, expr.scope, true)
+                appendType(expr.type, expr.scope, true, withSuffix = false)
                 builder.append("*>(")
                 appendFieldName(graph, expr.value)
                 builder.append(") != nullptr")
