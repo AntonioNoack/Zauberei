@@ -74,7 +74,7 @@ int32_t stdlibMain() {
 
 void* __gcNew(size_t size, uint32_t classIndex) {
     zauber_Any* instance = (zauber_Any*) calloc(1, size);
-    instance->__class = classIndex;
+    instance->_class = classIndex;
     return instance;
 }
 
@@ -87,7 +87,7 @@ void* __gcNew(size_t size, uint32_t classIndex) {
 void* __createString(const char* content, void* newStr0) {
     zauber_String* newStr = newStr0;
     if (!newStr->content) { // not yet initialized
-        newStr->__class = 1;
+        newStr->_class = 1;
         zauber_Array_zauberByte* newBuffer = __gcNew(sizeof(zauber_Array_zauberByte), 2);
         newStr->content = newBuffer;
         newBuffer->content = content;

@@ -58,27 +58,6 @@ class CppGenerationTests : CodeGenerationTests() {
                         "else printf(\"%g\\n\",arg0);\n"
             )
         }
-
-        // I don't think that this is necessary, we have defined it like that in our Zauber code.
-        for (type in nativeInts) {
-            val numBits = type.getNumBits()
-            val unsignedType = type.toUnsigned()
-            val unsigned = nativeCppTypes[unsignedType]!!.native
-            // cast to unsigned is necessary to apply the correct shift
-            // could be a static-cast, too
-            register(
-                type.clazz, "rotateLeft", listOf(Types.Int),
-                "" +
-                        "shift = shift & ${numBits - 1};\n" +
-                        "return (content << shift) | (($unsigned) content >> ($numBits - shift));\n"
-            )
-            register(
-                type.clazz, "rotateRight", listOf(Types.Int),
-                "" +
-                        "shift = shift & ${numBits - 1};\n" +
-                        "return (content >> shift) | (($unsigned) content << ($numBits - shift));\n"
-            )
-        }
     }
 
     override fun generator() = MinimalCppCompiler(true)

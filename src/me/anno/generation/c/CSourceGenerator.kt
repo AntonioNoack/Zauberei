@@ -38,7 +38,7 @@ open class CSourceGenerator : CppSourceGenerator() {
 
     companion object {
 
-        val CLASS_INDEX_NAME = "__class"
+        val CLASS_INDEX_NAME = "_class"
         val INHERITANCE_SWITCH_LIMIT = 7
 
         fun hashMethodParameters(method: Specialization): String {
@@ -136,12 +136,14 @@ open class CSourceGenerator : CppSourceGenerator() {
         return false
     }
 
+    var constructorName = "_init_"
+
     override fun getMethodName(method0: Specialization): String {
 
         val cInclude = getCIncludeAnnotations(method0)
         if (cInclude != null) return getCIncludeMethodName(method0, cInclude)
 
-        val base = if (method0.method is Constructor) "_init_" else super.getMethodName0(method0)
+        val base = if (method0.method is Constructor) constructorName else super.getMethodName0(method0)
         return "${method0.method.ownerScope.pathStr.replace('.', '_')}_${base}_${hashMethodParameters(method0)}"
     }
 
@@ -464,11 +466,7 @@ open class CSourceGenerator : CppSourceGenerator() {
         val needsArgs = mainMethod.valueParameters.isNotEmpty()
         cppFiles += getMainMethodFile(dst)
         val methodName = getMethodName(Specialization.fromSimple(mainMethod.memberScope))
-
-        val l0 = builder.length
-        appendGetObjectInstance(mainMethod.ownerScope, mainMethod.scope)
-        val objInstance = builder.substring(l0)
-        builder.setLength(l0)
+        check(!hasThis(mainMethod)) { "Main method must not have this-parameter" }
 
         return FileEntry(emptyList(), this)
             .apply {
@@ -477,7 +475,7 @@ open class CSourceGenerator : CppSourceGenerator() {
                     """
                 int main(int argc, char** argv) {
                     stdlibMain();
-                    $methodName($objInstance${if (needsArgs) ", argv" else ""});
+                    $methodName(${if (needsArgs) "argv" else ""});
                     return 0;
                 }
             """.trimIndent()

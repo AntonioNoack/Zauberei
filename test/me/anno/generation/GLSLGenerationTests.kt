@@ -15,7 +15,6 @@ class GLSLGenerationTests : CodeGenerationTests() {
     override fun registerLib() {
         // todo stdlib is different from C++...
         Stdlib.registerAllMethods()
-        CppGenerationTests().registerLib()
     }
 
     override fun generator() = MinimalGLSLCompiler(GLSLTarget.COMPUTE_SHADER)

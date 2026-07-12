@@ -9,11 +9,14 @@ import me.anno.utils.ByteArrayOutputStream2
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.utils.StdlibLoader.loadText
 import me.anno.utils.assertEquals
+import me.anno.zauber.ast.reverse.SimpleTailCall
+import me.anno.zauber.ast.rich.expression.constants.SpecialValue
 import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.ast.simple.SimpleGraph
+import me.anno.zauber.ast.simple.expression.SimpleMethodCall
 import me.anno.zauber.ast.simple.fields.SimpleField
 import me.anno.zauber.ast.simple.fields.SimpleGetClassField
 import me.anno.zauber.ast.simple.fields.SimpleInstruction
@@ -85,8 +88,12 @@ class GLSLSourceGenerator : CSourceGenerator() {
     init {
         // we want nice code
         onlyCheapSimplifications = false
+        generateNiceBlocks = true
+        constructorName = "XinitX"
         thisParamName = "_this" // 'this' is reserved
     }
+
+    // todo don't append/dependency-find object-constructors, because they are compile-time only anyway
 
     // todo all strings and such will be entered into this buffer
     val memory = ByteArrayOutputStream2()
@@ -96,7 +103,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
         writeNullsUntil(64)
     }
 
-    val memoryName = "__memory"
+    val memoryName = "_memory"
     val gcCounter = 60
 
     private fun writeNullsUntil(length: Int) {
@@ -164,22 +171,27 @@ class GLSLSourceGenerator : CSourceGenerator() {
         val imports = HashSet<String>()
         val written = HashSet<FileEntry>()
 
-        fun handleImports(content: FileEntry) {
-            for ((import) in content.imports) {
-                if (imports.add(import)) {
-                    val keyName = "${import.replace('.', '/')}.h"
-                    val srcFile1 = File(dst, keyName)
-                    val content1 = newContent[srcFile1]
-                    if (content1 != null) {
-                        if (written.add(content1)) {
-                            handleImports(content1)
+        lateinit var handleImports: (FileEntry) -> Unit
 
-                            builder
-                                .append("// ").append(keyName).append('\n')
-                                .append(content1.content).trimEnd()
-                                .append("\n\n")
-                        }
-                    }
+        fun appendFile(file: File) {
+            val content = newContent[file]
+            if (content != null) {
+                if (written.add(content)) {
+                    handleImports(content)
+
+                    builder
+                        .append("// ").append(file).append('\n')
+                        .append(content.content).trimEnd()
+                        .append("\n\n")
+                }
+            } else println("Missing $file")
+        }
+
+        handleImports = { content ->
+            for ((import, import2) in content.imports) {
+                if (imports.add(import)) {
+                    val fileName = import2.path.joinToString("/", "", ".h")
+                    appendFile(File(dst, fileName))
                 }
             }
         }
@@ -187,26 +199,8 @@ class GLSLSourceGenerator : CSourceGenerator() {
         for ((srcFile, content) in newContent.entries) {
             if (content != null && srcFile.extension == "c") {
                 val headerFile = File(srcFile.parentFile, srcFile.nameWithoutExtension + ".h")
-                val headerContent = newContent[headerFile]
-                if (headerContent != null) {
-                    if (written.add(headerContent)) {
-                        handleImports(headerContent)
-
-                        builder
-                            .append("// ").append(headerFile).append('\n')
-                            .append(headerContent.content).trimEnd()
-                            .append("\n\n")
-                    }
-                }
-
-                if (written.add(content)) {
-                    handleImports(content)
-
-                    builder
-                        .append("// ").append(srcFile).append('\n')
-                        .append(content.content).trimEnd()
-                        .append("\n\n")
-                }
+                appendFile(headerFile)
+                appendFile(srcFile)
             }
         }
 
@@ -299,24 +293,18 @@ class GLSLSourceGenerator : CSourceGenerator() {
     ): FileEntry {
         cppFiles += getMainMethodFile(dst)
         val methodName = getMethodName(Specialization.fromSimple(mainMethod.memberScope))
+        check(!hasThis(mainMethod)) { "Main method must not have this-parameter" }
 
-        val l0 = builder.length
-        appendGetObjectInstance(mainMethod.ownerScope, mainMethod.scope)
-        val objInstance = builder.substring(l0)
-        builder.setLength(l0)
+        // todo why is this not properly imported?!?
+        ensureImport(mainMethod.ownerScope)
+
+        builder.append("void main() ")
+        writeBlock {
+            // todo convert argc/argv to String-array, if needed
+            builder.append(methodName).append("();"); nextLine()
+        }
 
         return FileEntry(emptyList(), this)
-            .apply {
-                // todo convert argc/argv to String-array, if needed
-                content.append(
-                    """
-                void main() {
-                    stdlibMain();
-                    $methodName($objInstance);
-                }
-            """.trimIndent()
-                )
-            }
     }
 
     override fun appendNumberContentInitialization(constructor: Constructor) {
@@ -431,7 +419,38 @@ class GLSLSourceGenerator : CSourceGenerator() {
 
                 comment { builder.append(expr.field.name) }
             }
+
+            is SimpleTailCall -> {
+                builder.append("nextBlockId = ").append(expr.toBeCalled.id).append(';')
+                nextLine()
+                // todo we somehow need to make sure we just far enough, but GLSL has neither labels nor jumps :/
+                // builder.append("continue blockTable;")
+                builder.append("continue;")
+            }
             else -> super.appendInstrImpl(graph, expr)
+        }
+    }
+
+    override fun appendTailCallCode(graph: SimpleGraph) {
+        builder.append("int nextBlockId = 0;"); nextLine()
+        // todo we somehow need to make sure we just far enough, but GLSL has neither labels nor jumps :/
+        // builder.append("blockTable: while (true) ")
+        builder.append("while (true) ")
+        writeBlock {
+            builder.append("switch (nextBlockId) ")
+            writeBlock {
+                val targets = findTailCallTargets(graph)
+                val blocks = graph.blocks
+                for (i in blocks.indices) {
+                    val block = blocks[i]
+                    if (i == 0 || targets[block.id]) {
+                        builder.append("case ").append(block.id).append(':')
+                        writeBlock {
+                            appendBlock(graph, block)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -450,6 +469,52 @@ class GLSLSourceGenerator : CSourceGenerator() {
             } else {
                 appendFieldName(graph, self, "")
             }
+        }
+    }
+
+    override fun appendFieldName(graph: SimpleGraph, field: SimpleField, forFieldAccess: String) {
+        assertEquals("", forFieldAccess)
+        if (field.isOwnerThis(graph)) {
+            if (meansContent(field, forFieldAccess)) {
+                val property = findProperty((field.type as ClassType).clazz, "content")
+                val fieldOffset = property.offsetInBytes
+                assertEquals(0, fieldOffset.and(3))
+                appendLoadPrefix(field.type) // this.content only appears in a getter (and constructor), so load is fine here
+                builder.append(memoryName)
+                    .append('[').append(thisParamName).append(" + ")
+                    .append(fieldOffset shr 2).append(']')
+                appendLoadSuffix(field.type)
+            } else {
+                /*builder.append(memoryName)
+                    .append('[').append(thisParamName).append(" + ")
+                    .append(fieldOffset shr 2).append(']')*/
+                builder.append(thisParamName)// .append("/* owner-this, not content */")
+            }
+        } else super.appendFieldName(graph, field, forFieldAccess)
+    }
+
+    override fun appendSpecialValue(type: SpecialValue) {
+        when (type) {
+            SpecialValue.TRUE -> builder.append("true")
+            SpecialValue.FALSE -> builder.append("false")
+            SpecialValue.NULL -> builder.append("0u /* null */")
+        }
+    }
+
+    override fun appendFirstParameter(graph: SimpleGraph, type: Type, expr: SimpleMethodCall) {
+        if (type != Types.String && expr.thisInstance.isOwnerThis(graph)) {
+            check(type is ClassType && type.clazz.fields.any { it.name == "content" }) {
+                "$type is missing field 'content'"
+            }
+            /* appendLoadPrefix(type)
+             builder.append(memoryName).append('[')*/
+            appendFieldName(graph, expr.thisInstance, "")
+            /*val offset = findProperty(type.clazz, "content").offsetInBytes
+            builder.append(" + ").append(offset shr 2)
+            builder.append(']')
+            appendLoadSuffix(type)*/
+        } else {
+            appendFieldName(graph, expr.thisInstance)
         }
     }
 

@@ -9,6 +9,7 @@ import me.anno.utils.NumberUtils.toInt
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.utils.StringStyles
 import me.anno.utils.StringUtils.capitalize1
+import me.anno.utils.assertEquals
 import me.anno.zauber.SpecialFieldNames.OBJECT_FIELD_NAME
 import me.anno.zauber.Zauber.root
 import me.anno.zauber.ast.FlagSet
@@ -1636,7 +1637,7 @@ open class JavaSourceGenerator : Generator() {
         }
     }
 
-    fun appendFirstParameter(graph: SimpleGraph, type: Type, expr: SimpleMethodCall) {
+    open fun appendFirstParameter(graph: SimpleGraph, type: Type, expr: SimpleMethodCall) {
         if (type != Types.String && expr.thisInstance.isOwnerThis(graph)) {
             check(type is ClassType && type.clazz.fields.any { it.name == "content" }) {
                 "$type is missing field 'content'"

@@ -778,13 +778,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             when (val expr = field.constantRef) {
                 is NumberExpression -> appendNumber(field.type, expr)
                 is StringExpression -> appendStringImpl(expr.value, expr.scope)
-                is SpecialValueExpression -> {
-                    when (expr.type) {
-                        SpecialValue.TRUE -> builder.append("true")
-                        SpecialValue.FALSE -> builder.append("false")
-                        SpecialValue.NULL -> builder.append("nullptr")
-                    }
-                }
+                is SpecialValueExpression -> appendSpecialValue(expr.type)
                 null -> {
                     check(field.id >= 0) { "Invalid field $field in $graph" }
                     val localField = field.fromLocalField
@@ -808,6 +802,14 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                 }
             } else forFieldAccess
             builder.append(symbol)
+        }
+    }
+
+    open fun appendSpecialValue(type: SpecialValue) {
+        when (type) {
+            SpecialValue.TRUE -> builder.append("true")
+            SpecialValue.FALSE -> builder.append("false")
+            SpecialValue.NULL -> builder.append("nullptr")
         }
     }
 
@@ -930,11 +932,16 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             val pos0 = builder.length
             declareLocalFields(graph)
 
-            val blocks = graph.blocks
-            for (i in blocks.indices) {
-                val block = graph.blocks[i]
-                if (i == 0 || block.inputBlocks.isNotEmpty()) {
-                    appendBlockI(graph, block, true)
+            if (generateNiceBlocks) {
+                if (graph.hasTailCalls()) appendTailCallCode(graph)
+                else appendBlock(graph, graph.startBlock)
+            } else {
+                val blocks = graph.blocks
+                for (i in blocks.indices) {
+                    val block = graph.blocks[i]
+                    if (i == 0 || block.inputBlocks.isNotEmpty()) {
+                        appendBlockI(graph, block, true)
+                    }
                 }
             }
             removeTailingReturn()
@@ -954,8 +961,11 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         strIndex = 0
     }
 
+    var generateNiceBlocks = false
+
     override fun appendBlock(graph: SimpleGraph, block: SimpleBlock) {
-        appendBlockI(graph, block, true)
+        if (generateNiceBlocks) super.appendBlock(graph, block)
+        else appendBlockI(graph, block, true)
     }
 
     fun appendBlockI(graph: SimpleGraph, block: SimpleBlock, withBlock: Boolean) {
@@ -1062,7 +1072,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                 }
             }
             is SimpleString -> appendStringImpl(expr.base.value, expr.scope)
-            is SimpleTailCall -> {
+            is SimpleTailCall if (!generateNiceBlocks) -> {
                 builder.append("goto b").append(expr.toBeCalled.id).append(';')
                 nextLine()
             }
