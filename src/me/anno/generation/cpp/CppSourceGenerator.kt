@@ -472,7 +472,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                             appendArrayContentInitialization(constructor)
                         }
                         classScope.typeWithArgs2 in nativeNumbers -> {
-                            builder.append("this->content = content;"); nextLine()
+                            appendNumberContentInitialization(constructor)
                         }
                         else -> {
                             val methodSpec = specialization
@@ -483,6 +483,10 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                 }
             }
         }
+    }
+
+    open fun appendNumberContentInitialization(constructor: Constructor) {
+        builder.append("this->content = content;"); nextLine()
     }
 
     override fun appendArrayContentInitialization(constructor: Constructor) {

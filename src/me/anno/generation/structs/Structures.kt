@@ -23,14 +23,21 @@ abstract class Structures<InnerType, InnerProperty, InnerStruct : LateinitStruct
 
     val structs = HashMap<Specialization, InnerStruct>()
 
-    val classIndexProp = createProperty(null, getInnerType(Types.Int), 0)
+    val classIndexProp = createProperty(null, getInnerType(Types.Int), 0, 0)
 
     var nextTypeIndex = 0
 
     abstract fun getInnerType(type: Type): InnerType
 
-    abstract fun createProperty(field: Field?, type: InnerType, index: Int): InnerProperty
-    abstract fun createArrayContentProperty(elementLLVMType: InnerType, isValue: Boolean, index: Int): InnerProperty
+    abstract fun createProperty(
+        field: Field?, type: InnerType,
+        index: Int, offset: Int
+    ): InnerProperty
+
+    abstract fun createArrayContentProperty(
+        elementLLVMType: InnerType, isValue: Boolean,
+        index: Int, offset: Int
+    ): InnerProperty
 
     abstract fun createStruct(
         superType: InnerStruct?,
@@ -77,7 +84,7 @@ abstract class Structures<InnerType, InnerProperty, InnerStruct : LateinitStruct
                 val elementLLVMType = getInnerType(elementType)
                 val property = createArrayContentProperty(
                     elementLLVMType, elementType.isValue(),
-                    s.properties.size
+                    s.properties.size, s.sizeInBytes
                 )
                 s.properties.add(property)
                 s.sizeInBytes = getArrayContentSize(s.sizeInBytes)
@@ -89,7 +96,7 @@ abstract class Structures<InnerType, InnerProperty, InnerStruct : LateinitStruct
                 field.ownerScope[ScopeInitType.AFTER_RESOLVE_TYPES]
 
                 val type = getInnerType(field.resolveValueType(ResolutionContext.minimal))
-                s.properties.add(createProperty(field, type, s.properties.size))
+                s.properties.add(createProperty(field, type, s.properties.size, s.sizeInBytes))
 
                 val (size, alignment) = getElementSizeAndAlignment(type)
                 s.sizeInBytes = align(s.sizeInBytes, alignment)

@@ -39,17 +39,17 @@ class LLVMStructures(val gen: JavaSourceGenerator) : Structures<LLVMType, LLVMPr
         }
     }
 
-    override fun createProperty(field: Field?, type: LLVMType, index: Int): LLVMProperty =
-        LLVMProperty(field, type, index)
+    override fun createProperty(field: Field?, type: LLVMType, index: Int, offset: Int): LLVMProperty =
+        LLVMProperty(field, type, index, offset)
 
     override fun createArrayContentProperty(
         elementLLVMType: LLVMType,
-        isValue: Boolean, index: Int
+        isValue: Boolean, index: Int, offset: Int,
     ): LLVMProperty {
         return LLVMProperty(
             null,
             LLVMType.Ptr(elementLLVMType, isValue),
-            index
+            index, offset
         )
     }
 
