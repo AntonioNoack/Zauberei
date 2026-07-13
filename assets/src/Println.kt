@@ -2,6 +2,8 @@ package zauber
 
 private val printed = StringBuilder()
 
+external fun flushConsole()
+
 fun println(value: Char)   { printed.append(value).append('\n'); flushConsole() }
 fun println(value: Byte)   { printed.append(value).append('\n'); flushConsole() }
 fun println(value: UByte)  { printed.append(value).append('\n'); flushConsole() }

@@ -235,7 +235,7 @@ open class CSourceGenerator : CppSourceGenerator() {
                 builder.append("uint32_t ").append(CLASS_INDEX_NAME).append(';')
                 nextLine()
             }
-            appendFields(classScope, fields, true, headerOnly = true)
+            declareClassFields(classScope, fields, true, headerOnly = true)
         }
         removeTrailingWhitespace()
 
@@ -296,7 +296,7 @@ open class CSourceGenerator : CppSourceGenerator() {
         builder.append(')')
     }
 
-    override fun appendField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
+    override fun declareClassField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
         appendFieldFlags(classScope, field, allowFinal)
 
         var valueType = (field.valueType ?: Types.NullableAny)

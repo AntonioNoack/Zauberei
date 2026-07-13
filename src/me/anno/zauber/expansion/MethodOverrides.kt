@@ -4,8 +4,6 @@ import me.anno.support.Language
 import me.anno.support.jvm.FirstJVMClassReader
 import me.anno.utils.CollectionUtils.groupByMutable
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
-import me.anno.utils.StringStyles.GREEN
-import me.anno.utils.StringStyles.style
 import me.anno.zauber.ast.rich.Flags
 import me.anno.zauber.ast.rich.Flags.hasFlag
 import me.anno.zauber.ast.rich.TokenListIndex.resolveOrigin
@@ -25,7 +23,6 @@ import me.anno.zauber.types.impl.CollectionType
 import me.anno.zauber.types.impl.GenericType
 import me.anno.zauber.types.impl.arithmetic.NullType
 import me.anno.zauber.types.impl.arithmetic.UnknownType
-import me.anno.zauber.types.impl.unresolved.UnresolvedType
 
 /**
  * start with high classes, and go down the hierarchy,
@@ -113,6 +110,9 @@ object MethodOverrides {
         val selfMethods = selfMethods0.groupByMutable { it.name }
         val foundMethods = HashSet<Method>()
 
+        // todo can/should we also deduplicate fields? may be useful :)
+        deduplicateMethods(scope, selfMethods)
+
         val selfFields0 = scope.fields
         val foundFields = HashSet<Field>()
 
@@ -138,6 +138,52 @@ object MethodOverrides {
                 LOGGER.warn("No base-field found for $field in $scope")
             }
         }
+    }
+
+    private fun deduplicateMethods(scope: Scope, methods: Map<String, ArrayList<Method>>) {
+        val byValueParams = HashMap<List<Type>, Method>()
+        for (candidates in methods.values) {
+            if (candidates.size <= 1) continue
+
+            var i = 0
+            while (i < candidates.size) {
+                val candidate = candidates[i++]
+
+                val paramTypes = candidate.valueParameters
+                    .map { it.type.resolve(scope) }
+                val prevMethod = byValueParams.getOrPut(paramTypes) { candidate }
+                if (prevMethod !== candidate) {
+                    val prevIsBetter = joinMethods(prevMethod, candidate)
+                    val removalIndex = if (prevIsBetter) i else candidates.indexOf(prevMethod)
+                    candidates.removeAt(removalIndex); i--
+                }
+            }
+            byValueParams.clear()
+        }
+    }
+
+    private fun getGoodMethodScore(m: Method): Int {
+        var score = 0
+        if (m.flags.hasFlag(Flags.EXTERNAL)) score -= 10
+        if (m.body != null) score += 100
+        return score
+    }
+
+    private fun joinMethods(a: Method, b: Method): Boolean {
+        check(a !== b)
+        check(a.scope !== b.scope)
+
+        val aIsBetter = getGoodMethodScore(a) >= getGoodMethodScore(b)
+        val better = if (aIsBetter) a else b
+        val worse = if (aIsBetter) b else a
+
+        // link everything to the better method, as far as we can
+        worse.body = better.body
+        worse.scope.selfAsMethod = better
+        worse.scope.removeFromParent()
+        worse.scope = better.scope
+        worse.flags = better.flags
+        return aIsBetter
     }
 
     private fun addAllMethodOverrides(

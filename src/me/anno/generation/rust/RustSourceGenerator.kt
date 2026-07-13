@@ -196,7 +196,7 @@ class RustSourceGenerator : JavaSourceGenerator() {
             writeBlock {
                 val allowFinalFields = !classScope.isValueType() &&
                         methods.any { it.method is Constructor }
-                appendFields(classScope, fields, allowFinalFields, headerOnly)
+                declareClassFields(classScope, fields, allowFinalFields, headerOnly)
             }
             nextLine()
 
@@ -419,7 +419,7 @@ class RustSourceGenerator : JavaSourceGenerator() {
         builder.append("pub ")
     }
 
-    override fun appendField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
+    override fun declareClassField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
         appendFieldFlags(classScope, field, allowFinal)
 
         var valueType = (field.valueType ?: Types.NullableAny)

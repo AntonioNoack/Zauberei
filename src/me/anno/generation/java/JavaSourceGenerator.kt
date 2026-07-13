@@ -9,14 +9,10 @@ import me.anno.utils.NumberUtils.toInt
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.utils.StringStyles
 import me.anno.utils.StringUtils.capitalize1
-import me.anno.utils.assertEquals
 import me.anno.zauber.SpecialFieldNames.OBJECT_FIELD_NAME
 import me.anno.zauber.Zauber.root
 import me.anno.zauber.ast.FlagSet
-import me.anno.zauber.ast.reverse.CodeReconstruction
-import me.anno.zauber.ast.reverse.SimpleBranch
-import me.anno.zauber.ast.reverse.SimpleLoop
-import me.anno.zauber.ast.reverse.SimpleTailCall
+import me.anno.zauber.ast.reverse.*
 import me.anno.zauber.ast.rich.Flags
 import me.anno.zauber.ast.rich.Flags.hasFlag
 import me.anno.zauber.ast.rich.expression.Expression
@@ -564,13 +560,13 @@ open class JavaSourceGenerator : Generator() {
             val allowFinalFields = !classScope.isValueType() &&
                     methods.any { it.method is Constructor }
 
-            appendFields(classScope, fields, allowFinalFields, headerOnly)
+            declareClassFields(classScope, fields, allowFinalFields, headerOnly)
             appendConstructors(classScope, className, methods, headerOnly)
             appendMethods(classScope, className, methods, headerOnly)
         }
     }
 
-    open fun appendFields(
+    open fun declareClassFields(
         classScope: Scope, fields: Collection<Specialization>, allowFinal: Boolean,
         headerOnly: Boolean
     ) {
@@ -579,7 +575,7 @@ open class JavaSourceGenerator : Generator() {
             val field = fieldSpec.field
             if (isStoredField(field)) {
                 fieldSpec.use {
-                    appendField(classScope, field, allowFinal, headerOnly)
+                    declareClassField(classScope, field, allowFinal, headerOnly)
                 }
             }
         }
@@ -603,7 +599,7 @@ open class JavaSourceGenerator : Generator() {
         if (!field.isMutable && allowFinal) builder.append("final ")
     }
 
-    open fun appendField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
+    open fun declareClassField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
         appendFieldFlags(classScope, field, allowFinal)
 
         var valueType = (field.valueType ?: Types.NullableAny)
@@ -1113,8 +1109,11 @@ open class JavaSourceGenerator : Generator() {
     open fun appendAssign(graph: SimpleGraph, expression: SimpleAssignment) {
         val dst = expression.dst
         if (dst.mergeInfo != null) {
-            appendFieldName(graph, dst)
-            builder.append(" = ")
+            val dst2 = dst.dst
+            if (dst2.id >= 0) {
+                appendFieldName(graph, dst2)
+                builder.append(" = ")
+            } // else unused
         } else if (dst.id >= 0) {
             appendDeclare(graph, expression)
         } // else unused
@@ -1503,6 +1502,15 @@ open class JavaSourceGenerator : Generator() {
                 appendFieldName(graph, expr.left)
                 builder.append(" == ")
                 appendFieldName(graph, expr.right)
+            }
+            is SimpleConditionalInt -> {
+                appendFieldName(graph, expr.condition)
+                builder.append(" ? ").append(expr.ifTrue)
+                    .append(" : ").append(expr.ifFalse)
+            }
+            is SimpleLocalFieldEqualsInt -> {
+                appendFieldName(expr.field)
+                builder.append(" == ").append(expr.value)
             }
             is SimpleSpecialValue -> {
                 when (expr.type) {
@@ -1898,7 +1906,7 @@ open class JavaSourceGenerator : Generator() {
 
     open fun isProtectedFieldName(fieldName: String): Boolean {
         // todo this may result in collisions :/
-        return fieldName in JavaTokenizer.KEYWORDS
+        return fieldName in keywords
     }
 
     fun ensureFieldName(field: Field) {

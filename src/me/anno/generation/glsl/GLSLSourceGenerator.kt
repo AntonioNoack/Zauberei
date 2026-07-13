@@ -16,6 +16,8 @@ import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.ast.simple.SimpleGraph
+import me.anno.zauber.ast.simple.expression.SimpleAllocateInstance
+import me.anno.zauber.ast.simple.expression.SimpleBoxCast
 import me.anno.zauber.ast.simple.expression.SimpleMethodCall
 import me.anno.zauber.ast.simple.fields.SimpleField
 import me.anno.zauber.ast.simple.fields.SimpleGetClassField
@@ -74,11 +76,16 @@ class GLSLSourceGenerator : CSourceGenerator() {
 
         val nativeGlslTypes by threadLocal { protectedGlslTypes.filter { (_, it) -> it.boxed != it.native } }
         val nativeGlslNumbers by threadLocal { nativeGlslTypes - Types.Boolean }
+
+        // todo why is 'buffer' still allowed as a field name?
+        private val glslKeywords = "int,float,buffer,texture".split(',').toSet()
     }
 
     override val protectedTypes: Map<ClassType, BoxedType> get() = protectedGlslTypes
     override val nativeNumbers: Map<ClassType, BoxedType> get() = nativeGlslNumbers
     override val nativeTypes: Map<ClassType, BoxedType> get() = nativeGlslTypes
+
+    override val keywords: Set<String> get() = glslKeywords
 
     // todo all static-blocks should be executed at compile-time, I think:
     //  because CPU execution is faster than GPU execution
@@ -251,7 +258,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
                 builder.append("uint ").append(CLASS_INDEX_NAME).append(';')
                 nextLine()
             }
-            appendFields(classScope, fields, true, headerOnly = true)
+            declareClassFields(classScope, fields, true, headerOnly = true)
         }
         removeTrailingWhitespace()
         builder.append(";")
@@ -328,9 +335,9 @@ class GLSLSourceGenerator : CSourceGenerator() {
         return struct.properties.first { it.field?.name == fieldName }
     }
 
-    fun findProperty(field: Field): LLVMProperty {
-        val scope = field.ownerScope
-        val struct = structures.getStruct(Specializations.specialization.withScope(scope))
+    fun findProperty(field: Field, fieldSpec: Specialization): LLVMProperty {
+        val ownerSpec = fieldSpec.withScope(field.ownerScope)
+        val struct = structures.getStruct(ownerSpec)
         return struct.properties.first { it.field == field }
     }
 
@@ -360,12 +367,52 @@ class GLSLSourceGenerator : CSourceGenerator() {
         }
     }
 
+    override fun appendUnaryOperator(graph: SimpleGraph, expr: SimpleMethodCall, methodName: String): Boolean {
+        val thisType = expr.thisInstance.type
+        val castTargetType = getCastTargetType(methodName)
+        if (castTargetType != null && thisType in nativeNumbers) {
+            // todo some types need extra clamping/masking
+            appendAssign(graph, expr)
+            builder.append(nativeNumbers[castTargetType]!!.native).append('(')
+            appendFieldName(graph, expr.thisInstance)
+            builder.append(')')
+            appendClampingOrMasking(expr.dst.type)
+            return true
+        } else return super.appendUnaryOperator(graph, expr, methodName)
+    }
+
+    fun appendClampingOrMasking(type: Type) {
+        when (type) {
+            Types.Byte -> builder.append(" & 0xff")
+            Types.UByte -> builder.append(" & 0xffu")
+            Types.Short -> builder.append(" & 0xffff")
+            Types.UShort, Types.Char -> builder.append(" & 0xffffu")
+        }
+    }
+
     override fun appendInstrImpl(graph: SimpleGraph, expr: SimpleInstruction) {
         when (expr) {
+            is SimpleAllocateInstance -> {
+                if (expr.allocatedType == Types.Array && expr.paramsForLater.size == 1) {
+                    TODO("Allocate array: calculate size for payload...")
+                }
+                // this allocation is a ClassType, so it cannot be null ever
+                if (!expr.allocatedType.isValue()) {
+                    // call GC-aware alloc instead
+                    val structure = structures.getStruct(expr.specialization)
+
+                    builder.append("_gcNew(").append((structure.sizeInBytes + 3) shr 2)
+                        .append(", ").append(inheritanceTable.getClassIndex(expr.specialization))
+                        .append(')')
+                } else {
+                    // todo does this work???
+                    builder.append("{}")
+                }
+            }
             is SimpleGetClassField -> {
                 if (expr.dst.dst.id >= 0) {
                     val fieldType = expr.dst.type
-                    val property = findProperty(expr.field)
+                    val property = findProperty(expr.field, expr.specialization)
                     val offset = property.offsetInBytes
 
                     appendLoadPrefix(fieldType)
@@ -388,7 +435,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
             }
             is SimpleSetClassField -> {
                 val fieldType = expr.value.type
-                val property = findProperty(expr.field)
+                val property = findProperty(expr.field, expr.specialization)
                 val offset = property.offsetInBytes
 
                 builder.append(memoryName).append("[")
@@ -419,7 +466,74 @@ class GLSLSourceGenerator : CSourceGenerator() {
 
                 comment { builder.append(expr.field.name) }
             }
+            is SimpleBoxCast -> {
 
+                val src = expr.src
+                val dst = expr.dst
+
+                val srcType = src.type
+                val dstType = dst.type
+
+                val srcNum = srcType in nativeNumbers
+                val dstNum = dstType in nativeNumbers
+
+                val srcValue = srcType.isValue()
+                val dstValue = dstType.isValue()
+
+                val srcRef = !srcNum && !srcValue
+                val dstRef = !dstNum && !dstValue
+
+                when {
+                    dstValue && srcValue -> error("Cannot convert $src to $dst implicitly")
+                    srcValue -> {
+
+                        val spec = Specialization(src.type as ClassType)
+                        val structure = structures.getStruct(spec)
+
+                        builder.append("_gcNew(").append((structure.sizeInBytes + 3) shr 2)
+                        builder.append(", ")
+                            .append(inheritanceTable.getClassIndex(spec))
+                            .append(");"); nextLine()
+
+                        if (src.type in nativeNumbers) {
+                            builder.append("((")
+                            appendType(src.type, expr.scope, true, withSuffix = true)
+                            builder.append(") ")
+                            appendFieldName(graph, dst)
+                            builder.append(")->content = ")
+                            appendFieldName(graph, src)
+                        } else {
+                            val fields = src.type.clazz.fields
+                            for (field in fields) {
+                                builder.append("((")
+                                appendType(src.type, expr.scope, true, withSuffix = true)
+                                builder.append(") ")
+                                appendFieldName(graph, dst)
+                                builder.append(")->").append(field.newName).append(" = ")
+                                appendFieldName(graph, src)
+                                builder.append(".").append(field.newName).append(';')
+                                nextLine()
+                            }
+                        }
+                    }
+                    srcRef && dstNum -> {
+                        // unboxing
+                        TODO("unboxing")
+                        builder.append("((")
+                        appendType(dst.type, expr.scope, true, withSuffix = true)
+                        builder.append(") ")
+                        appendFieldName(graph, src)
+                        builder.append(")->content")
+                    }
+                    dstValue -> error("Unboxing $src to $dst")
+                    else -> {
+                        appendType(expr.dst.type, expr.scope, true, withSuffix = true)
+                        builder.append('(')
+                        appendFieldName(graph, expr.src)
+                        builder.append(")")
+                    }
+                }
+            }
             is SimpleTailCall -> {
                 builder.append("nextBlockId = ").append(expr.toBeCalled.id).append(';')
                 nextLine()
@@ -516,6 +630,15 @@ class GLSLSourceGenerator : CSourceGenerator() {
         } else {
             appendFieldName(graph, expr.thisInstance)
         }
+    }
+
+    override fun appendArrayContentField(classScope: Scope, headerOnly: Boolean) {
+        // is implicit
+        comment { builder.append("... content") }; nextLine()
+    }
+
+    override fun appendStringImpl(value: String, scope: Scope) {
+        appendString(value)
     }
 
 }

@@ -383,7 +383,7 @@ open class JavaScriptSourceGenerator : JavaSourceGenerator() {
         }
     }
 
-    override fun appendField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
+    override fun declareClassField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
         appendFieldFlags(classScope, field, allowFinal)
 
         var valueType = (field.valueType ?: Types.NullableAny)

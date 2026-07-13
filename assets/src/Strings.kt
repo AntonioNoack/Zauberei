@@ -3,6 +3,18 @@ import zauber.math.max
 
 external class Char(val content: Char) {
     external fun compareTo(other: Char): Int
+    fun toByte() = toInt().toByte()
+    fun toUByte() = toInt().toUByte()
+    fun toShort() = toInt().toShort()
+    fun toUShort() = toInt().toUShort()
+    external fun toInt(): Int
+    fun toUInt() = toInt().toUInt()
+    fun toLong() = toInt().toLong()
+    fun toULong() = toInt().toULong()
+
+    fun plus(other: Int): Char = (toInt() + other).toChar()
+    fun plus(other: UInt): Char = (toUInt() + other).toChar()
+
 }
 
 interface CharSequence {}
@@ -40,9 +52,10 @@ class String(val content: ByteArray) {
     }
 
     fun contains(char: Char): Boolean {
+        // todo complex chars must compare two or three values!
         var i = 0
         while (i < length) {
-            if (this[i] == char) return true
+            if (this[i] == char.toByte()) return true
             i++
         }
         return false
@@ -50,6 +63,13 @@ class String(val content: ByteArray) {
 }
 
 class StringBuilder(capacity: Int = 16): CharSequence {
+
+    companion object {
+        // todo bug: this should not be necessary, we import zauber.math.max!
+        private fun max(a: Int, b: Int): Int {
+            return if(a > b) a else b
+        }
+    }
 
     private val buffer = ByteArray(max(capacity, 4))
     private var size = 0
@@ -65,16 +85,24 @@ class StringBuilder(capacity: Int = 16): CharSequence {
         // todo if high bits are set, encode this...
         // todo if we have a 17+ bit value, this gets more complicated...
         ensureExtraCapacity(1)
-        buffer[size++] = char
+        buffer[size++] = char.toByte()
+        return this
+    }
+
+    fun append(value: String): StringBuilder {
+        val bytes = value.content
+        ensureExtraCapacity(bytes.size)
+        bytes.copyInto(buffer, size)
+        size += bytes.size
         return this
     }
 
     fun append(value: UInt): StringBuilder {
         var v = value
         val i0 = size
-        while (v >= 10) {
-            append('0' + (v % 10))
-            v = v / 10
+        while (v >= 10u) {
+            append('0' + (v % 10u))
+            v = v / 10u
         }
         append('0' + v)
         return this

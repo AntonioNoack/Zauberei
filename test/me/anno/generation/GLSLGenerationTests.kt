@@ -14,9 +14,6 @@ import org.junit.jupiter.api.Test
 class GLSLGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
-        // todo we must allow duplicate definitions to override those without code
-        // todo we must implement StringBuilder.append(char/number)
-        loadCode("files/GLSLPrintln.kt")
         Stdlib.registerAllMethods() // for creating objects at compile time
     }
 

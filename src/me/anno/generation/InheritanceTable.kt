@@ -160,7 +160,8 @@ class InheritanceTable(val data: DependencyData) {
         val adapted = children.map { child ->
             val impl = implementations[child.scope!!]
                 ?: error("Missing $method in $child")
-            Specialization(impl.scope, method0.typeParameters + child.typeParameters)
+            val joinedTypeParams = method0 + child
+            joinedTypeParams.withScope(impl.scope)
         }
 
         childImplementations[method0] = adapted

@@ -18,7 +18,6 @@ import me.anno.zauber.ast.simple.expression.SimpleGetTypeInstance
 import me.anno.zauber.ast.simple.fields.SimpleGetClassField
 import me.anno.zauber.ast.simple.fields.SimpleGetObject
 import me.anno.zauber.ast.simple.fields.SimpleSetClassField
-import me.anno.zauber.expansion.Dependencies.addClass
 import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.typeresolution.ParameterList.Companion.emptyParameterList
@@ -111,7 +110,8 @@ object Dependencies {
             if (childCandidates.size > 1) LOGGER.warn("More child-candidates than expected for $method in $childClass: $childCandidates")
             if (childCandidates.isEmpty()) LOGGER.warn("Missing child-candidate of $method in $childClass")
             for (candidate in childCandidates) {
-                addMethod(Specialization(candidate.scope, method0.typeParameters + childClass.typeParameters))
+                val joinedTypeParams = method0 + childClass
+                addMethod(joinedTypeParams.withScope(candidate.scope))
             }
         }
 

@@ -1,4 +1,5 @@
 package zauber
+import zauber.math.min
 
 interface Iterator<V> {
     operator fun hasNext(): Boolean
@@ -162,16 +163,22 @@ class Array<V>(override val size: Int): MutableList<V> {
         return result
     }
 
-    fun copyInto(result: Array<V>, destinationOffset: Int, startIndex: Int, endIndex: Int) {
-        val deltaIndex = destinationOffset - startIndex
-        for (i in startIndex until endIndex) {
-            result[deltaIndex + i] = this[i]
+    fun copyInto(dst: Array<V>, dstStartIndex: Int) {
+        copyInto(dst, dstStartIndex, 0, dst.size)
+    }
+
+
+    fun copyInto(dst: Array<V>, dstStartOffset: Int, srcStartIndex: Int, srcEndIndex: Int) {
+        val srcToDst = dstStartOffset - srcStartIndex
+        for (i in srcStartIndex until srcEndIndex) {
+            dst[srcToDst + i] = this[i]
         }
     }
 
     fun copyOf(newSize: Int): Array<V> {
         val clone = Array<V>(newSize)
-        copyInto(clone, 0, 0, min(newSize, size))
+        // todo zauber.math.min should not be necessary, because we import it!
+        copyInto(clone, 0, 0, zauber.math.min(newSize, size))
         return clone
     }
 }

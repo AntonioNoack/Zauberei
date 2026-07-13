@@ -1463,7 +1463,7 @@ class WASMSourceGenerator : JavaSourceGenerator() {
                 binary.localGet(expr.field.id)
                 nextLine()
 
-                i32Const(expr.expected)
+                i32Const(expr.value)
                 nextLine()
 
                 builder.append("i32.eq")

@@ -7,9 +7,10 @@ import me.anno.zauber.tokenizer.ZauberTokenizer
 
 object StdlibLoader {
     fun loadBytes(fileName: String): ByteArray {
-        return InheritanceTable::class.java
-            .classLoader.getResourceAsStream(fileName)!!
-            .readBytes()
+        val inputStream = InheritanceTable::class.java
+            .classLoader.getResourceAsStream(fileName)
+            ?: error("Missing resource '$fileName'")
+        return inputStream.readBytes()
     }
 
     fun loadText(fileName: String): String {

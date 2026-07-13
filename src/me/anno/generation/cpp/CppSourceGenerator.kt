@@ -265,7 +265,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         nextLine()
     }
 
-    override fun appendField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
+    override fun declareClassField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
         appendFieldFlags(classScope, field, allowFinal)
 
         var valueType = (field.valueType ?: Types.NullableAny)
@@ -840,7 +840,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         strBuilder.append(' ').append(name).append("(nullptr);\n")
     }
 
-    fun appendStringImpl(value: String, scope: Scope) {
+    open fun appendStringImpl(value: String, scope: Scope) {
         ensureImport(Types.String)
 
         val tmp = strings.getOrPut(value) {

@@ -13,7 +13,7 @@ import me.anno.zauber.scope.Scope
 
 class SimpleLocalFieldEqualsInt(
     dst: SimpleField,
-    val field: LocalField, val expected: Int,
+    val field: LocalField, val value: Int,
     scope: Scope, origin: Long
 ) : SimpleAssignment(dst, scope, origin) {
 
@@ -22,12 +22,12 @@ class SimpleLocalFieldEqualsInt(
         val runtime = runtime
         val actual = runtime.getCall().localFields[field.id]
             ?: error("Missing value for $field")
-        runtime[dst] = runtime.getBool(actual.castToInt() == expected)
+        runtime[dst] = runtime.getBool(actual.castToInt() == value)
         return null
     }
 
     override fun toString(): String {
-        return "$dst = $field == ${style("$expected", StringStyles.DARK_BLUE)}"
+        return "$dst = $field == ${style("$value", StringStyles.DARK_BLUE)}"
     }
 
     override fun hasInput(field: SimpleField): Boolean = false
@@ -35,7 +35,7 @@ class SimpleLocalFieldEqualsInt(
     override fun clone(src: SimpleGraph, dst: SimpleGraph): SimpleInstruction {
         return SimpleLocalFieldEqualsInt(
             src.cloned(this.dst, dst),
-            src.cloned(field, dst), expected,
+            src.cloned(field, dst), value,
             scope, origin
         )
     }
