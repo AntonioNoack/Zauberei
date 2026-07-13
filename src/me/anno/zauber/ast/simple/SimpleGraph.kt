@@ -85,7 +85,7 @@ class SimpleGraph(val method0: Specialization) {
         }
         if (method.hasExplicitSelfType) {
             val selfType = method.selfType!!.specialize(context)
-            selfField = createLocalField(null, "self", selfType, false)
+            selfField = createLocalField(null, "__self", selfType, false)
         }
         parameterFields = method.valueParameters.map { parameter ->
             val type = parameter.type.specialize(context)

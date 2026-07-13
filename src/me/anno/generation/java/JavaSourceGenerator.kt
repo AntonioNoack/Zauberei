@@ -215,6 +215,7 @@ open class JavaSourceGenerator : Generator() {
 
     val declaredFields = HashSet<SimpleField>()
     val usedFields = HashSet<SimpleField>()
+    var thisParamName = "this"
 
     override fun generateCode(dst: File, data: DependencyData, mainMethod: Method) {
         val writer = FileWithImportsWriter(this, dst)
@@ -951,18 +952,31 @@ open class JavaSourceGenerator : Generator() {
 
     open fun appendValueParameterDeclaration(method: MethodLike, scope: Scope) {
         builder.append('(')
+        declareThis(method, scope)
+        declareSelf(method, scope)
+        declareValueParams(method, scope)
+        builder.append(')')
+    }
+
+    open fun declareThis(method: MethodLike, scope: Scope) {
+        // automatic
+    }
+
+    open fun declareSelf(method: MethodLike, scope: Scope) {
         val selfTypeIfNecessary = method.selfTypeIfNecessary
         if (selfTypeIfNecessary != null) {
             appendType(selfTypeIfNecessary, scope, false)
             builder.append(" __self")
         }
+    }
+
+    open fun declareValueParams(method: MethodLike, scope: Scope) {
         for (param in method.valueParameters) {
             if (!builder.endsWith("(")) builder.append(", ")
             appendType(param.type, scope, false)
             builder.append(' ')
             appendFieldName(param)
         }
-        builder.append(')')
     }
 
     open fun prepareGraph(graph: SimpleGraph) {
@@ -1190,7 +1204,7 @@ open class JavaSourceGenerator : Generator() {
 
     open fun appendGetObjectInstance(objectScope: Scope, exprScope: Scope) {
         if (objectScope == outsideClassLike(exprScope)) {
-            builder.append("this")
+            builder.append(thisParamName)
         } else {
             appendType(objectScope.typeWithArgs, objectScope, false)
             builder.append('.').append(OBJECT_FIELD_NAME)
@@ -1242,7 +1256,7 @@ open class JavaSourceGenerator : Generator() {
         forFieldAccess: String = ""
     ) {
         if (field.isOwnerThis(graph)) {
-            builder.append(if (meansContent(field, forFieldAccess)) "this.content" else "this")
+            builder.append(if (meansContent(field, forFieldAccess)) "this.content" else thisParamName)
         } else if (field.isObjectLike()) {
             val objectScope = (field.type as ClassType).clazz
             appendGetObjectInstance(objectScope, graph.method.scope)
@@ -1407,7 +1421,7 @@ open class JavaSourceGenerator : Generator() {
             is SimpleNumber -> appendNumber(expr.dst.type, expr.base)
             is SimpleGetLocalField -> {
                 if (expr.field.id == 0 && expr.field.type in nativeNumbers) builder.append("this.content")
-                else builder.append(expr.field.newName)
+                else appendFieldName(expr.field)
             }
             is SimpleSetLocalField -> {
                 builder.append(expr.field.newName)
@@ -1753,7 +1767,7 @@ open class JavaSourceGenerator : Generator() {
     open fun appendObjectInstance(field: Field, exprScope: Scope, forFieldAccess: String) {
         if (field.ownerScope == outsideClassLike(exprScope)) {
             // if there is nothing dangerous in-between, we could use this.
-            builder.append("this")
+            builder.append(thisParamName)
         } else {
             appendGetObjectInstance(field.ownerScope, exprScope)
         }
@@ -1990,10 +2004,10 @@ open class JavaSourceGenerator : Generator() {
         }
     }
 
-    fun appendPathLc(path: List<String>, lastUpper: Boolean) {
+    fun appendPathLc(path: List<String>, lastUpper: Boolean, separator: String = ".") {
         if (path.isEmpty()) builder.append("ROOT")
         for (i in path.indices) {
-            if (i > 0) builder.append(".")
+            if (i > 0) builder.append(separator)
             val pathI = path[i]
             builder.append(if (i < path.lastIndex || !lastUpper) pathI.lowercase() else pathI)
         }

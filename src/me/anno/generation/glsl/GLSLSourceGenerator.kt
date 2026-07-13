@@ -8,16 +8,22 @@ import me.anno.generation.structs.Structures.Companion.align
 import me.anno.utils.ByteArrayOutputStream2
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.utils.StdlibLoader.loadText
+import me.anno.utils.StringUtils.distance
 import me.anno.utils.assertEquals
 import me.anno.zauber.ast.reverse.SimpleTailCall
+import me.anno.zauber.ast.rich.expression.constants.NumberExpression
+import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isFloat
+import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isUnsigned
 import me.anno.zauber.ast.rich.expression.constants.SpecialValue
 import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.Method
+import me.anno.zauber.ast.rich.member.MethodLike
 import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.expression.SimpleAllocateInstance
 import me.anno.zauber.ast.simple.expression.SimpleBoxCast
+import me.anno.zauber.ast.simple.expression.SimpleConstructorCall
 import me.anno.zauber.ast.simple.expression.SimpleMethodCall
 import me.anno.zauber.ast.simple.fields.SimpleField
 import me.anno.zauber.ast.simple.fields.SimpleGetClassField
@@ -27,6 +33,7 @@ import me.anno.zauber.expansion.DependencyData
 import me.anno.zauber.interpreting.Instance
 import me.anno.zauber.interpreting.Runtime
 import me.anno.zauber.interpreting.RuntimeCreate.createString
+import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type
@@ -49,6 +56,9 @@ import java.io.OutputStream
 class GLSLSourceGenerator : CSourceGenerator() {
 
     companion object {
+
+        private val LOGGER = LogManager.getLogger(GLSLSourceGenerator::class)
+
         val protectedGlslTypes by threadLocal {
             Types.run {
                 mapOf(
@@ -78,7 +88,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
         val nativeGlslNumbers by threadLocal { nativeGlslTypes - Types.Boolean }
 
         // todo why is 'buffer' still allowed as a field name?
-        private val glslKeywords = "int,float,buffer,texture".split(',').toSet()
+        private val glslKeywords = "int,float,buffer,texture,this".split(',').toSet()
     }
 
     override val protectedTypes: Map<ClassType, BoxedType> get() = protectedGlslTypes
@@ -97,7 +107,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
         onlyCheapSimplifications = false
         generateNiceBlocks = true
         constructorName = "XinitX"
-        thisParamName = "_this" // 'this' is reserved
+        thisParamName = "this_" // 'this' is reserved
     }
 
     // todo don't append/dependency-find object-constructors, because they are compile-time only anyway
@@ -191,13 +201,20 @@ class GLSLSourceGenerator : CSourceGenerator() {
                         .append(content.content).trimEnd()
                         .append("\n\n")
                 }
-            } else println("Missing $file")
+            } else {
+                // todo add exception for main.h: that's fine to be missing, it only contains main() anyway
+                val fileName = file.toString()
+                LOGGER.warn(
+                    "Missing file $fileName, most similar: " +
+                            "${newContent.keys.minBy { fileName.distance(it.toString()) }}"
+                )
+            }
         }
 
         handleImports = { content ->
             for ((import, import2) in content.imports) {
                 if (imports.add(import)) {
-                    val fileName = import2.path.joinToString("/", "", ".h")
+                    val fileName = toStringLC(import2.path) + ".h"
                     appendFile(File(dst, fileName))
                 }
             }
@@ -212,6 +229,14 @@ class GLSLSourceGenerator : CSourceGenerator() {
         }
 
         dstFile.writeText(builder.toString())
+    }
+
+    private fun toStringLC(path: List<String>): String {
+        val l0 = builder.length
+        appendPathLc(path, lastUpper = true, "/")
+        val str = builder.substring(l0, builder.length)
+        builder.setLength(l0)
+        return str
     }
 
     private fun StringBuilder.trimEnd(): StringBuilder {
@@ -242,6 +267,16 @@ class GLSLSourceGenerator : CSourceGenerator() {
         }
         val addr = getInstanceAddress(instance)
         builder.append(addr)
+    }
+
+    override fun appendStringImpl(value: String, scope: Scope) {
+        appendString(value)
+    }
+
+    override fun appendNumber(type: Type, expr: NumberExpression) {
+        if (type == Types.Char) {
+            builder.append(expr.asInt.toUShort())
+        } else super.appendNumber(type, expr)
     }
 
     override fun declareStruct(
@@ -344,27 +379,49 @@ class GLSLSourceGenerator : CSourceGenerator() {
     fun appendLoadPrefix(type: Type) {
         when (type) {
             Types.Float -> builder.append("uintBitsToFloat(")
-            Types.Int -> builder.append("int(")
+            Types.Byte, Types.Short, Types.Int -> builder.append("int(")
         }
     }
 
     fun appendLoadSuffix(type: Type) {
         when (type) {
-            Types.Float, Types.Int -> builder.append(")")
+            Types.Float,
+            Types.Byte, Types.Short, Types.Int -> builder.append(")")
         }
     }
 
     fun appendStorePrefix(type: Type) {
         when (type) {
             Types.Float -> builder.append("floatBitsToUint(")
-            Types.Int -> builder.append("uint(")
+            Types.Byte, Types.Short, Types.Int -> builder.append("uint(")
         }
     }
 
     fun appendStoreSuffix(type: Type) {
         when (type) {
-            Types.Float, Types.Int -> builder.append(")")
+            Types.Float,
+            Types.Byte, Types.Short, Types.Int -> builder.append(")")
         }
+    }
+
+    override fun declareThis(method: MethodLike, scope: Scope) {
+        if (hasThis(method)) {
+            // when we have inout, we don't need the boxed type :)
+            if (method.ownerScope.isValueType()) {
+                builder.append("inout ")
+            }
+            appendType(scope.typeWithArgs.specialize(), scope, false, withSuffix = true)
+            builder.append(' ').append(thisParamName)
+        }
+    }
+
+    override fun appendOwnerCastPrefix(ownerType: Type, scope: Scope) {
+        appendType(ownerType, scope, true, withSuffix = true)
+        builder.append('(')
+    }
+
+    override fun appendOwnerCastSuffix(ownerType: Type, scope: Scope) {
+        builder.append(')')
     }
 
     override fun appendUnaryOperator(graph: SimpleGraph, expr: SimpleMethodCall, methodName: String): Boolean {
@@ -391,6 +448,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
     }
 
     override fun appendInstrImpl(graph: SimpleGraph, expr: SimpleInstruction) {
+        comment { builder.append(expr.javaClass.simpleName) }
         when (expr) {
             is SimpleAllocateInstance -> {
                 if (expr.allocatedType == Types.Array && expr.paramsForLater.size == 1) {
@@ -405,66 +463,91 @@ class GLSLSourceGenerator : CSourceGenerator() {
                         .append(", ").append(inheritanceTable.getClassIndex(expr.specialization))
                         .append(')')
                 } else {
-                    // todo does this work???
-                    builder.append("{}")
+                    appendDefaultValue(expr.allocatedType)
                 }
+            }
+            is SimpleConstructorCall -> {
+                // todo 'this' in value-constructor must be marked as inout
+                val methodName = getMethodName(expr.specialization)
+                builder.append(methodName).append('(')
+                appendFieldName(graph, expr.thisInstance, "")
+                appendValueParams(graph, expr.valueParameters, withBrackets = false)
+                builder.append(");")
             }
             is SimpleGetClassField -> {
                 if (expr.dst.dst.id >= 0) {
-                    val fieldType = expr.dst.type
-                    val property = findProperty(expr.field, expr.specialization)
-                    val offset = property.offsetInBytes
+                    if (expr.self.type.isValue()) {
+                        appendSelfForFieldAccess(graph, expr.self, expr.field, expr.scope)
+                        builder.append(".")
+                        appendFieldName(expr.field)
+                    } else {
 
-                    appendLoadPrefix(fieldType)
-                    if (property.llvmType.sizeInBytes < 4) builder.append('(')
-                    builder.append(memoryName).append("[")
-                    appendSelfForFieldAccess(graph, expr.self, expr.field, expr.scope)
-                    builder.append(" + ").append(offset shr 2)
-                    builder.append(']')
+                        val fieldType = expr.dst.type
+                        val property = findProperty(expr.field, expr.specialization)
+                        val offset = property.offsetInBytes
 
-                    if (offset.and(3) != 0) {
-                        builder.append(" >> ").append(offset.and(3) * 8)
+                        appendLoadPrefix(fieldType)
+                        if (property.llvmType.sizeInBytes < 4) builder.append('(')
+                        builder.append(memoryName).append("[")
+                        appendSelfForFieldAccess(graph, expr.self, expr.field, expr.scope)
+                        builder.append(" + ").append(offset shr 2)
+                        builder.append(']')
+
                         if (property.llvmType.sizeInBytes < 4) {
-                            builder.append(") & ").append(property.llvmType.bitMask)
-                        }
-                    }
-                    appendLoadSuffix(fieldType)
+                            if (offset.and(3) != 0) {
+                                builder.append(" >> ").append(offset.and(3) * 8)
+                                builder.append(") & ").append(property.llvmType.bitMask).append('u')
+                            }
+                        } else check(offset.and(3) == 0)
+                        appendLoadSuffix(fieldType)
 
-                    comment { builder.append(expr.field.name) }
+                        comment { builder.append(expr.field.name) }
+                    }
                 } // else skip
             }
             is SimpleSetClassField -> {
-                val fieldType = expr.value.type
-                val property = findProperty(expr.field, expr.specialization)
-                val offset = property.offsetInBytes
+                if (expr.self.type.isValue()) {
+                    appendSelfForFieldAccess(graph, expr.self, expr.field, expr.scope)
+                    builder.append(".")
+                    appendFieldName(expr.field)
+                    builder.append(" = ")
+                    appendFieldName(graph, expr.value)
+                } else {
 
-                builder.append(memoryName).append("[")
-                appendSelfForFieldAccess(graph, expr.self, expr.field, expr.scope)
-                builder.append(" + ").append(offset shr 2)
-                builder.append("]")
-                builder.append(" = ")
+                    val fieldType = expr.value.type
+                    val property = findProperty(expr.field, expr.specialization)
+                    val offset = property.offsetInBytes
 
-                if (property.llvmType.sizeInBytes < 4) {
-                    builder.append('(')
                     builder.append(memoryName).append("[")
                     appendSelfForFieldAccess(graph, expr.self, expr.field, expr.scope)
                     builder.append(" + ").append(offset shr 2)
-                    builder.append("] & ").append(property.llvmType.bitMask.inv())
-                        .append(") | (")
-                }
+                    builder.append("]")
+                    builder.append(" = ")
 
-                appendStorePrefix(fieldType)
-                appendFieldName(graph, expr.value)
-                appendStoreSuffix(fieldType)
+                    if (property.llvmType.sizeInBytes < 4) {
+                        builder.append('(')
+                        builder.append(memoryName).append("[")
+                        appendSelfForFieldAccess(graph, expr.self, expr.field, expr.scope)
+                        builder.append(" + ").append(offset shr 2)
+                        // this bitmask depends on the offset
+                        val invMask = (property.llvmType.bitMask shl (offset.and(3) * 8)).inv()
+                        builder.append("] & ").append(invMask.toUInt())
+                            .append("u) | (")
+                    } else check(offset.and(3) == 0)
 
-                if (property.llvmType.sizeInBytes < 4) {
-                    builder.append(" & ").append(property.llvmType.bitMask).append(")")
-                    if (offset.and(3) != 0) {
-                        builder.append(" << ").append(offset * 8)
+                    appendStorePrefix(fieldType)
+                    appendFieldName(graph, expr.value)
+                    appendStoreSuffix(fieldType)
+
+                    if (property.llvmType.sizeInBytes < 4) {
+                        builder.append(" & ").append(property.llvmType.bitMask).append("u)")
+                        if (offset.and(3) != 0) {
+                            builder.append(" << ").append(offset * 8)
+                        }
                     }
-                }
 
-                comment { builder.append(expr.field.name) }
+                    comment { builder.append(expr.field.name) }
+                }
             }
             is SimpleBoxCast -> {
 
@@ -586,6 +669,10 @@ class GLSLSourceGenerator : CSourceGenerator() {
         }
     }
 
+    override fun markValueAsReference() {
+        // nothing to do here
+    }
+
     override fun appendFieldName(graph: SimpleGraph, field: SimpleField, forFieldAccess: String) {
         assertEquals("", forFieldAccess)
         if (field.isOwnerThis(graph)) {
@@ -637,8 +724,123 @@ class GLSLSourceGenerator : CSourceGenerator() {
         comment { builder.append("... content") }; nextLine()
     }
 
-    override fun appendStringImpl(value: String, scope: Scope) {
-        appendString(value)
+    override fun appendArrayContentInitialization(constructor: Constructor) {
+        // done when allocating instance
+    }
+
+    override fun appendArrayGetter(method0: Specialization) {
+        writeBlock {
+            val elementType = method0.typeParameters[0]
+            val elementLLVMType = structures.getInnerType(elementType)
+            val elementSizeInBytes = elementLLVMType.sizeInBytes
+
+            val offset = 8
+            check(offset.and(3) == 0)
+
+            builder.append("return ")
+            appendLoadPrefix(elementType)
+            if (elementSizeInBytes in 1..2) builder.append('(')
+            builder.append(memoryName).append('[').append(thisParamName)
+            builder.append(" + ").append(offset shr 2).append('u')
+            when (elementSizeInBytes) {
+                1 -> builder.append(" + uint(index >> 2)")
+                2 -> builder.append(" + uint(index >> 1)")
+                else -> builder.append(" + uint(index)")
+            }
+            builder.append(']')
+
+            when (elementSizeInBytes) {
+                1 -> {
+                    builder.append(" >> ((index & 3) * 8)")
+                    builder.append(") & ").append(elementLLVMType.bitMask).append('u')
+                }
+                2 -> {
+                    builder.append(" >> ((index & 1) * 16)")
+                    builder.append(") & ").append(elementLLVMType.bitMask).append('u')
+                }
+            }
+            appendLoadSuffix(elementType)
+            builder.append(';'); nextLine()
+        }
+    }
+
+    override fun appendArraySetter(method0: Specialization) {
+        writeBlock {
+            val elementType = method0.typeParameters[0]
+            val elementLLVMType = structures.getInnerType(elementType)
+            val elementSizeInBytes = elementLLVMType.sizeInBytes
+
+            val offset = 8
+            check(offset.and(3) == 0)
+
+
+            builder.append(memoryName)
+                .append('[').append(thisParamName)
+
+            // todo saving structs & longs/doubles isn't as easy, there we need to write multiple fields
+            when (elementSizeInBytes) {
+                1 -> builder.append(" + uint(index >> 2)")
+                2 -> builder.append(" + uint(index >> 1)")
+                else -> builder.append(" + uint(index)")
+            }
+
+            builder.append("] = ")
+
+            if (elementSizeInBytes in 1..2) {
+                builder.append('(')
+                builder.append(memoryName).append("[").append(thisParamName)
+                builder.append(" + ")
+                when (elementSizeInBytes) {
+                    1 -> builder.append("uint(index >> 2)")
+                    2 -> builder.append("uint(index >> 1)")
+                }
+                // this bitmask depends on the index
+                builder.append("] & ~(").append(elementLLVMType.bitMask)
+                    .append("u << ")
+                when (elementSizeInBytes) {
+                    1 -> builder.append("((index & 3) * 8)")
+                    2 -> builder.append("((index & 1) * 16)")
+                }
+                builder.append(")) | ((")
+            }
+
+            appendStorePrefix(elementType)
+            builder.append("value")
+            appendStoreSuffix(elementType)
+
+            if (elementSizeInBytes in 1..2) {
+                builder.append(" & ").append(elementLLVMType.bitMask).append("u)")
+                when (elementSizeInBytes) {
+                    1 -> builder.append(" << ((index & 3) * 8)")
+                    2 -> builder.append(" << ((index & 1) * 16)")
+                }
+                builder.append(')')
+            }
+
+            builder.append(';'); nextLine()
+        }
+    }
+
+    override fun appendDefaultValue(valueType: Type) {
+        when (valueType) {
+            Types.Boolean -> builder.append("false")
+            Types.Half, Types.Float, Types.Double -> builder.append("0.0")
+            Types.UByte, Types.UShort, Types.Char, Types.UInt, Types.ULong -> builder.append("0u")
+            Types.Byte, Types.Short, Types.Int, Types.Long -> builder.append("0")
+            else -> {
+                if (valueType.isValue()) {
+                    val spec = Specialization(valueType as ClassType)
+                    val structure = structures.getStruct(spec)
+                    builder.append('{')
+                    for (i in 1 until structure.properties.size) { // classIndex is skipped
+                        if (i > 1) builder.append(',')
+                        val type = structure.properties[i].field?.valueType ?: Types.Any
+                        appendDefaultValue(type)
+                    }
+                    builder.append('}')
+                } else builder.append("0u")
+            }
+        }
     }
 
 }

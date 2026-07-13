@@ -32,7 +32,7 @@ object LinearTreeSimplification {
         check(ordered.last() === region.end)
         convertTreeToIfs(graph, ordered)
 
-        println("Graph after Tree-ification: $graph")
+        // println("Graph after Tree-ification: $graph")
 
         return true
     }
@@ -83,7 +83,7 @@ object LinearTreeSimplification {
 
     private fun convertTreeToIfs(graph: SimpleGraph, nodes: List<SimpleBlock>) {
 
-        println("Tree before conversion: $graph")
+        // println("Tree before conversion: $graph")
 
         val depth = computeDepth(graph, nodes)
         val scope = graph.method.scope
@@ -115,7 +115,7 @@ object LinearTreeSimplification {
             val dst = findDominatorParent(node, depth).instructions
             val enterNode = graph.field(Types.Boolean)
             dst.add(SimpleLocalFieldEqualsInt(enterNode, state, node.id, scope, origin))
-            dst.add(SimpleBranch(enterNode, node, null))
+            dst.add(SimpleBranch(enterNode.use(), node, null))
         }
 
         // first links to last

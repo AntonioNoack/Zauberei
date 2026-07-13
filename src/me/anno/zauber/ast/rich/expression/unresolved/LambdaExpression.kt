@@ -179,11 +179,12 @@ class LambdaExpression(
         val selfMethodType = findSelfType(context)
         // todo if selfType != null, we need a second self-parameter
         val methodParameter = Parameter(
-            0, "self", ParameterType.VALUE_PARAMETER, ParameterMutability.VAL,
+            0, "__self", ParameterType.VALUE_PARAMETER, ParameterMutability.VAL,
             selfMethodType, classConstructor, origin
         )
         val methodField = classScope.addField(
-            null, false, false, methodParameter, "self", selfMethodType,
+            null, false, false,
+            methodParameter, methodParameter.name, selfMethodType,
             null, Flags.SYNTHETIC, 0,
         )
 

@@ -87,6 +87,10 @@ class PythonSourceGenerator : JavaSourceGenerator() {
     override val nativeTypes: Map<ClassType, BoxedType> get() = nativePythonTypes
     override val nativeNumbers: Map<ClassType, BoxedType> get() = nativePythonNumbers
 
+    init {
+        thisParamName = "self"
+    }
+
     override fun getExtension(headerOnly: Boolean): String = "py"
 
     override fun getMethodName(method0: Specialization): String {
@@ -188,7 +192,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
             if (superCall.isInterfaceCall) continue
             val type = superCall.type
             if (!builder.endsWith('(')) builder.append(", ")
-            appendType(type, scope, true,)
+            appendType(type, scope, true)
         }
         builder.append(')')
     }
@@ -548,7 +552,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
 
     override fun appendGetObjectInstance(objectScope: Scope, exprScope: Scope) {
         if (objectScope == outsideClassLike(exprScope)) {
-            builder.append("self")
+            builder.append(thisParamName)
         } else {
             appendType(objectScope.typeWithArgs, objectScope, false)
             builder.append(STATIC_INSTANCE_SUFFIX)
@@ -651,7 +655,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
     override fun appendObjectInstance(field: Field, exprScope: Scope, forFieldAccess: String) {
         if (field.ownerScope == outsideClassLike(exprScope)) {
             // if there is nothing dangerous in-between, we could use this.
-            builder.append("self")
+            builder.append(thisParamName)
         } else {
             appendGetObjectInstance(field.ownerScope, exprScope)
         }
@@ -794,7 +798,7 @@ class PythonSourceGenerator : JavaSourceGenerator() {
 
     override fun appendFieldName(graph: SimpleGraph, field: SimpleField, forFieldAccess: String) {
         if (field.isOwnerThis(graph)) {
-            builder.append(if (meansContent(field, "")) "self.content" else "self")
+            builder.append(if (meansContent(field, "")) "self.content" else thisParamName)
         } else if (field.isObjectLike()) {
             val objectScope = (field.type as ClassType).clazz
             appendGetObjectInstance(objectScope, graph.method.scope)

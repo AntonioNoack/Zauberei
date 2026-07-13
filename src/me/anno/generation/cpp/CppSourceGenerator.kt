@@ -528,20 +528,22 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         }
     }
 
-    override fun appendValueParameterDeclaration(method: MethodLike, scope: Scope) {
-        builder.append('(')
+    override fun declareSelf(method: MethodLike, scope: Scope) {
         val selfTypeIfNecessary = method.selfTypeIfNecessary
         if (selfTypeIfNecessary != null) {
+            if (!builder.endsWith('(')) builder.append(", ")
             appendType(selfTypeIfNecessary, scope, false, withSuffix = true)
             builder.append(" __self")
         }
+    }
+
+    override fun declareValueParams(method: MethodLike, scope: Scope) {
         for (param in method.valueParameters) {
-            if (!builder.endsWith("(")) builder.append(", ")
+            if (!builder.endsWith('(')) builder.append(", ")
             appendType(param.type, scope, false, withSuffix = true)
             builder.append(' ')
             appendFieldName(param)
         }
-        builder.append(')')
     }
 
     override fun appendSuperCall0Name(
@@ -696,7 +698,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
 
     override fun appendGetObjectInstance(objectScope: Scope, exprScope: Scope) {
         if (objectScope == outsideClassLike(exprScope)) {
-            builder.append("this")
+            builder.append(thisParamName)
         } else {
             appendType(objectScope.typeWithArgs, objectScope, false, withSuffix = false)
             builder.append("::get").append(OBJECT_FIELD_NAME).append("()")
@@ -767,7 +769,7 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
 
     override fun appendFieldName(graph: SimpleGraph, field: SimpleField, forFieldAccess: String) {
         val needsArrow = if (field.isOwnerThis(graph)) {
-            builder.append(if (meansContent(field, forFieldAccess)) "this->content" else "this")
+            builder.append(if (meansContent(field, forFieldAccess)) "this->content" else thisParamName)
             true
         } else if (field.isObjectLike()) {
             val objectType = (field.type as ClassType).clazz

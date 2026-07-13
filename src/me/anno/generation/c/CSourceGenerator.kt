@@ -59,7 +59,6 @@ open class CSourceGenerator : CppSourceGenerator() {
     lateinit var inheritanceTable: InheritanceTable
 
     var onlyCheapSimplifications = true
-    var thisParamName = "this"
 
     // todo non-boxed types don't need classIndex, but boxed-types do:
     //  - for all non-boxed types, create a boxed type, if it is cast to non-boxed
@@ -275,25 +274,11 @@ open class CSourceGenerator : CppSourceGenerator() {
         appendValueParameterDeclaration(constructor, classScope)
     }
 
-    override fun appendValueParameterDeclaration(method: MethodLike, scope: Scope) {
-        builder.append('(')
+    override fun declareThis(method: MethodLike, scope: Scope) {
         if (hasThis(method)) {
             appendType(scope.typeWithArgs.specialize(), scope, true, withSuffix = true)
             builder.append(' ').append(thisParamName)
         }
-        val selfTypeIfNecessary = method.selfTypeIfNecessary
-        if (selfTypeIfNecessary != null) {
-            if (!builder.endsWith('(')) builder.append(", ")
-            appendType(selfTypeIfNecessary, scope, false, withSuffix = true)
-            builder.append(" __self")
-        }
-        for (param in method.valueParameters) {
-            if (!builder.endsWith('(')) builder.append(", ")
-            appendType(param.type, scope, false, withSuffix = true)
-            builder.append(' ')
-            appendFieldName(param)
-        }
-        builder.append(')')
     }
 
     override fun declareClassField(classScope: Scope, field: Field, allowFinal: Boolean, headerOnly: Boolean) {
@@ -370,7 +355,7 @@ open class CSourceGenerator : CppSourceGenerator() {
         appendNonNativeCall(graph, expr.specialization, expr, false)
     }
 
-    private fun appendNonNativeCall(
+    open fun appendNonNativeCall(
         graph: SimpleGraph, method0: Specialization, expr: SimpleMethodCall,
         withCast: Boolean
     ) {
@@ -385,20 +370,42 @@ open class CSourceGenerator : CppSourceGenerator() {
 
         if (hasThis(method0.method)) {
             if (withCast) {
-                builder.append('(')
                 val ownerType = inheritanceTable.getMethodOwnerType(method0)
-                appendType(ownerType, expr.scope, true, withSuffix = true)
-                builder.append(") ")
+                appendOwnerCastPrefix(ownerType, expr.scope)
             }
 
             if (!isCIncludeMethod(method0.method)) {
-                if (expr.thisInstance.type.isValue()) builder.append('&')
+                if (expr.thisInstance.type.isValue()) markValueAsReference()
                 appendFieldName(graph, expr.thisInstance, "")
             }
+
+            if (withCast) {
+                appendOwnerCastSuffix(ownerType, expr.scope)
+            }
+        }
+
+        if (hasSelf(method0.method)) {
+            if (!builder.endsWith('(')) builder.append(", ")
+            if (expr.selfInstance!!.type.isValue()) markValueAsReference()
+            appendFieldName(graph, expr.selfInstance, "")
         }
 
         appendValueParams(graph, expr.valueParameters, withBrackets = false)
         builder.append(')')
+    }
+
+    open fun appendOwnerCastPrefix(ownerType: Type, scope: Scope) {
+        builder.append('(')
+        appendType(ownerType, scope, true, withSuffix = true)
+        builder.append(") ")
+    }
+
+    open fun appendOwnerCastSuffix(ownerType: Type, scope: Scope) {
+        // nothing to do here
+    }
+
+    open fun markValueAsReference() {
+        builder.append('&')
     }
 
     override fun appendUnaryOperator(graph: SimpleGraph, expr: SimpleMethodCall, methodName: String): Boolean {

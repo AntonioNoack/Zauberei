@@ -524,8 +524,8 @@ object ASTSimplifier {
         origin: Long
     ): FlowResult {
         val graph = block0.graph
-        // todo check that super calls still work, especially this-constructor calls(...)
-        println("constructor $method inside ${graph.method}, new instance? $allocateNewInstance")
+        // check that super calls still work, especially this-constructor calls(...) -> we added a unit test :)
+        // println("constructor $method inside ${graph.method}, new instance? $allocateNewInstance")
         return if (!allocateNewInstance) {
 
             val self = selfExpr ?: run {

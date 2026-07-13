@@ -35,9 +35,11 @@ object CodeReconstruction {
             if (simplifyTree(graph)) continue
 
             if (fine) {
-                println("Graph needs tail-calls")
+                /*
+                * println("Graph needs tail-calls")
                 println(graph)
                 println()
+                * */
                 fine = false
             }
 
