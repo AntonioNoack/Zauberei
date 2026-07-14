@@ -70,17 +70,15 @@ class GLSLSourceGenerator : CSourceGenerator() {
                     Byte to BoxedType("Byte", "int"),
                     Short to BoxedType("Short", "int"),
                     Int to BoxedType("Int", "int"),
-                    // todo longs may be supported using extensions
-                    // Long to BoxedType("Long", "int64_t"),
+                    // todo longs need to be implemented using hi+lo
 
                     UByte to BoxedType("Byte", "uint"),
                     UShort to BoxedType("Short", "uint"),
                     UInt to BoxedType("Int", "uint"),
-                    // ULong to BoxedType("Long", "uint64_t"),
 
                     Char to BoxedType("Char", "uint"),
                     // todo half and double are not necessarily supported, and may have to be replaced with float
-                    Half to BoxedType("Half", "half"),
+                    Half to BoxedType("Half", "float"), // unsupported in my shader :/
                     Float to BoxedType("Float", "float"),
                     Double to BoxedType("Double", "double"),
                 )
@@ -366,15 +364,16 @@ class GLSLSourceGenerator : CSourceGenerator() {
             generateCodeImpl(dst, data, writer)
 
         } finally {
-            writer.joinIntoOneGLSLFile(dst)
+            writer.joinIntoOneGLSLFile(data, dst)
         }
     }
 
-    private fun FileWithImportsWriter.joinIntoOneGLSLFile(dst: File) {
+    private fun FileWithImportsWriter.joinIntoOneGLSLFile(data: DependencyData, dst: File) {
         val dstFile = File(dst, "ComputeShader.glsl")
 
         val builder = StringBuilder()
         builder.append(loadText("files/GLSLStdlib.glsl"))
+        val l0 = builder.indexOf('\n') + 1 // version must be on first line, extensions follow
 
         val imports = HashSet<String>()
         val written = HashSet<FileEntry>()
@@ -417,6 +416,11 @@ class GLSLSourceGenerator : CSourceGenerator() {
                 appendFile(headerFile)
                 appendFile(srcFile)
             }
+        }
+
+        if (false && Specialization(Types.Half) in data.createdClasses) {
+            // unsupported on my gpu :(
+            builder.insert(l0, "#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require\n")
         }
 
         dstFile.writeText(builder.toString())
@@ -465,9 +469,22 @@ class GLSLSourceGenerator : CSourceGenerator() {
     }
 
     override fun appendNumber(type: Type, expr: NumberExpression) {
-        if (type == Types.Char) {
-            builder.append(expr.asInt.toUShort())
-        } else super.appendNumber(type, expr)
+        when (type) {
+            Types.Char -> {
+                builder.append(expr.asInt.toUShort())
+            }
+            Types.Long -> {
+                builder.append("{")
+                    .append(expr.asInt.shr(32)).append(',')
+                    .append(expr.asInt.toInt()).append('}')
+            }
+            Types.ULong -> {
+                builder.append("{")
+                    .append(expr.asInt.ushr(32)).append("u,")
+                    .append(expr.asInt.toUInt()).append("u}")
+            }
+            else -> super.appendNumber(type, expr)
+        }
     }
 
     override fun declareStruct(
@@ -481,12 +498,27 @@ class GLSLSourceGenerator : CSourceGenerator() {
         builder.append(packagePrefix)
         builder.append(className)
         writeBlock {
-            // append fields; todo initialize this in constructor
-            if (!classScope.isValueType()) {
-                builder.append("uint ").append(CLASS_INDEX_NAME).append(';')
-                nextLine()
+
+            // todo long and ulong should be marked as value types...
+            when (classScope) {
+                Types.Long.clazz -> {
+                    builder.append("int hi;"); nextLine()
+                    builder.append("int lo;"); nextLine()
+                }
+                Types.ULong.clazz -> {
+                    builder.append("uint hi;"); nextLine()
+                    builder.append("uint lo;"); nextLine()
+                }
+                else -> {
+                    // append fields
+                    if (!classScope.isValueType()) {
+                        builder.append("uint ").append(CLASS_INDEX_NAME).append(';')
+                        nextLine()
+                    }
+
+                    declareClassFields(classScope, fields, true, headerOnly = true)
+                }
             }
-            declareClassFields(classScope, fields, true, headerOnly = true)
         }
         removeTrailingWhitespace()
         builder.append(';')
@@ -1029,8 +1061,11 @@ class GLSLSourceGenerator : CSourceGenerator() {
         when (valueType) {
             Types.Boolean -> builder.append("false")
             Types.Half, Types.Float, Types.Double -> builder.append("0.0")
-            Types.UByte, Types.UShort, Types.Char, Types.UInt, Types.ULong -> builder.append("0u")
-            Types.Byte, Types.Short, Types.Int, Types.Long -> builder.append("0")
+            Types.UByte, Types.UShort, Types.Char, Types.UInt -> builder.append("0u")
+            Types.Byte, Types.Short, Types.Int -> builder.append("0")
+            // todo it looks like we need helpers... we cannot just instantiate them like that(?)
+            Types.Long -> builder.append("{0,0}")
+            Types.ULong -> builder.append("{0u,0u}")
             else -> {
                 if (valueType.isValue()) {
                     val spec = Specialization(valueType as ClassType)
@@ -1048,7 +1083,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
     }
 
     override fun appendClassIndex(graph: SimpleGraph, value: SimpleField) {
-        if(value.type.isValue()) {
+        if (value.type.isValue()) {
             builder.append(inheritanceTable.getClassIndex(value.type as ClassType))
         } else {
             // class index is the first field
