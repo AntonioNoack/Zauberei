@@ -385,7 +385,7 @@ abstract class CodeGenerationTests {
 
         var ctr = 0
 
-        builder.append("void main() {\n")
+        builder.append("fun main() {\n")
 
         for (type in numberTypes) {
             val typeName = type.clazz.name

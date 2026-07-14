@@ -1047,4 +1047,16 @@ class GLSLSourceGenerator : CSourceGenerator() {
         }
     }
 
+    override fun appendClassIndex(graph: SimpleGraph, value: SimpleField) {
+        if(value.type.isValue()) {
+            builder.append(inheritanceTable.getClassIndex(value.type as ClassType))
+        } else {
+            // class index is the first field
+            builder.append("int(")
+            builder.append(memoryName).append('[')
+            appendFieldName(graph, value)
+            builder.append("])")
+        }
+    }
+
 }

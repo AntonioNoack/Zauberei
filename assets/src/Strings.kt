@@ -98,7 +98,14 @@ class StringBuilder(capacity: Int = 16): CharSequence {
         return this
     }
 
+    fun append(value: Byte) = append(value.toInt())
+    fun append(value: UByte) = append(value.toUInt())
+    fun append(value: Short) = append(value.toInt())
+    fun append(value: UShort) = append(value.toUInt())
+    fun append(value: Boolean) = append(value.toString())
+
     fun append(value: UInt): StringBuilder {
+        val l0 = size
         var v = value
         val i0 = size
         while (v >= 10u) {
@@ -106,7 +113,21 @@ class StringBuilder(capacity: Int = 16): CharSequence {
             v = v / 10u
         }
         append('0' + v)
+        reverse(l0, size)
         return this
+    }
+    
+    fun reverse(i0: Int, i1: Int) {
+        var i = i0
+        var j = i1 - 1
+        while (i < j) {
+            val tmp = buffer[i]
+            buffer[i] = buffer[j]
+            buffer[j] = tmp
+
+            i++
+            j--
+        }
     }
 
     // separated, so we don't need to work with i64 if we don't have to
@@ -122,20 +143,22 @@ class StringBuilder(capacity: Int = 16): CharSequence {
     }
 
     fun append(value: ULong): StringBuilder {
+        val l0 = size
         var v = value
         val i0 = size
-        while (v >= 10) {
-            append('0' + (v % 10))
-            v = v / 10
+        while (v >= 10ul) {
+            append('0' + (v % 10ul).toInt())
+            v = v / 10ul
         }
-        append('0' + v)
+        append('0' + v.toInt())
+        reverse(l0, size)
         return this
     }
 
     // separated, so we don't need to work with i64 if we don't have to
     fun append(value: Long): StringBuilder {
         if (value == Long.MIN_VALUE) return append("-9223372036854775808")
-        if (value < 0) {
+        if (value < 0l) {
             append('-')
             append((-value).toULong())
         } else {

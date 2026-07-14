@@ -20,6 +20,10 @@ enum class Boolean {
 
     fun toInt() = ordinal
     fun not(): Boolean = if (this) false else true
+
+    override fun toString(): String {
+        return if (this) "true" else "false"
+    }
 }
 
 class Ref<V>(var value: V)

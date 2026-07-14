@@ -311,6 +311,8 @@ open class CSourceGenerator : CppSourceGenerator() {
 
     override fun appendNonNativeCall(expr: SimpleMethodCall, graph: SimpleGraph) {
 
+        appendAssign(graph, expr)
+
         if (expr.methods !is FullMap) {
             val options = inheritanceTable.createSwitchList(expr.specialization)
             println("Switch list for ${expr.specialization}: $options")
@@ -325,17 +327,14 @@ open class CSourceGenerator : CppSourceGenerator() {
 
             } else if (options.size <= INHERITANCE_SWITCH_LIMIT) {
 
-                val l0 = builder.length
-                appendFieldName(graph, expr.thisInstance, "")
-                val self = builder.substring(l0); builder.setLength(l0)
                 for (i in options.indices) {
                     val (clazz, method) = options[i]
 
                     // todo it would be nice if we could cache the classIndex in a local field...
                     if (i > 0) builder.append(" : ")
                     if (i < options.lastIndex) {
-                        builder.append(self)
-                            .append("->").append(CLASS_INDEX_NAME)
+                        appendClassIndex(graph, expr.thisInstance)
+                        builder
                             .append(" == ").append(inheritanceTable.getClassIndex(clazz))
                             .append(" ? ")
                     }
@@ -364,7 +363,6 @@ open class CSourceGenerator : CppSourceGenerator() {
             .typeWithArgs2.specialize(method0)
         ensureImport(ownerType)
 
-        appendAssign(graph, expr)
         val methodName = getMethodName(method0)
         builder.append(methodName).append('(')
 
@@ -639,7 +637,7 @@ open class CSourceGenerator : CppSourceGenerator() {
         }
     }
 
-    fun appendClassIndex(graph: SimpleGraph, value: SimpleField) {
+    open fun appendClassIndex(graph: SimpleGraph, value: SimpleField) {
         appendFieldName(graph, value)
         builder.append("->").append(CLASS_INDEX_NAME)
     }
