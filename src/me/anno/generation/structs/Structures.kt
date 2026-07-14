@@ -79,17 +79,6 @@ abstract class Structures<InnerType, InnerProperty, InnerStruct : LateinitStruct
             s.properties.add(classIndexProp)
             s.sizeInBytes += getClassIndexSize()
 
-            if (clazz == Types.Array.clazz) {
-                val elementType = classSpecialization.typeParameters[0]
-                val elementLLVMType = getInnerType(elementType)
-                val property = createArrayContentProperty(
-                    elementLLVMType, elementType.isValue(),
-                    s.properties.size, s.sizeInBytes
-                )
-                s.properties.add(property)
-                s.sizeInBytes = getArrayContentSize(s.sizeInBytes)
-            }
-
             for (field in clazz.fields) {
                 if (!isStoredField(field)) continue
 
@@ -102,6 +91,18 @@ abstract class Structures<InnerType, InnerProperty, InnerStruct : LateinitStruct
                 s.sizeInBytes = align(s.sizeInBytes, alignment)
                 s.sizeInBytes += size
             }
+
+            if (clazz == Types.Array.clazz) {
+                val elementType = classSpecialization.typeParameters[0]
+                val elementLLVMType = getInnerType(elementType)
+                val property = createArrayContentProperty(
+                    elementLLVMType, elementType.isValue(),
+                    s.properties.size, s.sizeInBytes
+                )
+                s.properties.add(property)
+                s.sizeInBytes = getArrayContentSize(s.sizeInBytes)
+            }
+
         }
         return s
     }

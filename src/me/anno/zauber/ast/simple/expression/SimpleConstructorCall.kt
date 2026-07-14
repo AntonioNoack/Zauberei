@@ -82,10 +82,10 @@ class SimpleConstructorCall(
     fun createArray(type: Type?, size: Int): Any {
         return when (type) {
             Types.Boolean -> BooleanArray(size)
-            Types.Byte -> ByteArray(size)
-            Types.Short -> ShortArray(size)
-            Types.Int -> IntArray(size)
-            Types.Long -> LongArray(size)
+            Types.Byte, Types.UByte -> ByteArray(size)
+            Types.Short, Types.UShort, Types.Half -> ShortArray(size)
+            Types.Int, Types.UInt -> IntArray(size)
+            Types.Long, Types.ULong -> LongArray(size)
             Types.Float -> FloatArray(size)
             Types.Double -> DoubleArray(size)
             else -> {

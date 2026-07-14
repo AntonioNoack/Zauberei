@@ -394,7 +394,7 @@ open class JavaSourceGenerator : Generator() {
     }
 
     open fun createSpecializationSuffix(specialization: Specialization): String {
-        if (specialization.isEmpty()) return ""
+        if (specialization.typeParameters.isEmpty()) return ""
         // todo ensure the name is original, but keep it readable
         return "_${specialization.createUniqueName()}"
     }
@@ -502,8 +502,8 @@ open class JavaSourceGenerator : Generator() {
                     val paramType = params.getOrNull(i)?.toString() ?: "null"
                     builder.append('=').append(StringStyles.removeStyles(paramType))
                 }
-                nextLine()
             }
+            nextLine()
         }
     }
 

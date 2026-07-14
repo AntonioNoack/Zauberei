@@ -99,6 +99,28 @@ static GLuint link_compute_program(GLuint compute_sh) {
     return prog;
 }
 
+void printAllInStringBuilder(uint32_t* memory, size_t memorySizeBytes) {
+    // todo validate all bounds
+    uint32_t stringBuilder = memory[14];
+    // printf("StringBuilder: %d\n", stringBuilder);
+    if (!stringBuilder) {
+        printf("Missing stringBuilder :(\n");
+        return;
+    }
+
+    uint32_t buffer = memory[stringBuilder + 1]; // 0 is classIndex, 1 is buffer
+    // printf("buffer: %d\n", buffer);
+    if (!buffer) die("Buffer in stringBuilder cannot be null");
+
+    uint32_t bufferSize = memory[buffer + 1]; // 0 is classIndex, 1 is size, 2+ is content
+    // printf("buffer.class: %d\n", memory[buffer]);
+    // printf("buffer.size: %d\n", memory[buffer + 1]);
+    char* asCString = (char*) calloc(bufferSize + 1, 1);
+    char* bufferContent = (char*) &memory[buffer + 2];
+    memcpy(asCString, bufferContent, bufferSize);
+    printf("%s", asCString);
+}
+
 int main() {
 
     // ---- Create hidden OpenGL context (GLFW) ----
@@ -134,11 +156,19 @@ int main() {
     // Convention:
     //   - shader uses: layout(std430, binding = 0) buffer Buffer { uint memory[]; };
     //   - we bind the SSBO to binding point 0.
-    GLsizeiptr memorySize = (GLsizeiptr)(f.len * sizeof(uint32_t));
+    GLsizeiptr memorySize0 = (GLsizeiptr)(f.len * sizeof(uint32_t));
+    GLsizeiptr memorySize1 = (memorySize0 + 1024) * 16;
+
+    // printAllInStringBuilder(f.data, memorySize0);
+
+    f.data = realloc(f.data, memorySize1);
+    memset(f.data + (memorySize0 / sizeof(uint32_t)), 0, memorySize1 - memorySize0);
+
     GLuint ssbo = 0;
     glGenBuffers(1, &ssbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, memorySize, f.data, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, memorySize1, f.data, GL_STATIC_DRAW);
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     // ---- Compile + link compute shader ----
@@ -162,17 +192,23 @@ int main() {
 
     // Map for read
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-    void *mapped = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, memorySize, GL_MAP_READ_BIT);
+    void *mapped = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, memorySize1, GL_MAP_READ_BIT);
     if (!mapped) die("glMapBufferRange failed");
-    memcpy(f.data, mapped, memorySize);
+    memcpy(f.data, mapped, memorySize1);
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-    // Save to memory.bin
-    FILE *fp = fopen("memory.bin", "wb");
-    if (!fp) die("failed to open memory.bin for writing");
-    if (fwrite(f.data, 1, memorySize, fp) != memorySize) die("failed writing memory.bin");
-    fclose(fp);
+    // print all there is to print
+    printAllInStringBuilder(f.data, memorySize1);
+
+    if (1) {
+        // Save to memory.bin
+        FILE *fp = fopen("memory.final.bin", "wb");
+        if (!fp) die("failed to open memory.bin for writing");
+        memorySize1 = f.data[15] * sizeof(uint32_t); // gc-pointer for next instance
+        if (fwrite(f.data, 1, memorySize1, fp) != memorySize1) die("failed writing memory.bin");
+        fclose(fp);
+    }
 
     free_u32_file(&f);
 

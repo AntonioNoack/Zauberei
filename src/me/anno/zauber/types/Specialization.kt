@@ -46,6 +46,10 @@ class Specialization(val scope: Scope?, typeParameters: ParameterList) {
 
     val typeParameters = typeParameters.readonly()
     val hash = typeParameters.hashCode() and 0x7fff_ffff
+
+    /**
+     * type parameters for all super calls, interfaces, too
+     * */
     var implicitTypeParameters = emptyParameterList() // partially required for itself
 
     init {
@@ -123,11 +127,13 @@ class Specialization(val scope: Scope?, typeParameters: ParameterList) {
     override fun hashCode(): Int = hash
 
     fun createUniqueName(): String {
+
         val name = data.uniqueNames[this]
         if (name != null) return name
 
-        val genName0 = typeParameters.indices.joinToString("_") {
-            when (val type = typeParameters.getOrNull(it)) {
+        val typeParams = typeParameters
+        val genName0 = typeParams.indices.joinToString("_") {
+            when (val type = typeParams.getOrNull(it)) {
                 is GenericType -> {
                     val selfAsMethod = type.scope.selfAsMethod
                     if (selfAsMethod != null) {

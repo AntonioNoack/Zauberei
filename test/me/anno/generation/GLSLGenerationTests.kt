@@ -20,10 +20,6 @@ class GLSLGenerationTests : CodeGenerationTests() {
 
     @Test
     fun testOperationOrder() {
-        // todo next steps:
-        //  - define ptr to StringBuilder in C file somehow, or store it in memory, maybe 56? :)
-        //  - write all instances (properties, too) properly to memory
-        //  - read back what was written from the buffer after the shader finished
         testOperationOrderImpl()
     }
 

@@ -11,6 +11,7 @@ import me.anno.zauber.ast.rich.Flags.hasAnyFlag
 import me.anno.zauber.ast.rich.Flags.hasFlag
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.rich.parameter.SuperCall
+import me.anno.zauber.expansion.Dependencies
 import me.anno.zauber.expansion.DependencyData
 import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
@@ -83,9 +84,11 @@ class InheritanceTable(val data: DependencyData) {
         data.calledMethods += funToSpec("readFromClassToInterfaceTable")
         data.calledMethods += funToSpec(Types.Int, "inc")
 
-        val helperConstr = helperScope.getOrCreatePrimaryConstructorScope()
         data.createdClasses += Specialization(helperScope, emptyParameterList())
-        data.calledMethods += Specialization(helperConstr, emptyParameterList())
+        if (Dependencies.collectObjectConstructors) {
+            val helperConstr = helperScope.getOrCreatePrimaryConstructorScope()
+            data.calledMethods += Specialization(helperConstr, emptyParameterList())
+        }
     }
 
     fun funToSpec(name: String): Specialization {

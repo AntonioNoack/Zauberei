@@ -62,6 +62,7 @@ class String(val content: ByteArray) {
     }
 }
 
+@StrictLayout
 class StringBuilder(capacity: Int = 16): CharSequence {
 
     companion object {

@@ -23,3 +23,5 @@ enum class Boolean {
 }
 
 class Ref<V>(var value: V)
+
+annotation class StrictLayout

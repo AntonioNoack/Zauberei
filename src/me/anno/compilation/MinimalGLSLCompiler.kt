@@ -11,6 +11,10 @@ open class MinimalGLSLCompiler(
     val features: GLSLFeatures = GLSLFeatures()
 ) : MinimalCompiler(null) {
 
+    init {
+        executesObjectsAtCompileTime = true
+    }
+
     // todo we could compile this GLSL to SPIRV
 
     override fun compile(

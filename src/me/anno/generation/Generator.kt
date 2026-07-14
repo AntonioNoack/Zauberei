@@ -23,6 +23,7 @@ abstract class Generator(val blockSuffix: String = "}\n") {
         try {
             builder.append(if (commentDepth == 1) "/* " else "(")
             body()
+            removeTrailingWhitespace()
             builder.append(if (commentDepth == 1) " */" else ")")
         } finally {
             commentDepth--

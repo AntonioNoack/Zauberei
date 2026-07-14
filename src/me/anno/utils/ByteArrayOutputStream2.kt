@@ -9,7 +9,6 @@ class ByteArrayOutputStream2 : OutputStream() {
 
     var bytes = ByteArray(8192)
     var size = 0
-        private set
 
     override fun write(p0: Int) {
         ensureExtra(1)

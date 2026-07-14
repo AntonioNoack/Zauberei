@@ -18,6 +18,7 @@ import me.anno.zauber.scope.Scope
 import me.anno.zauber.scope.ScopeType
 import me.anno.zauber.typeresolution.ResolutionContext
 import me.anno.zauber.typeresolution.TypeResolution
+import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
 import me.anno.zauber.types.impl.TypeOfField
@@ -114,6 +115,15 @@ class Field(
     var getterExpr: Expression? = null
     var hasCustomGetter = false
     var hasCustomSetter = false
+
+    fun resolveValueType(ownerSpec: Specialization): Type {
+        assertEquals(ownerScope, ownerSpec.scope)
+        val rc = ResolutionContext(
+            ownerScope, null, ownerSpec,
+            false, valueType,
+        )
+        return resolveValueType(rc)
+    }
 
     fun resolveValueType(context: ResolutionContext): Type {
 

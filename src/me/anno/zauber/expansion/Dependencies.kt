@@ -1,6 +1,7 @@
 package me.anno.zauber.expansion
 
 import me.anno.generation.java.JavaSourceGenerator.Companion.getCastTargetType
+import me.anno.generation.java.JavaSourceGenerator.Companion.isCast
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.zauber.ast.rich.Flags
 import me.anno.zauber.ast.rich.Flags.hasAnyFlag
@@ -52,7 +53,7 @@ object Dependencies {
             markChildMethodsReachable(type)
         }
 
-        if (markDefaultConstructor) {
+        if (markDefaultConstructor && (collectObjectConstructors || !type.scope!!.isObjectLike())) {
             val ownerConstructor = type.clazz.getOrCreatePrimaryConstructorScope()
             addMethod(type.withScope(ownerConstructor))
         }
@@ -66,6 +67,13 @@ object Dependencies {
         check(method.isMethodLike()) { "$method is not a method" }
         // if method is a macro, skip it, we cannot execute it at runtime anyway
         if (method.method.flags.hasFlag(Flags.MACRO)) return
+
+        if (!collectObjectConstructors &&
+            method.method is Constructor &&
+            method.method.ownerScope.isObjectLike()
+        ) {
+            error("Should not collect object constructors")
+        }
 
         if (reached.calledMethods.add(method)) {
             markMethodObjectReachable(method)
@@ -122,13 +130,12 @@ object Dependencies {
     private fun markCalledMethodsReachable(method0: Specialization) {
         // ASTSimplify method, and collect all called methods
         check(method0.isMethodLike())
+
         val method = method0.method
         if (method.isExternal() || method.hasNoBody()) {
             val owner = method.ownerScope
             val ownerType = owner.typeWithArgs2
-            if (method.name.startsWith("to") &&
-                ownerType in nativeNumbers
-            ) {
+            if (isCast(method.name) && ownerType in nativeNumbers) {
                 val targetType = getCastTargetType(method.name)
                 if (targetType != null) addClass(targetType, true)
             }
@@ -175,15 +182,17 @@ object Dependencies {
                     }
                     is SimpleGetObject -> {
                         val scope = instr.objectScope[ScopeInitType.AFTER_DISCOVERY]
-                        addClass(scope.typeWithArgs2)
-                        val constr = scope.primaryConstructorScope
-                        if (constr != null) {
-                            addMethod(Specialization.fromSimple(constr))
-                        }
+                        addClass(scope.typeWithArgs2, true)
                     }
-                    is SimpleGetTypeInstance -> addClass(instr.dst.type as ClassType)
-                    is SimpleSetClassField -> reached.setFields.add(instr.specialization)
-                    is SimpleGetClassField -> reached.getFields.add(instr.specialization)
+                    is SimpleGetTypeInstance -> {
+                        addClass(instr.dst.type as ClassType)
+                    }
+                    is SimpleSetClassField -> {
+                        reached.setFields.add(instr.specialization)
+                    }
+                    is SimpleGetClassField -> {
+                        reached.getFields.add(instr.specialization)
+                    }
 
                     // how do we handle dynamic macros? can only be inside macros, so we're fine (?)
                 }
@@ -215,8 +224,14 @@ object Dependencies {
         }
     }
 
+     var collectObjectConstructors = true
+
     fun collectDependencies(): DependencyData {
         addClass(Types.Unit, true)
+        return reached
+    }
+
+    fun empty(): DependencyData {
         return reached
     }
 

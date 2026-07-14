@@ -530,7 +530,7 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         }
     }
 
-    val structures = LLVMStructures(this)
+    val structures = LLVMStructures(this, 8)
 
     fun getStruct(classSpecialization: Specialization): LLVMStruct {
         return structures.getStruct(classSpecialization)

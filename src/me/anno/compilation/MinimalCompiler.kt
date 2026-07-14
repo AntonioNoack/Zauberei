@@ -9,7 +9,6 @@ import me.anno.zauber.expansion.DependencyData
 import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.scope.ScopeInitType
-import me.anno.zauber.typeresolution.ParameterList.Companion.emptyParameterList
 import me.anno.zauber.types.Specialization
 import java.io.File
 import java.io.InputStream
@@ -62,12 +61,16 @@ abstract class MinimalCompiler(val preserveFolderName: String? = null) {
 
     fun registerMainMethod(testScope: Scope) {
         val method = testScope[ScopeInitType.AFTER_DISCOVERY].methods0.first { it.name == "main" }
-        Dependencies.addMethod(Specialization(method.memberScope, emptyParameterList()))
+        Dependencies.addMethod(Specialization.fromSimple(method.memberScope))
     }
+
+    var executesObjectsAtCompileTime = false
 
     open fun testCompileMainAndRun(code: String, registerMethods: () -> Unit): String {
 
         LOGGER.info("Starting compilation")
+
+        Dependencies.collectObjectConstructors = !executesObjectsAtCompileTime
 
         val testScope = ResolutionUtils.typeResolveScope(code)
         registerMainMethod(testScope)

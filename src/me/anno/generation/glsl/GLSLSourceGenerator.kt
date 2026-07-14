@@ -4,21 +4,22 @@ import me.anno.generation.*
 import me.anno.generation.c.CSourceGenerator
 import me.anno.generation.llvm.LLVMProperty
 import me.anno.generation.llvm.LLVMStructures
-import me.anno.generation.structs.Structures.Companion.align
-import me.anno.utils.ByteArrayOutputStream2
+import me.anno.utils.IntArrayList
+import me.anno.utils.NumberUtils.toInt
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
+import me.anno.utils.ResolutionUtils.getField
 import me.anno.utils.StdlibLoader.loadText
 import me.anno.utils.StringUtils.distance
 import me.anno.utils.assertEquals
 import me.anno.zauber.ast.reverse.SimpleTailCall
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression
-import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isFloat
-import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isUnsigned
+import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.getNumBits
 import me.anno.zauber.ast.rich.expression.constants.SpecialValue
 import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.rich.member.MethodLike
+import me.anno.zauber.ast.simple.ASTSimplifier
 import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.expression.SimpleAllocateInstance
@@ -35,11 +36,13 @@ import me.anno.zauber.interpreting.Runtime
 import me.anno.zauber.interpreting.RuntimeCreate.createString
 import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
+import me.anno.zauber.typeresolution.TypeResolution.langScope
 import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
 import me.anno.zauber.types.impl.ClassType
 import me.anno.zauber.types.impl.GenericType
+import me.anno.zauber.types.impl.arithmetic.NullType
 import java.io.File
 import java.io.OutputStream
 
@@ -89,6 +92,10 @@ class GLSLSourceGenerator : CSourceGenerator() {
 
         // todo why is 'buffer' still allowed as a field name?
         private val glslKeywords = "int,float,buffer,texture,this".split(',').toSet()
+
+        const val STRING_BUILDER = 14
+        const val NEXT_GC = 15
+        const val TOTAL_RESERVED = 16
     }
 
     override val protectedTypes: Map<ClassType, BoxedType> get() = protectedGlslTypes
@@ -113,19 +120,18 @@ class GLSLSourceGenerator : CSourceGenerator() {
     // todo don't append/dependency-find object-constructors, because they are compile-time only anyway
 
     // todo all strings and such will be entered into this buffer
-    val memory = ByteArrayOutputStream2()
+    val memory = IntArrayList(64)
 
     init {
         // ensure not empty & we want no data to have address 0
-        writeNullsUntil(64)
+        writeNullsUntil(TOTAL_RESERVED)
     }
 
     val memoryName = "_memory"
-    val gcCounter = 60
 
     private fun writeNullsUntil(length: Int) {
         while (length > memory.size) {
-            memory.write(0)
+            memory.add(0)
         }
     }
 
@@ -137,21 +143,47 @@ class GLSLSourceGenerator : CSourceGenerator() {
         write(value shr 24)
     }
 
-    val instanceAddress = HashMap<Instance, Int>()
+    fun writeValueAt(index: Int, value: Int) {
+        check(memory.size > index)
+        memory[index] = value
+    }
 
-    val structures = LLVMStructures(this)
+    val instanceAddress = HashMap<Instance, Int>()
+    val instanceList = ArrayList<Instance>()
+
+    val structures = LLVMStructures(this, 4)
+    val arrayHeaderSizeInBytes = 8 // 4 for classIndex, 4 for size
 
     private fun getSizeInBytes(instance: Instance): Int {
         val spec = Specialization(instance.clazz.type as ClassType)
-        val struct = structures.getStruct(spec)
-        return struct.sizeInBytes
+        if (spec.clazz == Types.Array.clazz) {
+            val elementType = spec.typeParameters[0]
+            val elementSize = getElementSizeInBytes(elementType)
+            val sizeField = instance.clazz.fields.indexOfFirst { it.name == "size" }
+            val arraySize = instance.fields[sizeField]!!.castToInt()
+            return arrayHeaderSizeInBytes + arraySize * elementSize
+        } else {
+            val struct = structures.getStruct(spec)
+            return struct.sizeInBytes
+        }
+    }
+
+    fun getElementSizeInBytes(elementType: Type): Int {
+        return if (elementType in nativeTypes) {
+            (elementType.getNumBits() + 7) shr 3
+        } else structures.ptrSizeInBytes
     }
 
     fun getInstanceAddress(instance: Instance): Int {
+        if (instance.clazz.type == NullType) return 0
+
         return instanceAddress.getOrPut(instance) {
-            val ptr = align(memory.size, 4)
-            writeNullsUntil(ptr + getSizeInBytes(instance))
-            ptr
+            instanceList.add(instance)
+            val address = memory.size
+            val sizeInBytes = getSizeInBytes(instance)
+            val sizeInElements = (sizeInBytes + 3).shr(2)
+            writeNullsUntil(address + sizeInElements)
+            address
         }
     }
 
@@ -161,8 +193,167 @@ class GLSLSourceGenerator : CSourceGenerator() {
         inheritanceTable.generateFiles(dst)
 
         // todo inheritance tables belong into memory, too...
+
+        ensureAllPropertiesAreInMemory()
+
+        writeValueAt(STRING_BUILDER, findStringBuilderAddress())
+        writeValueAt(NEXT_GC, memory.size)
+
         val folder = File(dst.parentFile, "data"); folder.mkdirs()
-        memory.writeTo(File(folder, "memory.bin"))
+        File(folder, "memory.bin")
+            .outputStream().buffered().use { bos ->
+                for (i in 0 until memory.size) {
+                    bos.writeI32(memory[i])
+                }
+            }
+    }
+
+    private fun ensureAllPropertiesAreInMemory() {
+        var i = 0
+        while (i < instanceList.size) {
+            val instance = instanceList[i++]
+            val address = instanceAddress[instance]!!
+            // println("_memory[$address]: $instance")
+
+            val classSpec = Specialization(instance.clazz.type as ClassType)
+            val structure = structures.getStruct(classSpec)
+            val fields = instance.clazz.fields
+            for (property in structure.properties) {
+                val field = property.field
+                if (property.index == 0) {
+                    check(field == null)
+                    check(property.offsetInBytes == 0)
+                    memory[address] = inheritanceTable.getClassIndex(classSpec)
+                } else if (field == null) {
+                    if (classSpec.clazz == Types.Array.clazz) {
+
+                        // write array contents
+
+                        val elementType = classSpec.typeParameters[0]
+                        val dst = address + arrayHeaderSizeInBytes.shr(2)
+                        when (elementType) {
+                            Types.Boolean -> {
+                                val content = instance.rawValue as BooleanArray
+                                for (i in content.indices) {
+                                    writeByteAt(dst, i, content[i].toInt().toByte())
+                                }
+                            }
+                            Types.Byte, Types.UByte -> {
+                                val content = instance.rawValue as ByteArray
+                                for (i in content.indices) {
+                                    writeByteAt(dst, i, content[i])
+                                }
+                            }
+                            Types.Short, Types.UShort -> {
+                                val content = instance.rawValue as ShortArray
+                                for (i in content.indices) {
+                                    writeShortAt(dst, i, content[i])
+                                }
+                            }
+                            Types.Half -> {
+                                val content = instance.rawValue as ShortArray
+                                for (i in content.indices) {
+                                    writeShortAt(dst, i, content[i])
+                                }
+                            }
+                            Types.Int, Types.UInt -> {
+                                val content = instance.rawValue as IntArray
+                                for (i in content.indices) {
+                                    memory[dst + i] = content[i]
+                                }
+                            }
+                            Types.Float -> {
+                                val content = instance.rawValue as FloatArray
+                                for (i in content.indices) {
+                                    memory[dst + i] = content[i].toRawBits()
+                                }
+                            }
+                            else -> {
+                                check(elementType !in nativeTypes) { "Implement writing $elementType into array" }
+                                if (elementType.isValue()) {
+                                    TODO("Write array of values $elementType into buffer")
+                                } else {
+                                    TODO("Write array of references $elementType into buffer")
+                                }
+                            }
+                        }
+
+                    } else {
+                        error { "Missing field for $property in $structure" }
+                    }
+                } else {
+                    val type = field.resolveValueType(classSpec)
+                    if (field.name == "content" &&
+                        instance.clazz.type in ASTSimplifier.nativeNumbers
+                    ) {
+                        TODO("Write content for $instance")
+                    } else {
+
+                        val fieldIndex = fields.indexOf(field)
+                        check(fieldIndex >= 0) {
+                            "Missing $field in $instance"
+                        }
+
+                        val offset = property.offsetInBytes
+                        val dst = address + offset.shr(2)
+                        val value = instance.fields[fieldIndex]
+                            ?: error("$instance is partially uninitialized")
+
+                        when (type) {
+
+                            Types.Boolean -> writeByteAt(dst, offset.and(3), value.castToBool().toInt().toByte())
+                            Types.Byte -> writeByteAt(dst, offset.and(3), value.castToByte())
+                            Types.UByte -> writeByteAt(dst, offset.and(3), value.castToUByte().toByte())
+
+                            Types.Short -> writeShortAt(dst, offset.shr(1).and(1), value.castToShort())
+                            Types.UShort -> writeShortAt(dst, offset.shr(1).and(1), value.castToUShort().toShort())
+                            Types.Half -> writeShortAt(dst, offset.shr(1).and(1), value.castToHalf().binary)
+
+                            Types.Int -> memory[dst] = value.castToInt()
+                            Types.UInt -> memory[dst] = value.castToUInt().toInt()
+                            Types.Float -> memory[dst] = value.castToFloat().toRawBits()
+
+                            else -> {
+                                check(type !in nativeNumbers) {
+                                    "Should write $type natively"
+                                }
+                                // a reference
+                                check(property.offsetInBytes.and(3) == 0)
+                                check(property.llvmType.sizeInBytes == 4) {
+                                    "Expected $type to have size of 4 bytes, got ${property.llvmType}"
+                                }
+                                memory[dst] = getInstanceAddress(value)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun writeByteAt(intOffset: Int, subIndex: Int, value: Byte) {
+        val cellIndex = intOffset + subIndex.shr(2)
+        val shift = subIndex.and(3) * 8
+        writeMaskedAt(cellIndex, value.toInt(), 0xff, shift)
+    }
+
+    fun writeShortAt(intOffset: Int, subIndex: Int, value: Short) {
+        val cellIndex = intOffset + subIndex.shr(1)
+        val shift = subIndex.and(1) * 16
+        writeMaskedAt(cellIndex, value.toInt(), 0xffff, shift)
+    }
+
+    fun writeMaskedAt(cellIndex: Int, value: Int, mask: Int, shift: Int) {
+        val shiftedMask = mask.shl(shift)
+        memory[cellIndex] = memory[cellIndex].and(shiftedMask.inv()) or
+                value.shl(shift).and(shiftedMask)
+    }
+
+    private fun findStringBuilderAddress(): Int {
+        val owner = Runtime.runtime.getObjectInstance(langScope)
+        val field = langScope.getField("printed")
+        val instance = owner[field]
+        return getInstanceAddress(instance)
     }
 
     private fun generateCodeImpl1(dst: File, data: DependencyData, mainMethod: Method) {
@@ -283,6 +474,8 @@ class GLSLSourceGenerator : CSourceGenerator() {
         classScope: Scope, className: String,
         packagePrefix: String, fields: Collection<Specialization>
     ) {
+        if (!classScope.typeWithArgs2.isValue() || classScope.typeWithArgs2 in nativeTypes) return
+
         appendClassFlags(classScope)
         builder.append("struct ")
         builder.append(packagePrefix)
@@ -296,7 +489,7 @@ class GLSLSourceGenerator : CSourceGenerator() {
             declareClassFields(classScope, fields, true, headerOnly = true)
         }
         removeTrailingWhitespace()
-        builder.append(";")
+        builder.append(';')
         nextLine()
     }
 
@@ -448,14 +641,23 @@ class GLSLSourceGenerator : CSourceGenerator() {
     }
 
     override fun appendInstrImpl(graph: SimpleGraph, expr: SimpleInstruction) {
-        comment { builder.append(expr.javaClass.simpleName) }
+        // comment { builder.append(expr.javaClass.simpleName) }
         when (expr) {
             is SimpleAllocateInstance -> {
-                if (expr.allocatedType == Types.Array && expr.paramsForLater.size == 1) {
-                    TODO("Allocate array: calculate size for payload...")
-                }
-                // this allocation is a ClassType, so it cannot be null ever
-                if (!expr.allocatedType.isValue()) {
+                if (expr.allocatedType.clazz == Types.Array.clazz) {
+                    check(expr.paramsForLater.size == 1)
+
+                    val elementType = expr.allocatedType.typeParameters!![0]
+                    val elementSizeInBytes = getElementSizeInBytes(elementType)
+
+                    builder.append("_gcNew((").append(arrayHeaderSizeInBytes).append(" + ")
+                    appendFieldName(graph, expr.paramsForLater[0]) // size
+                    builder
+                        .append(" * ").append(elementSizeInBytes)
+                        .append(" + 3) >> 2, ").append(inheritanceTable.getClassIndex(expr.specialization))
+                        .append(')')
+
+                } else if (!expr.allocatedType.isValue()) {
                     // call GC-aware alloc instead
                     val structure = structures.getStruct(expr.specialization)
 
@@ -773,9 +975,9 @@ class GLSLSourceGenerator : CSourceGenerator() {
             val offset = 8
             check(offset.and(3) == 0)
 
-
             builder.append(memoryName)
                 .append('[').append(thisParamName)
+                .append(" + ").append(arrayHeaderSizeInBytes shr 2).append('u')
 
             // todo saving structs & longs/doubles isn't as easy, there we need to write multiple fields
             when (elementSizeInBytes) {
@@ -788,8 +990,10 @@ class GLSLSourceGenerator : CSourceGenerator() {
 
             if (elementSizeInBytes in 1..2) {
                 builder.append('(')
-                builder.append(memoryName).append("[").append(thisParamName)
-                builder.append(" + ")
+                builder.append(memoryName)
+                    .append("[").append(thisParamName)
+                    .append(" + ").append(arrayHeaderSizeInBytes shr 2)
+                    .append("u + ")
                 when (elementSizeInBytes) {
                     1 -> builder.append("uint(index >> 2)")
                     2 -> builder.append("uint(index >> 1)")

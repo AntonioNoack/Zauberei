@@ -12,7 +12,8 @@ import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
 import me.anno.zauber.types.impl.ClassType
 
-class LLVMStructures(val gen: JavaSourceGenerator) : Structures<LLVMType, LLVMProperty, LLVMStruct>() {
+class LLVMStructures(val gen: JavaSourceGenerator, val ptrSizeInBytes: Int) :
+    Structures<LLVMType, LLVMProperty, LLVMStruct>() {
 
     override fun getInnerType(type: Type): LLVMType {
         return when (val type = resolveType(type)) {
@@ -33,7 +34,7 @@ class LLVMStructures(val gen: JavaSourceGenerator) : Structures<LLVMType, LLVMPr
                 val structName = struct0.typeName
                 val isValue = type.isValue()
                 val struct = LLVMType.Struct(structName, isValue, struct0.sizeInBytes)
-                LLVMType.Ptr(struct, isValue)
+                LLVMType.Ptr(struct, ptrSizeInBytes, isValue)
             }
             else -> getInnerType(Types.Any) // fallback
         }
@@ -48,7 +49,7 @@ class LLVMStructures(val gen: JavaSourceGenerator) : Structures<LLVMType, LLVMPr
     ): LLVMProperty {
         return LLVMProperty(
             null,
-            LLVMType.Ptr(elementLLVMType, isValue),
+            LLVMType.Ptr(elementLLVMType, ptrSizeInBytes, isValue),
             index, offset
         )
     }

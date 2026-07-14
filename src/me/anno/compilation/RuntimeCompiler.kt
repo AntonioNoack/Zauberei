@@ -1,7 +1,6 @@
 package me.anno.compilation
 
 import me.anno.utils.ResolutionUtils
-import me.anno.utils.ResolutionUtils.printDependencies
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.expansion.Dependencies
 import me.anno.zauber.expansion.DependencyData
@@ -27,9 +26,7 @@ class RuntimeCompiler : MinimalCompiler() {
         val testScope = ResolutionUtils.typeResolveScope(code)
         registerMainMethod(testScope)
 
-        val dependencies = Dependencies.collectDependencies()
-        printDependencies(dependencies)
-
+        val dependencies = Dependencies.empty()
         registerMethods()
 
         val mainMethod = testScope.methods0.first { it.name == "main" }
