@@ -24,7 +24,7 @@ import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.rich.parameter.SuperCall
 import me.anno.zauber.ast.rich.parser.ASTBuilderBase
 import me.anno.zauber.expansion.AddSuperCallToPackages
-import me.anno.zauber.expansion.ImplicitConversions
+import me.anno.zauber.expansion.ImplicitCasts
 import me.anno.zauber.expansion.DefaultParameters
 import me.anno.zauber.expansion.EarlyTypeResolution
 import me.anno.zauber.expansion.MethodOverrides
@@ -84,7 +84,7 @@ class Scope(val name: String, val parent: Scope? = null) {
     /**
      * targetType -> conversionMethod
      * */
-    val conversionMethods = HashMap<ClassType, Method>()
+    val implicitCastMethods = HashMap<ClassType, Method>()
 
     val fields = ArrayList<Field>()
 
@@ -94,7 +94,7 @@ class Scope(val name: String, val parent: Scope? = null) {
 
     val enumEntries: List<Scope>
         get() = children
-            .filter { it.scopeType == ScopeType.ENUM_ENTRY_CLASS }
+            .filter { it.scopeType == ScopeType.ENUM_ENTRY }
             .map { it[ScopeInitType.AFTER_DISCOVERY] }
 
     private val initParts = ArrayList<ScopeInit>(4)
@@ -115,7 +115,7 @@ class Scope(val name: String, val parent: Scope? = null) {
     init {
         addInitPart(AddSuperCallToPackages.addSuperCallToPackages)
         addInitPart(EarlyTypeResolution.typeResolutionCreator)
-        addInitPart(ImplicitConversions.conversionMethodRegistrator)
+        addInitPart(ImplicitCasts.conversionMethodRegistrator)
         addInitPart(DefaultParameters.defaultParameterCreator)
         addInitPart(MethodOverrides.methodOverrideCreator)
     }
@@ -348,7 +348,7 @@ class Scope(val name: String, val parent: Scope? = null) {
             ScopeType.INTERFACE,
             ScopeType.OBJECT -> 1
             ScopeType.COMPANION_OBJECT -> 2
-            ScopeType.ENUM_ENTRY_CLASS -> 3
+            ScopeType.ENUM_ENTRY -> 3
             ScopeType.INNER_CLASS -> 4
             ScopeType.CONSTRUCTOR,
             ScopeType.FIELD_GETTER,
@@ -716,6 +716,8 @@ class Scope(val name: String, val parent: Scope? = null) {
     fun isInnerClass(): Boolean = scopeType == ScopeType.INNER_CLASS
     fun isDataOrValueClass(): Boolean = flags.hasFlag(Flags.DATA_CLASS) || flags.hasFlag(Flags.VALUE)
     fun isLambda(): Boolean = scopeType == ScopeType.LAMBDA
+    fun isEnumEntry(): Boolean = scopeType == ScopeType.ENUM_ENTRY
+    fun isEnumClass(): Boolean = scopeType == ScopeType.ENUM_CLASS
 
     fun addFlags(flags: FlagSet) {
         this.flags = this.flags or flags

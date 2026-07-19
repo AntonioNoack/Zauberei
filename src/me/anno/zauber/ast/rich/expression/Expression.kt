@@ -1,14 +1,19 @@
 package me.anno.zauber.ast.rich.expression
 
 import me.anno.zauber.ast.rich.TokenListIndex.resolveOrigin
+import me.anno.zauber.ast.rich.expression.resolved.ResolvedCallExpression
 import me.anno.zauber.ast.rich.member.Field
+import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.simple.SimpleBlock
 import me.anno.zauber.ast.simple.controlflow.FlowResult
 import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.typeresolution.ResolutionContext
+import me.anno.zauber.typeresolution.members.MatchScore
+import me.anno.zauber.typeresolution.members.ResolvedMethod
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
+import me.anno.zauber.types.impl.ClassType
 
 abstract class Expression(val scope: Scope, val origin: Long) {
 
@@ -115,6 +120,18 @@ abstract class Expression(val scope: Scope, val origin: Long) {
     ): FlowResult {
         if (!isResolved()) error("${javaClass.simpleName} was not resolved")
         throw NotImplementedError("Simplify value ${javaClass.simpleName}: $this")
+    }
+
+    fun implicitCastTo(targetParam: Parameter, context: ResolutionContext): Expression {
+        val valueType = resolveValueType(context)
+        if (valueType !is ClassType) return this
+
+        val targetType = targetParam.type.resolvedName.specialize(context)
+        val implicitMap = (valueType.clazz).implicitCastMethods[targetType] ?: return this
+
+        val newSpec = context.specialization.withScope(implicitMap.scope)
+        val resolvedImplicitMap = ResolvedMethod(implicitMap, context.withSpec(newSpec), scope, MatchScore.zero)
+        return ResolvedCallExpression(this, null, resolvedImplicitMap, emptyList(), scope, origin)
     }
 
     companion object {

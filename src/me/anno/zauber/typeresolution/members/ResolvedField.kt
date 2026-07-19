@@ -32,6 +32,8 @@ import me.anno.zauber.types.impl.ClassType
 import me.anno.zauber.types.impl.LambdaType
 import me.anno.zauber.types.impl.LambdaType.Companion.getLambdaTypeName
 import me.anno.zauber.types.impl.arithmetic.AndType.Companion.andTypes
+import me.anno.zauber.types.impl.arithmetic.NullType
+import me.anno.zauber.types.impl.arithmetic.UnknownType
 
 // todo we don't need only the type-param-generics, but also the self-type generics...
 class ResolvedField(
@@ -49,13 +51,18 @@ class ResolvedField(
             // todo branches that return Nothing shall be ignored, and their condition applies even after
             var type = type
             var scope = codeScope
+
+            if (LOGGER.isInfoEnabled) LOGGER.info("Filtering $type for $scope")
+
             while (true) {
                 val conditions = scope.branchConditions
                 for (i in conditions.indices) {
-                    type = applyConditionToType(field, type, conditions[i], context)
+                    val condition = conditions[i]
+                    if (LOGGER.isInfoEnabled) LOGGER.info("Filtering $type for $scope by $condition")
+                    type = applyConditionToType(field, type, condition, context)
                 }
 
-                LOGGER.info("Scope-Condition[${scope.pathStr}]: $conditions")
+                // if (LOGGER.isInfoEnabled) LOGGER.info("Scope-Condition[${scope.pathStr}]: $conditions")
                 scope = scope.parentIfSameFile ?: break
             }
             return type
@@ -75,6 +82,7 @@ class ResolvedField(
                         else -> null
                     }
                     if (newType != null) {
+                        println("applying newType: $newType onto $type")
                         val newType2 = if (expr.negated) {
                             newType.not()
                         } else newType
@@ -123,11 +131,25 @@ class ResolvedField(
             }
         }
 
+        private val uvStack = ArrayList<Expression>()
+
         /**
          * If value == expr, then value must have a special type:
          * */
         fun getUniqueValueType(context: ResolutionContext, expr: Expression): Type? {
-            return TypeResolution.resolveType(context, expr)
+            if (expr in uvStack) return null
+            uvStack.add(expr)
+            val type = TypeResolution.resolveType(context, expr).resolvedName
+            uvStack.removeLast()
+            return if (hasOnlyOneValue(type)) type else null
+        }
+
+        fun hasOnlyOneValue(type: Type): Boolean {
+            val type = type
+            if (type == NullType || type == UnknownType) return true
+            if (type is ClassType && type.clazz.isEnumEntry()) return true
+            if (type is ClassType && type.clazz.isEnumClass()) return type.clazz.enumEntries.size < 2
+            return false
         }
 
         fun resolveFunInterfaceType(type: Type): ClassType {

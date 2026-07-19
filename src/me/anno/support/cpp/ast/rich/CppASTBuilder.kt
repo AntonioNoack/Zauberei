@@ -519,7 +519,7 @@ class CppASTBuilder(tokens: TokenList, root: Scope, val standard: CppStandard) :
         } else null
 
         val keywords = packFlags()
-        val entryScope = classScope.getOrPut(valueName, ScopeType.ENUM_ENTRY_CLASS)
+        val entryScope = classScope.getOrPut(valueName, ScopeType.ENUM_ENTRY)
         entryScope.setEmptyTypeParams()
 
         // todo avoid duplicates?

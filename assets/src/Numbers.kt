@@ -388,9 +388,8 @@ external class Half(val content: Half) {
         const val EXPONENT_MASK = 0x7C00
         const val MANTISSA_MASK = 0x03FF
 
-        const val POSITIVE_INFINITY: Half = +Infinity
-
-        const val NEGATIVE_INFINITY: Half = -Infinity
+        const val POSITIVE_INFINITY: Half = 1h / 0h
+        const val NEGATIVE_INFINITY: Half = -POSITIVE_INFINITY
     }
 }
 
@@ -446,9 +445,8 @@ external class Float(val content: Float) {
         const val EXPONENT_MASK = 0x7F800000
         const val MANTISSA_MASK = 0x007FFFFF
 
-        const val POSITIVE_INFINITY: Float = +Infinity
-
-        const val NEGATIVE_INFINITY: Float = -Infinity
+        const val POSITIVE_INFINITY: Float = 1f / 0f
+        const val NEGATIVE_INFINITY: Float = -POSITIVE_INFINITY
     }
 }
 
@@ -504,8 +502,7 @@ external class Double(val content: Double) {
         const val EXPONENT_MASK = 0x7FF0000000000000L
         const val MANTISSA_MASK = 0x000FFFFFFFFFFFFFL
 
-        const val POSITIVE_INFINITY: Double = +Infinity
-
-        const val NEGATIVE_INFINITY: Double = -Infinity
+        const val POSITIVE_INFINITY: Double = 1.0 / 0.0
+        const val NEGATIVE_INFINITY: Double = -POSITIVE_INFINITY
     }
 }

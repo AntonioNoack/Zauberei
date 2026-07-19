@@ -485,7 +485,7 @@ open class JavaSourceGenerator : Generator() {
             }
             ScopeType.INTERFACE -> "interface"
             ScopeType.OBJECT, ScopeType.COMPANION_OBJECT -> "final class"
-            ScopeType.ENUM_ENTRY_CLASS -> "final class"
+            ScopeType.ENUM_ENTRY -> "final class"
             ScopeType.PACKAGE -> "final class"
             else -> scope.scopeType.toString()
         }

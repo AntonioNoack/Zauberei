@@ -87,7 +87,7 @@ class ClassType(val clazz: Scope, typeParameters0: ParameterList?) : Type() {
             this(clazz, createParameterList(clazz, typeParameters, origin, ignoreSIT))
 
     init {
-        check(clazz.scopeType != ScopeType.ENUM_ENTRY_CLASS) {
+        check(clazz.scopeType != ScopeType.ENUM_ENTRY) {
             "Classes should use the general enum, not the entries, violation: $clazz"
         }
     }

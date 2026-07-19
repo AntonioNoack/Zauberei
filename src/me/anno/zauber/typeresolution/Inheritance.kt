@@ -360,7 +360,7 @@ object Inheritance {
             }
 
             val conversionMethod = actualType.clazz[ScopeInitType.AFTER_CONVERSION_METHODS]
-                .conversionMethods[expectedType]
+                .implicitCastMethods[expectedType]
             // println("checking conversion $expectedType in $actualType -> $conversionMethod")
             if (conversionMethod != null) {
                 // todo support generics here, too

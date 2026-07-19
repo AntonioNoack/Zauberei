@@ -334,6 +334,9 @@ object Stdlib {
         rt.registerBinaryMethod(Types.Half, "compareTo") { a, b ->
             rt.createInt(a.castToHalf().compareTo(b.castToHalf()))
         }
+        rt.registerUnaryMethod(Types.Half, "toBits") { value ->
+            rt.createShort(value.castToHalf().binary)
+        }
     }
 
     fun registerFloatMethods() {
@@ -346,6 +349,9 @@ object Stdlib {
         rt.registerBinaryMethod(Types.Float, "compareTo") { a, b ->
             rt.createInt(a.castToFloat().compareTo(b.castToFloat()))
         }
+        rt.registerUnaryMethod(Types.Float, "toBits") { value ->
+            rt.createInt(value.castToFloat().toRawBits())
+        }
     }
 
     fun registerDoubleMethods() {
@@ -357,6 +363,9 @@ object Stdlib {
         rt.registerBinaryDoubleMethod("rem", Double::rem)
         rt.registerBinaryMethod(Types.Double, "compareTo") { a, b ->
             rt.createInt(a.castToDouble().compareTo(b.castToDouble()))
+        }
+        rt.registerUnaryMethod(Types.Double, "toBits") { value ->
+            rt.createLong(value.castToDouble().toRawBits())
         }
     }
 

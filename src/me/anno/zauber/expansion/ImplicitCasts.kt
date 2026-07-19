@@ -9,9 +9,9 @@ import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.impl.ClassType
 
-object ImplicitConversions {
+object ImplicitCasts {
 
-    private val LOGGER = LogManager.getLogger(ImplicitConversions::class)
+    private val LOGGER = LogManager.getLogger(ImplicitCasts::class)
 
     val conversionMethodRegistrator = ScopeInit(ScopeInitType.CONVERSION_METHODS) { scope: Scope ->
         registerConversionMethods(scope)
@@ -33,7 +33,7 @@ object ImplicitConversions {
 
                 val targetType = method.resolveReturnType(Specialization.noSpecialization)
                 if (targetType is ClassType) {
-                    scope.conversionMethods[targetType] = method
+                    scope.implicitCastMethods[targetType] = method
                 } else {
                     LOGGER.warn("$targetType is not a valid return type for a conversion method")
                 }

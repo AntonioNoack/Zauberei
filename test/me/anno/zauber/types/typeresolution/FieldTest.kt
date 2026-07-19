@@ -86,7 +86,6 @@ class FieldTest {
                 val tested: Int by lazy { 0 }
                 
                 package zauber
-                class Any
                 class Lazy<V: Any>(val getter: () -> V) {
                     var value: V? = null
                     operator fun getValue(): V {
@@ -99,10 +98,6 @@ class FieldTest {
                 fun <R> lazy(getter: () -> R): Lazy {
                     return Lazy(getter)
                 }
-                fun interface Function0<R> {
-                    fun call(): R
-                }
-                external fun println(arg0: Int)
             """.trimIndent()
         MultiTest(code)
             .type { Types.Int }

@@ -10,6 +10,7 @@ import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.types.Type
+import me.anno.zauber.types.Types
 import me.anno.zauber.types.impl.*
 import me.anno.zauber.types.impl.arithmetic.AndType
 import me.anno.zauber.types.impl.arithmetic.NotType
@@ -37,7 +38,8 @@ object TypeResolution {
         val withLogging = LOGGER.isInfoEnabled
         if (withLogging) LOGGER.info("[${++depth}] Resolving type of (${expr.javaClass.simpleName}) $expr (targetType=${context.targetType})")
         val type = expr.resolveValueType(context).resolvedName.specialize(context)
-        if (withLogging) LOGGER.info("[${depth--}] Resolved type of $expr to $type (${type.javaClass.simpleName})")
+        if (withLogging) LOGGER.info("[${depth--}] Resolved type of $expr (${expr.javaClass.simpleName}) to $type (${type.javaClass.simpleName})")
+        // if (type == Types.Nothing) error("Testing: bad type? $type")
         return type
     }
 

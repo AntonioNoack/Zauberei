@@ -50,7 +50,7 @@ fun ZauberASTBuilderBase.readEnumBody(): Int {
             } else emptyList()
 
             val keywords = packFlags()
-            val entryScope = readClassBody(name, Flags.NONE, ScopeType.ENUM_ENTRY_CLASS)
+            val entryScope = readClassBody(name, Flags.NONE, ScopeType.ENUM_ENTRY)
             val integerValue = if (consumeIf("=")) readExpression() else null
 
             // todo add name and id as parameters

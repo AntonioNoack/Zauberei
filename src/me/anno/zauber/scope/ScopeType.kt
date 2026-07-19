@@ -15,7 +15,7 @@ enum class ScopeType {
 
     INTERFACE,
     ENUM_CLASS,  // limited instances, val name: String, val ordinal: Int, fun entries()
-    ENUM_ENTRY_CLASS, // objects with enum_class as type
+    ENUM_ENTRY, // objects with enum_class as type
 
     OBJECT,
     COMPANION_OBJECT,

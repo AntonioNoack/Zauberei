@@ -40,16 +40,16 @@ class UnresolvedFieldExpression(
 
     override fun resolveValueType(context: ResolutionContext): Type {
         val field = resolveField(context)
-        return field?.getValueType() ?: run {
-            val type0 = try {
-                scope.resolveType(name, nameAsImport)
-                    .specialize(context)
-            }catch (e: Exception) {
-                error("Failed to resolve field '$name' in $scope\n  at ${resolveOrigin(origin)}")
-            }
-            check(type0 is ClassType) { "Expected $type0 from $this to be ClassType" }
-            NonObjectClassType(type0)
+        if (field != null) return field.getValueType()
+
+        val type0 = try {
+            scope.resolveType(name, nameAsImport)
+                .specialize(context)
+        } catch (_: Exception) {
+            error("Failed to resolve field '$name' in $scope\n  at ${resolveOrigin(origin)}")
         }
+        check(type0 is ClassType) { "Expected $type0 from $this to be ClassType" }
+        return NonObjectClassType(type0)
     }
 
     // todo this would be a getter by default... resolve its type...

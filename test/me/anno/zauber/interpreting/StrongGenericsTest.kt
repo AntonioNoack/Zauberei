@@ -1,7 +1,7 @@
 package me.anno.zauber.interpreting
 
-import me.anno.zauber.interpreting.BasicRuntimeTests.Companion.testExecute
 import me.anno.utils.assertEquals
+import me.anno.zauber.interpreting.BasicRuntimeTests.Companion.testExecute
 import org.junit.jupiter.api.Test
 
 // do we want to use need-to-use ::class?
@@ -11,10 +11,6 @@ import org.junit.jupiter.api.Test
 //  negatives:
 //  - often extra writing for what...
 class StrongGenericsTest {
-    companion object {
-        val stdlib = """
-        """.trimIndent()
-    }
 
     @Test
     fun testGenericsHaveNameNativeType() {
@@ -25,7 +21,7 @@ class StrongGenericsTest {
         val code = """
             fun <V> call(v: V): String = (V::class as ClassType<*>).name
             val tested = call(0)
-        """.trimIndent() + stdlib
+        """.trimIndent()
         val value = testExecute(code)
         assertEquals("Int", value.castToString())
     }
@@ -35,7 +31,7 @@ class StrongGenericsTest {
         val code = """
             fun <V> call(v: V) = v::class.name
             val tested = call(0)
-        """.trimIndent() + stdlib
+        """.trimIndent()
         val value = testExecute(code)
         assertEquals("Int", value.castToString())
     }
@@ -45,7 +41,7 @@ class StrongGenericsTest {
         val code = """
             fun <V> call(v: V): String = (V::class as ClassType<*>).name
             val tested = call("Hello")
-        """.trimIndent() + stdlib
+        """.trimIndent()
         val value = testExecute(code)
         assertEquals("String", value.castToString())
     }
@@ -55,13 +51,13 @@ class StrongGenericsTest {
         val trueCode = """
             fun <V> call(v: V): Boolean = V::class.isSubTypeOf(Int::class)
             val tested = call(0)
-        """.trimIndent() + stdlib
+        """.trimIndent()
         val valueT = testExecute(trueCode)
         assertEquals(true, valueT.castToBool())
         val falseCode = """
             fun <V> call(v: V): Boolean = V::class.isSubTypeOf(Int::class)
             val tested = call(0f)
-        """.trimIndent() + stdlib
+        """.trimIndent()
         val valueF = testExecute(falseCode)
         assertEquals(false, valueF.castToBool())
     }
@@ -71,13 +67,13 @@ class StrongGenericsTest {
         val trueCode = """
             fun <V> call(v: V): Boolean = v::class.isSubTypeOf(Int::class)
             val tested = call(0)
-        """.trimIndent() + stdlib
+        """.trimIndent()
         val valueT = testExecute(trueCode)
         assertEquals(true, valueT.castToBool())
         val falseCode = """
             fun <V> call(v: V): Boolean = v::class.isSubTypeOf(Int::class)
             val tested = call(0f)
-        """.trimIndent() + stdlib
+        """.trimIndent()
         val valueF = testExecute(falseCode)
         assertEquals(false, valueF.castToBool())
     }

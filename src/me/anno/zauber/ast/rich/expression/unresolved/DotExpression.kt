@@ -193,7 +193,7 @@ class DotExpression(
 
     private fun findNOCTScope(baseType: NonObjectClassType, rightName: String): Scope {
         return baseType.type.clazz.children
-            .firstOrNull { it.name == rightName && (it.isClassLike() || it.scopeType == ScopeType.ENUM_ENTRY_CLASS) }
+            .firstOrNull { it.name == rightName && (it.isClassLike() || it.scopeType == ScopeType.ENUM_ENTRY) }
             ?: error("No valid object '${rightName}' found in ${baseType.type}")
     }
 
@@ -203,7 +203,7 @@ class DotExpression(
         rightName: String
     ): ResolvedField {
         val child = findNOCTScope(baseType, rightName)
-        if (child.isObjectLike() || child.scopeType == ScopeType.ENUM_ENTRY_CLASS) {
+        if (child.isObjectLike() || child.scopeType == ScopeType.ENUM_ENTRY) {
             val field = child.objectField
                 ?: error("Missing object-field for ${baseType.type}")
             return ResolvedField(
@@ -237,13 +237,14 @@ class DotExpression(
                 val targetParams = callable.resolved.valueParameters
                 val isConstrForInnerClass = callable is ResolvedConstructor &&
                         callable.resolved.scope.parent!!.scopeType == ScopeType.INNER_CLASS
-                val valueParameters =
+                val valueParameters0 = right.valueParameters
+                val valueParameters1 =
                     if (isConstrForInnerClass) {
                         val outer = NamedParameter(SpecialFieldNames.OUTER_FIELD_NAME, base)
-                        listOf(outer) + right.valueParameters
-                    } else right.valueParameters
-                val valueParametersI = reorderResolveParameters(context, valueParameters, targetParams, scope, origin)
-                return ResolvedCallExpression(base, null, callable, valueParametersI, scope, origin)
+                        listOf(outer) + valueParameters0
+                    } else valueParameters0
+                val valueParameters2 = reorderResolveParameters(context, valueParameters1, targetParams, scope, origin)
+                return ResolvedCallExpression(base, null, callable, valueParameters2, scope, origin)
             }
             else -> throw NotImplementedError("Resolve DotExpression with type ${right.javaClass.simpleName}")
         }
