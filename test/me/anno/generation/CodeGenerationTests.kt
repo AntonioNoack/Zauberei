@@ -788,6 +788,20 @@ abstract class CodeGenerationTests {
         assertEquals("2\n", printed)
     }
 
+    fun testImplicitConversionImpl() {
+        val code = """
+            fun callableByFloat(v: Float) = v + 1f
+            fun main() {
+                val intValue: Int = 15
+                println(callableByFloat(intValue))
+            }
+        """.trimIndent()
+
+        val printed = generator()
+            .testCompileMainAndRun(code, ::registerLib)
+        assertEquals("16.0\n", printed)
+    }
+
     fun testStringOpsImpl() {
         val code = """
             fun main() {

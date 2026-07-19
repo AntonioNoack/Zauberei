@@ -91,7 +91,7 @@ class StbImageTests {
         loadC()
 
         val methodName = "stbi_load_from_memory"
-        val method = scope.methods0.first { it.name == methodName }
+        val method = scope.methods.first { it.name == methodName }
         println("Method: $method")
 
         method.removeFlag(Flags.EXTERNAL) // hack

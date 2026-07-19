@@ -103,8 +103,8 @@ class SimpleInstanceOf private constructor(
                     // just negate the result
                     val tmp = block.field(Types.Boolean)
                     createSimpleInstanceOf(block, tmp, value, type.type, scope, origin)
-                    val notMethod = Types.Boolean.clazz.methods0
-                        .firstOrNull { it.name == "not" }
+                    val notMethod = Types.Boolean.clazz.methods
+                        .firstOrNull { it.name == "not" && it.valueParameters.isEmpty() }
                         ?: error("Missing fun Boolean.not(): Boolean")
                     val spec = Specialization.fromSimple(notMethod.scope)
                     val call = SimpleMethodCall(dst, notMethod, tmp.use(), null, spec, emptyList(), scope, origin)
@@ -112,13 +112,13 @@ class SimpleInstanceOf private constructor(
                     return call
                 }
                 is UnionType -> {
-                    val orMethod = Types.Boolean.clazz.methods0
+                    val orMethod = Types.Boolean.clazz.methods
                         .firstOrNull { it.name == "or" }
                         ?: error("Missing fun Boolean.or(other: Boolean): Boolean")
                     return reduceTypes(block, dst, value, type, scope, origin, orMethod)
                 }
                 is AndType -> {
-                    val orMethod = Types.Boolean.clazz.methods0
+                    val orMethod = Types.Boolean.clazz.methods
                         .firstOrNull { it.name == "and" }
                         ?: error("Missing fun Boolean.and(other: Boolean): Boolean")
                     return reduceTypes(block, dst, value, type, scope, origin, orMethod)

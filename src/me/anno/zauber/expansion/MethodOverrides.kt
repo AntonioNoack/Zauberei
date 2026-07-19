@@ -5,6 +5,7 @@ import me.anno.support.jvm.FirstJVMClassReader
 import me.anno.utils.CollectionUtils.groupByMutable
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.zauber.ast.rich.Flags
+import me.anno.zauber.ast.rich.Flags.IMPLICIT
 import me.anno.zauber.ast.rich.Flags.hasFlag
 import me.anno.zauber.ast.rich.TokenListIndex.resolveOrigin
 import me.anno.zauber.ast.rich.member.Field
@@ -17,6 +18,7 @@ import me.anno.zauber.scope.ScopeInit
 import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.scope.ScopeType
 import me.anno.zauber.typeresolution.ParameterList.Companion.resolveGenerics
+import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.impl.ClassType
 import me.anno.zauber.types.impl.CollectionType
@@ -106,7 +108,7 @@ object MethodOverrides {
 
         scope[ScopeInitType.ADD_OVERRIDES]
 
-        val selfMethods0 = scope.methods0
+        val selfMethods0 = scope.methods
         val selfMethods = selfMethods0.groupByMutable { it.name }
         val foundMethods = HashSet<Method>()
 
@@ -194,9 +196,9 @@ object MethodOverrides {
         val ownerIsAbstract = scope.isAbstractClass()
         superScope[ScopeInitType.ADD_OVERRIDES]
 
-        for (superMethod0 in superScope.children) {
-            val superMethod = superMethod0.selfAsMethod
-            if (superMethod == null || superMethod.isPrivate()) continue
+        for (superMethod in superScope.methods) {
+            // val superMethod = superMethod0.selfAsMethod
+            if (superMethod.isPrivate()) continue
 
             if (LOGGER.isInfoEnabled) LOGGER.info("Check: $superMethod for $superScope -> $scope")
 
@@ -256,8 +258,8 @@ object MethodOverrides {
                 newScope.selfAsMethod = selfMethod
 
                 // rarely needed, but sometimes we do need it (e.g. for java.util.ArrayList)
-                selfMethods.getOrPut(superMethod.name, ::ArrayList)
-                    .add(selfMethod)
+                selfMethods.getOrPut(superMethod.name, ::ArrayList).add(selfMethod)
+                foundMethods.add(selfMethod)
 
             } else {
 

@@ -243,11 +243,11 @@ class ResolvedField(
     fun resolveCopyMethod(): ResolvedMethod {
         val field = resolved
         val valueScope = field.ownerScope[ScopeInitType.AFTER_OVERRIDES]
-        val method = valueScope.methods0.firstOrNull {
+        val method = valueScope.methods.firstOrNull {
             it.name == "copy" &&
                     it.valueParameters.size == 1 &&
                     it.valueParameters[0].run { name == field.name && type == field.valueType }
-        } ?: error("Missing copy method for $field, candidates: ${valueScope.methods0}")
+        } ?: error("Missing copy method for $field, candidates: ${valueScope.methods}")
         return ResolvedMethod(
             method, context.withSpec(Specialization(method.scope, specialization.typeParameters)),
             codeScope, matchScore

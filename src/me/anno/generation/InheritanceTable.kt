@@ -92,13 +92,13 @@ class InheritanceTable(val data: DependencyData) {
     }
 
     fun funToSpec(name: String): Specialization {
-        val method = helperScope.methods0.firstOrNull { it.name == name }
+        val method = helperScope.methods.firstOrNull { it.name == name }
             ?: error("Missing ${style("fun", ORANGE)} $helperScope.${style(name, YELLOW)}()")
         return Specialization(method.memberScope, emptyParameterList())
     }
 
     fun funToSpec(type: ClassType, name: String): Specialization {
-        val method = type.clazz.methods0.firstOrNull { it.name == name }
+        val method = type.clazz.methods.firstOrNull { it.name == name }
             ?: error("Missing ${style("fun", ORANGE)} $type.${style(name, YELLOW)}()")
         return Specialization(method.memberScope, emptyParameterList())
     }

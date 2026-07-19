@@ -112,7 +112,7 @@ class CallExpression(
                         // todo this has two options: with and without explicit self...
                         val lambdaClass = selfType.toClassType(origin)
                         println("Resolved lambda $selfType to $lambdaClass")
-                        val method = lambdaClass.clazz.methods0
+                        val method = lambdaClass.clazz.methods
                             .first { it.name == "call" }
                         val spec = Specialization(method.memberScope, lambdaClass.typeParameters!!)
                         val context = context.withSpec(spec)
@@ -140,7 +140,7 @@ class CallExpression(
         // todo surely, Constructors should consider imports, too, right?
         //  or are they immediately covered by being detected as constructors?
         val returnType = context.targetType
-        val constructor = MethodResolver.null1() // do we need this constructor-stuff? yes, we do, why ever
+        val constructor = MethodResolver.null1()
             ?: c.findMemberInFile(scope, origin, name, returnType, null, typeParameters, valueParameters, context)
             ?: c.findMemberInFile(langScope, origin, name, returnType, null, typeParameters, valueParameters, context)
 

@@ -262,7 +262,7 @@ abstract class MemberResolver<Resource : Member, Resolved : ResolvedMember<Resou
 
             if (print) LOGGER.info(
                 "Checking[0] $contextSelfScope with ${contextSelfType}, " +
-                        "fields: ${contextSelfScope.fields.map { it.name }}, methods: ${contextSelfScope.methods0.map { it.name }}"
+                        "fields: ${contextSelfScope.fields.map { it.name }}, methods: ${contextSelfScope.methods.map { it.name }}"
             )
             val result = callback(contextSelfScope, contextSelfType)
             if (result != null) return result

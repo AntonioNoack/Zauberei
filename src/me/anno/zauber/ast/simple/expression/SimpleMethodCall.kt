@@ -98,7 +98,7 @@ class SimpleMethodCall(
                         val superMethod = method.memberScope
 
                         val clazzScope = childType.clazz[ScopeInitType.AFTER_DISCOVERY]
-                        val choices = clazzScope.methods0.filter { childMethod ->
+                        val choices = clazzScope.methods.filter { childMethod ->
                             childMethod.name == method.name &&
                                     sameParameters(
                                         superClass, childClass,
@@ -118,7 +118,7 @@ class SimpleMethodCall(
                         if (false) println(
                             "Selected ${choices.first().scope.pathStr}/${choices.first()} " +
                                     "for $childType.$method, " +
-                                    "options: ${clazzScope.methods0.map { it.scope.pathStr }}"
+                                    "options: ${clazzScope.methods.map { it.scope.pathStr }}"
                         )
                         choices.first()
                     }

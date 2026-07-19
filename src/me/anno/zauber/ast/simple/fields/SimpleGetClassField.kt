@@ -39,6 +39,13 @@ class SimpleGetClassField(
         check(!field.isBackingField()) {
             "Cannot get 'backing' field $field in ${field.ownerScope}, needs to use direct access"
         }
+
+        if (field.ownerScope.isCompanionObject() &&
+            self.type is ClassType &&
+            !self.type.clazz.isCompanionObject()
+        ) {
+            error("Invalid field access, self must be companion object: $this")
+        }
     }
 
     override fun toString(): String {

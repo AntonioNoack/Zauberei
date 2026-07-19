@@ -1,5 +1,8 @@
 package zauber
 
+import zauber.Double.Companion.EXPONENT_MASK
+import zauber.Double.Companion.MANTISSA_MASK
+
 external class Byte(val content: Byte) {
     fun inv(): Byte = xor((-1).toByte())
     fun inc(): Byte = (this + 1).toByte()
@@ -22,15 +25,15 @@ external class Byte(val content: Byte) {
 
     external fun toByte(): Byte
     external fun toUByte(): UByte
-    external fun toShort(): Short
+    implicit external fun toShort(): Short
     external fun toUShort(): UShort
-    external fun toInt(): Int
+    implicit external fun toInt(): Int
     external fun toUInt(): UInt
-    external fun toLong(): Long
+    implicit external fun toLong(): Long
     external fun toULong(): ULong
-    external fun toHalf(): Half
-    external fun toFloat(): Float
-    external fun toDouble(): Double
+    implicit external fun toHalf(): Half
+    implicit external fun toFloat(): Float
+    implicit external fun toDouble(): Double
     external fun toChar(): Char
 
     companion object {
@@ -61,16 +64,16 @@ external class UByte(val content: UByte) {
 
     external fun toByte(): Byte
     external fun toUByte(): UByte
-    external fun toShort(): Short
-    external fun toUShort(): UShort
-    external fun toInt(): Int
-    external fun toUInt(): UInt
-    external fun toLong(): Long
-    external fun toULong(): ULong
-    external fun toHalf(): Half
-    external fun toFloat(): Float
-    external fun toDouble(): Double
-    external fun toChar(): Char
+    implicit external fun toShort(): Short
+    implicit external fun toUShort(): UShort
+    implicit external fun toInt(): Int
+    implicit external fun toUInt(): UInt
+    implicit external fun toLong(): Long
+    implicit external fun toULong(): ULong
+    implicit external fun toHalf(): Half
+    implicit external fun toFloat(): Float
+    implicit external fun toDouble(): Double
+    implicit external fun toChar(): Char
 
     companion object {
         const val MIN_VALUE: UByte = 0
@@ -102,13 +105,13 @@ external class Short(val content: Short) {
     external fun toUByte(): UByte
     external fun toShort(): Short
     external fun toUShort(): UShort
-    external fun toInt(): Int
+    implicit external fun toInt(): Int
     external fun toUInt(): UInt
-    external fun toLong(): Long
+    implicit external fun toLong(): Long
     external fun toULong(): ULong
-    external fun toHalf(): Half
-    external fun toFloat(): Float
-    external fun toDouble(): Double
+    implicit external fun toHalf(): Half
+    implicit external fun toFloat(): Float
+    implicit external fun toDouble(): Double
     external fun toChar(): Char
 
     companion object {
@@ -141,14 +144,14 @@ external class UShort(val content: UShort) {
     external fun toUByte(): UByte
     external fun toShort(): Short
     external fun toUShort(): UShort
-    external fun toInt(): Int
-    external fun toUInt(): UInt
-    external fun toLong(): Long
-    external fun toULong(): ULong
-    external fun toHalf(): Half
-    external fun toFloat(): Float
-    external fun toDouble(): Double
-    external fun toChar(): Char
+    implicit external fun toInt(): Int
+    implicit external fun toUInt(): UInt
+    implicit external fun toLong(): Long
+    implicit external fun toULong(): ULong
+    implicit external fun toHalf(): Half
+    implicit external fun toFloat(): Float
+    implicit external fun toDouble(): Double
+    implicit external fun toChar(): Char
 
     companion object {
         const val MIN_VALUE: UShort = 0
@@ -188,11 +191,11 @@ external class Int(val content: Int) {
     external fun toUShort(): UShort
     external fun toInt(): Int
     external fun toUInt(): UInt
-    external fun toLong(): Long
+    implicit external fun toLong(): Long
     external fun toULong(): ULong
-    external fun toHalf(): Half
-    external fun toFloat(): Float
-    external fun toDouble(): Double
+    implicit external fun toHalf(): Half
+    implicit external fun toFloat(): Float
+    implicit external fun toDouble(): Double
     external fun toChar(): Char
 
     companion object {
@@ -234,10 +237,10 @@ external class UInt(val content: UInt) {
     external fun toInt(): Int
     external fun toUInt(): UInt
     external fun toLong(): Long
-    external fun toULong(): ULong
-    external fun toHalf(): Half
-    external fun toFloat(): Float
-    external fun toDouble(): Double
+    implicit external fun toULong(): ULong
+    implicit external fun toHalf(): Half
+    implicit external fun toFloat(): Float
+    implicit external fun toDouble(): Double
     external fun toChar(): Char
 
     companion object {
@@ -280,9 +283,9 @@ external class Long(val content: Long) {
     external fun toUInt(): UInt
     external fun toLong(): Long
     external fun toULong(): ULong
-    external fun toHalf(): Half
-    external fun toFloat(): Float
-    external fun toDouble(): Double
+    implicit external fun toHalf(): Half
+    implicit external fun toFloat(): Float
+    implicit external fun toDouble(): Double
 
     companion object {
         const val MIN_VALUE: Long = -0x8000_0000_0000_0000
@@ -324,9 +327,9 @@ external class ULong(val content: ULong) {
     external fun toUInt(): UInt
     external fun toLong(): Long
     external fun toULong(): ULong
-    external fun toHalf(): Half
-    external fun toFloat(): Float
-    external fun toDouble(): Double
+    implicit external fun toHalf(): Half
+    implicit external fun toFloat(): Float
+    implicit external fun toDouble(): Double
 
     companion object {
         const val MIN_VALUE: ULong = 0
@@ -349,6 +352,7 @@ external class Half(val content: Half) {
     external fun compareTo(other: Half): Int
     external fun equals(other: Half): Boolean
     override external fun hashCode(): Int
+    external fun toBits(): Short
 
     external fun toByte(): Byte
     external fun toUByte(): UByte
@@ -359,8 +363,35 @@ external class Half(val content: Half) {
     external fun toLong(): Long
     external fun toULong(): ULong
     external fun toHalf(): Half
-    external fun toFloat(): Float
-    external fun toDouble(): Double
+    implicit external fun toFloat(): Float
+    implicit external fun toDouble(): Double
+
+    fun isNaN(): Boolean {
+        // todo properly define the masks!
+        val bits = toBits()
+        val exp = bits and EXPONENT_MASK
+        val frac = bits and MANTISSA_MASK
+        return (exp == EXPONENT_MASK) && (frac != 0L)
+    }
+
+    external fun isFinite(): Boolean {
+        val bits = toBits()
+        val exp = bits and EXPONENT_MASK
+        return exp != EXPONENT_MASK
+    }
+
+    fun isInfinite(): Boolean = !isFinite()
+
+    companion object {
+        external fun fromBits(bits: Short): Half
+
+        const val EXPONENT_MASK = 0x7C00
+        const val MANTISSA_MASK = 0x03FF
+
+        const val POSITIVE_INFINITY: Half = +Infinity
+
+        const val NEGATIVE_INFINITY: Half = -Infinity
+    }
 }
 
 external class Float(val content: Float) {
@@ -379,6 +410,7 @@ external class Float(val content: Float) {
     external fun compareTo(other: Float): Int
     external fun equals(other: Float): Boolean
     override external fun hashCode(): Int
+    external fun toBits(): Int
 
     external fun toByte(): Byte
     external fun toUByte(): UByte
@@ -390,7 +422,34 @@ external class Float(val content: Float) {
     external fun toULong(): ULong
     external fun toHalf(): Half
     external fun toFloat(): Float
-    external fun toDouble(): Double
+    implicit external fun toDouble(): Double
+
+    fun isNaN(): Boolean {
+        // todo properly define the masks!
+        val bits = toBits()
+        val exp = bits and EXPONENT_MASK
+        val frac = bits and MANTISSA_MASK
+        return (exp == EXPONENT_MASK) && (frac != 0L)
+    }
+
+    external fun isFinite(): Boolean {
+        val bits = toBits()
+        val exp = bits and EXPONENT_MASK
+        return exp != EXPONENT_MASK
+    }
+
+    fun isInfinite(): Boolean = !isFinite()
+
+    companion object {
+        external fun fromBits(bits: Int): Float
+
+        const val EXPONENT_MASK = 0x7F800000
+        const val MANTISSA_MASK = 0x007FFFFF
+
+        const val POSITIVE_INFINITY: Float = +Infinity
+
+        const val NEGATIVE_INFINITY: Float = -Infinity
+    }
 }
 
 external class Double(val content: Double) {
@@ -409,6 +468,7 @@ external class Double(val content: Double) {
     external fun compareTo(other: Double): Int
     external fun equals(other: Double): Boolean
     override external fun hashCode(): Int
+    external fun toBits(): Long
 
     external fun toByte(): Byte
     external fun toUByte(): UByte
@@ -421,4 +481,31 @@ external class Double(val content: Double) {
     external fun toHalf(): Half
     external fun toFloat(): Float
     external fun toDouble(): Double
+
+    fun isNaN(): Boolean {
+        // todo properly define the masks!
+        val bits = toBits()
+        val exp = bits and EXPONENT_MASK
+        val frac = bits and MANTISSA_MASK
+        return (exp == EXPONENT_MASK) && (frac != 0L)
+    }
+
+    external fun isFinite(): Boolean {
+        val bits = toBits()
+        val exp = bits and EXPONENT_MASK
+        return exp != EXPONENT_MASK
+    }
+
+    fun isInfinite(): Boolean = !isFinite()
+
+    companion object {
+        external fun fromBits(bits: Long): Double
+
+        const val EXPONENT_MASK = 0x7FF0000000000000L
+        const val MANTISSA_MASK = 0x000FFFFFFFFFFFFFL
+
+        const val POSITIVE_INFINITY: Double = +Infinity
+
+        const val NEGATIVE_INFINITY: Double = -Infinity
+    }
 }

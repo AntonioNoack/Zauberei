@@ -24,6 +24,7 @@ import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.rich.parameter.SuperCall
 import me.anno.zauber.ast.rich.parser.ASTBuilderBase
 import me.anno.zauber.expansion.AddSuperCallToPackages
+import me.anno.zauber.expansion.ImplicitConversions
 import me.anno.zauber.expansion.DefaultParameters
 import me.anno.zauber.expansion.EarlyTypeResolution
 import me.anno.zauber.expansion.MethodOverrides
@@ -60,18 +61,30 @@ class Scope(val name: String, val parent: Scope? = null) {
     val code: ArrayList<Expression>
         get() = (selfAsConstructor!!.body as ExpressionList).list as ArrayList<Expression>
 
+    // todo we use this in many places, so we should make it explicit
     val constructors0: List<Constructor>
         get() = children.mapNotNull { it.selfAsConstructor }
 
     fun getMethods(scopeInitType: ScopeInitType): List<Method> {
         this[scopeInitType]
-        return children.mapNotNull { it[scopeInitType].selfAsMethod }
+
+        val methods = methods
+        for (i in methods.indices) {
+            val method = methods[i]
+            method.scope[scopeInitType]
+        }
+        return methods
     }
 
-    val methods0: List<Method>
-        get() = children.mapNotNull { it.selfAsMethod }
-    val companionObject: Scope?
-        get() = children.firstOrNull { it.scopeType == ScopeType.COMPANION_OBJECT }
+    val methods = ArrayList<Method>()
+
+    var companionObject: Scope? = null
+        private set
+
+    /**
+     * targetType -> conversionMethod
+     * */
+    val conversionMethods = HashMap<ClassType, Method>()
 
     val fields = ArrayList<Field>()
 
@@ -102,6 +115,7 @@ class Scope(val name: String, val parent: Scope? = null) {
     init {
         addInitPart(AddSuperCallToPackages.addSuperCallToPackages)
         addInitPart(EarlyTypeResolution.typeResolutionCreator)
+        addInitPart(ImplicitConversions.conversionMethodRegistrator)
         addInitPart(DefaultParameters.defaultParameterCreator)
         addInitPart(MethodOverrides.methodOverrideCreator)
     }
@@ -122,6 +136,13 @@ class Scope(val name: String, val parent: Scope? = null) {
 
     // only one can be true, so we can store just one field, and extract everything else
     private var selfAs: Any? = null
+        set(value) {
+            if (field !== value) {
+                if (field is Method) parent!!.methods.remove(field)
+                if (value is Method) parent!!.methods.add(value)
+            }
+            field = value
+        }
 
     var selfAsTypeAlias: Type?
         get() = selfAs as? Type
@@ -379,6 +400,9 @@ class Scope(val name: String, val parent: Scope? = null) {
         val child = Scope(name, this)
         child.scopeType = scopeType
         children.add(child)
+        if (scopeType == ScopeType.COMPANION_OBJECT) {
+            companionObject = child
+        }
         return child
     }
 
@@ -397,9 +421,16 @@ class Scope(val name: String, val parent: Scope? = null) {
     fun mergeScopeTypes(scopeType: ScopeType?) {
         val self = this
         if (scopeType != null) {
-            if (self.scopeType == null || self.scopeType == scopeType) self.scopeType = scopeType
-            else error("ScopeType conflict in '$pathStr'! ${self.scopeType} vs $scopeType")
+            if (self.scopeType == null) {
+                self.scopeType = scopeType
+                if (scopeType == ScopeType.COMPANION_OBJECT) {
+                    parent!!.companionObject = this
+                }
+            } else if (self.scopeType == scopeType) {
+                // nothing to do
+            } else error("ScopeType conflict in '$pathStr'! ${self.scopeType} vs $scopeType")
         }
+
         val parentType = parent?.scopeType
         if (!scopeHierarchyIsAllowed(parentType, scopeType)) {
             error("$scopeType cannot be placed inside $parentType} ($pathStr)")
@@ -655,6 +686,7 @@ class Scope(val name: String, val parent: Scope? = null) {
 
     fun isClass(): Boolean = scopeType?.isClass() == true
     fun isClassOrObject() = isClass() || isObject()
+    fun isCompanionObject() = scopeType == ScopeType.COMPANION_OBJECT
 
     /**
      * class | enum | interface | object | package

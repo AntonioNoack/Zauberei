@@ -142,7 +142,7 @@ class CppTypeResolutionTest {
         """.trimIndent()
         )
 
-        val method = scope.methods0.first()
+        val method = scope.methods.first()
 
         assertEquals("answer", method.name)
         assertEquals(Types.Int, method.returnType)
@@ -160,7 +160,7 @@ class CppTypeResolutionTest {
         """.trimIndent()
         )
 
-        val method = scope.methods0.first()
+        val method = scope.methods.first()
 
         assertEquals("mix", method.name)
         assertEquals(Types.Float, method.returnType)
@@ -203,7 +203,7 @@ class CppTypeResolutionTest {
         val clazz = scope.children.first()
         assertEquals("Math", clazz.name)
 
-        val method = clazz.methods0.first()
+        val method = clazz.methods.first()
         assertEquals("add", method.name)
         assertEquals(Types.Int, method.returnType)
 
@@ -259,7 +259,7 @@ class CppTypeResolutionTest {
         """.trimIndent()
         )
 
-        val method = scope.methods0.first()
+        val method = scope.methods.first()
         assertEquals("reset", method.name)
         assertEquals(Types.Unit, method.returnType)
     }
@@ -315,7 +315,7 @@ class CppTypeResolutionTest {
     """.trimIndent()
         )
 
-        val method = scope.methods0.first()
+        val method = scope.methods.first()
 
         assertEquals("calc", method.name)
         assertEquals(Types.Int, method.returnType)
@@ -333,7 +333,7 @@ class CppTypeResolutionTest {
     """.trimIndent()
         )
 
-        val method = scope.methods0.first()
+        val method = scope.methods.first()
         assertEquals("process", method.name)
         assertEquals(Types.Unit, method.returnType)
 
@@ -436,7 +436,7 @@ class CppTypeResolutionTest {
     """.trimIndent()
         )
 
-        val method = scope.methods0.first()
+        val method = scope.methods.first()
 
         assertEquals("install", method.name)
         assertEquals(Types.Unit, method.returnType)
@@ -474,7 +474,7 @@ class CppTypeResolutionTest {
     """.trimIndent()
         )
 
-        val method = scope.methods0.first()
+        val method = scope.methods.first()
 
         assertEquals("factory", method.name)
 

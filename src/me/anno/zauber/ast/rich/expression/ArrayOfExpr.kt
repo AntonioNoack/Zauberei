@@ -10,6 +10,7 @@ import me.anno.zauber.ast.simple.expression.SimpleConstructorCall
 import me.anno.zauber.ast.simple.expression.SimpleMethodCall
 import me.anno.zauber.ast.simple.fields.SimpleField
 import me.anno.zauber.scope.Scope
+import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.typeresolution.ParameterList
 import me.anno.zauber.typeresolution.ResolutionContext
 import me.anno.zauber.types.Specialization
@@ -88,11 +89,15 @@ class ArrayOfExpr(val values: List<Expression>, val type: Type, scope: Scope, or
 
         // find constructor method
         val unit = unitInstance(blockI.graph, scope, origin)
-        val constructor = Types.Array.clazz.constructors0
-            .firstOrNull { it.valueParameters.size == 1 && it.valueParameters[0].type == Types.Int }
-            ?: error("Missing Array(size: Int) constructor")
+
+        val constrScope = Types.Array.clazz[ScopeInitType.AFTER_OVERRIDES].children
+            .firstOrNull { child ->
+                val constr = child.selfAsConstructor
+                constr != null && constr.valueParameters.size == 1 && constr.valueParameters[0].type == Types.Int
+            } ?: error("Missing Array(size: Int) constructor")
+
         val specParams = ParameterList(Types.Array.clazz.typeParameters, listOf(instanceType))
-        val specialization = Specialization(constructor.memberScope, specParams)
+        val specialization = Specialization(constrScope, specParams)
         val constr = SimpleConstructorCall(
             unit, true, array.use(),
             specialization, allocateParams, scope, origin
@@ -103,7 +108,7 @@ class ArrayOfExpr(val values: List<Expression>, val type: Type, scope: Scope, or
         if (values.isNotEmpty()) {
             // find assignment method
             val setMethod = Types.Array.clazz
-                .methods0.firstOrNull {
+                .methods.firstOrNull {
                     it.name == "set" && it.valueParameters.size == 2 &&
                             it.valueParameters[0].type == Types.Int
                 }

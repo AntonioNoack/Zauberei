@@ -66,6 +66,15 @@ object Flags {
 
     const val CPP_STRUCT = 1 shl 22
 
+    /**
+     * a method, typically fun toTarget(): Target,
+     * todo that can be used in type-resolution on other method calls
+     * todo and for assignments?
+     *
+     * todo our ASTSimplifier must make these explicit
+     * */
+    const val IMPLICIT = 1 shl 23
+
     fun FlagSet.hasFlag(flag: FlagSet): Boolean {
         return (this and flag) == flag
     }
@@ -80,6 +89,7 @@ object Flags {
         if (flags.hasFlag(PUBLIC)) builder.append("public ")
         if (flags.hasFlag(PRIVATE)) builder.append("private ")
         if (flags.hasFlag(PROTECTED)) builder.append("protected ")
+        if (flags.hasFlag(IMPLICIT)) builder.append("implicit ")
         if (flags.hasFlag(OVERRIDE)) builder.append("override ")
         if (flags.hasFlag(OPEN)) builder.append("open ")
         if (flags.hasFlag(FINAL)) builder.append("final ")

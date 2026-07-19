@@ -300,11 +300,12 @@ abstract class ASTClassScanner(tokens: TokenList, language: Language) :
             consumeIf("crossinline") -> addFlag(Flags.CROSS_INLINE)
             consumeIf("const") -> {
                 addFlag(Flags.CONSTEXPR)
-                consume("val")
+                consumeIf("val") // val is optional
                 readField()
             }
             consumeIf("infix") -> addFlag(Flags.INFIX)
             consumeIf("external") -> addFlag(Flags.EXTERNAL)
+            consumeIf("implicit") -> addFlag(Flags.IMPLICIT)
             consumeIf(";") -> {}
             consumeIf("init") -> {
                 currPackage.primaryConstructorScope!!

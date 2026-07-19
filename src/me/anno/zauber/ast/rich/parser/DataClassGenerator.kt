@@ -106,7 +106,7 @@ object DataClassGenerator {
     }
 
     private fun findMethod(classScope: Scope, name: String, typeParams: List<Type>): Method? {
-        return classScope[ScopeInitType.AFTER_DISCOVERY].methods0.firstOrNull { method ->
+        return classScope[ScopeInitType.AFTER_DISCOVERY].methods.firstOrNull { method ->
             method.name == name && method.typeParameters.size == typeParams.size &&
                     method.typeParameters.map { param -> param.type } == typeParams
         }
@@ -280,7 +280,7 @@ object DataClassGenerator {
         // create copy methods with just one field
         for (setField in primaryFields) {
             val valueType = setField.valueType!!.resolvedName
-            val copyMethod = classScope.methods0.firstOrNull { method ->
+            val copyMethod = classScope.methods.firstOrNull { method ->
                 method.name == "copy" && method.valueParameters.size == 1 &&
                         method.valueParameters[0].run {
                             name == setField.name && type.resolvedName == valueType
@@ -299,6 +299,8 @@ object DataClassGenerator {
         valueParameters: List<ValueParameter>,
         origin: Long
     ) {
+
+        classScope[ScopeInitType.AFTER_DISCOVERY]
 
         // some preliminary checks
         if (name != "copy") return

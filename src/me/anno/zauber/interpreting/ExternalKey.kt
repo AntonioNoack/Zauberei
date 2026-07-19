@@ -10,7 +10,7 @@ import me.anno.zauber.types.Type
 data class ExternalKey(val ownerScope: Scope, val methodName: String, val valueParameterTypes: List<Type>) {
 
     fun findMethod(): Method? {
-        return ownerScope.methods0.firstOrNull { option ->
+        return ownerScope.methods.firstOrNull { option ->
             option.name == methodName && // todo this search is inefficient
                     option.valueParameters.map { it.type } == valueParameterTypes
         }

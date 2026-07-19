@@ -130,7 +130,7 @@ object ASTSimplifier {
             // missing return -> we do it ourselves
             // validate method returns Unit
             val methodReturnType = method0.method.returnType
-            assertEquals( Types.Unit,methodReturnType) {
+            assertEquals(Types.Unit, methodReturnType) {
                 "Expected $method0 to return Unit, because it's missing an explicit return"
             }
             // push object & return it
@@ -247,7 +247,14 @@ object ASTSimplifier {
             return flow0.withValue(dst)
         }
 
-        val block1 = expr.self.simplify(contextI, block0, flow0, true, expr)
+        var self0 = expr.self
+        if (field.ownerScope.isCompanionObject() &&
+            (self0 !is ThisExpression || self0.label != field.ownerScope)
+        ) {
+            self0 = ThisExpression(field.ownerScope, expr.scope, expr.origin)
+        }
+
+        val block1 = self0.simplify(contextI, block0, flow0, true, expr)
         val block1v = block1.value ?: return block1
         val self = block1v.value
 

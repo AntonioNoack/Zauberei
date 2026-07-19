@@ -141,6 +141,11 @@ class BaselineRuntimeTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testImplicitConversion() {
+        testImplicitConversionImpl()
+    }
+
+    @Test
     fun testStringOps() {
         // todo bug: zauber.Array.set(zauber.Int, zauber.Byte) is missing; it should not even be available like that...
         testStringOpsImpl()

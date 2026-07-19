@@ -113,7 +113,7 @@ object Dependencies {
         val ownerScope = method.ownerScope
         val ownerSpec = method0.withScope(ownerScope)
         for (childClass in reached.childClasses[ownerSpec].orEmpty()) {
-            val childCandidates = childClass.scope!!.methods0
+            val childCandidates = childClass.scope!!.methods
                 .filter { it.name == methodName && method in it.superMethods }
             if (childCandidates.size > 1) LOGGER.warn("More child-candidates than expected for $method in $childClass: $childCandidates")
             if (childCandidates.isEmpty()) LOGGER.warn("Missing child-candidate of $method in $childClass")
@@ -157,7 +157,7 @@ object Dependencies {
                     val dstType = instr.dst.type
                     if (dstType.needsCopy()) {
                         dstType as ClassType
-                        val method = dstType.clazz.methods0
+                        val method = dstType.clazz.methods
                             .firstOrNull { it.name == "copy" && it.valueParameters.isEmpty() }
                             ?: error("Missing .copy() in value-type $dstType")
                         val spec = Specialization(
@@ -218,7 +218,7 @@ object Dependencies {
 
     private fun markChildMethodsReachable(type: Specialization) {
         val scope = type.clazz[ScopeInitType.AFTER_DISCOVERY]
-        val methods = scope.methods0
+        val methods = scope.methods
         for (method in methods) {
             // todo if the super-method is reachable, mark this method reachable
         }

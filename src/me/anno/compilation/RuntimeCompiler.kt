@@ -29,7 +29,7 @@ class RuntimeCompiler : MinimalCompiler() {
         val dependencies = Dependencies.empty()
         registerMethods()
 
-        val mainMethod = testScope.methods0.first { it.name == "main" }
+        val mainMethod = testScope.methods.first { it.name == "main" }
         compile(unusedFile, unusedFile, dependencies, mainMethod)
 
         return execute(unusedFile)

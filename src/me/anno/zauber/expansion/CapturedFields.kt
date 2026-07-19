@@ -88,7 +88,7 @@ object CapturedFields : MethodOrClassColoring<Set<Field>>() {
         }
 
         val clazz = key.clazz ?: return emptyList()
-        for (method in clazz.methods0) {
+        for (method in clazz.methods) {
 
         }
         TODO("List methods within 'this'-class")

@@ -31,20 +31,15 @@ object MethodResolver : MemberResolver<Method, ResolvedMethod>() {
         scope ?: return null
 
         val afterOverrides = ScopeInitType.AFTER_OVERRIDES
-        val afterDiscovery = ScopeInitType.AFTER_DISCOVERY
-
         val scopeSelfType = scope.selfType
-        val children = scope[afterOverrides].children
-
         if (name == "copy") {
             generateCopyMethodIfNeeded(scope, name, typeParameters, valueParameters, -1)
         }
 
         var bestMatch: ResolvedMethod? = null
-        for (i in children.indices) {
-
-            val child = children[i][afterDiscovery]
-            val method = child.selfAsMethod ?: continue
+        val methods = scope.getMethods(afterOverrides)
+        for (i in methods.indices) {
+            val method = methods[i]
             if (method.name != name) continue
 
             if (LOGGER.isInfoEnabled && method.typeParameters.isNotEmpty()) {
@@ -116,11 +111,11 @@ object MethodResolver : MemberResolver<Method, ResolvedMethod>() {
         val prefix = if (selfScope != null) "$selfScope." else ""
         error(
             "Could not resolve method $prefix$styledName$typeParams$valueParams\n" +
-                    "  Self-scope methods[$selfScope]: ${selfScope?.methods0?.filter { it.name == name }}\n"
+                    "  Self-scope methods[$selfScope]: ${selfScope?.methods?.filter { it.name == name }}\n"
                         .iff(selfScope != null) +
-                    "  Code-scope methods[$codeScope]: ${codeScope.methods0.filter { it.name == name }}\n"
+                    "  Code-scope methods[$codeScope]: ${codeScope.methods.filter { it.name == name }}\n"
                         .iff(codeScope != selfScope) +
-                    "  Lang-scope methods[$langScope]: ${langScope.methods0.filter { it.name == name }}\n"
+                    "  Lang-scope methods[$langScope]: ${langScope.methods.filter { it.name == name }}\n"
                         .iff(langScope != selfScope && langScope != codeScope) +
                     "  at ${resolveOrigin(expr.origin)}"
         )

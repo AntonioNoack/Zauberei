@@ -121,6 +121,11 @@ class CGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testImplicitConversion() {
+        testImplicitConversionImpl()
+    }
+
+    @Test
     fun testStringOps() {
         testStringOpsImpl()
     }

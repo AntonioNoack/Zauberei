@@ -60,7 +60,7 @@ abstract class MinimalCompiler(val preserveFolderName: String? = null) {
     }
 
     fun registerMainMethod(testScope: Scope) {
-        val method = testScope[ScopeInitType.AFTER_DISCOVERY].methods0.first { it.name == "main" }
+        val method = testScope[ScopeInitType.AFTER_DISCOVERY].methods.first { it.name == "main" }
         Dependencies.addMethod(Specialization.fromSimple(method.memberScope))
     }
 
@@ -94,7 +94,7 @@ abstract class MinimalCompiler(val preserveFolderName: String? = null) {
 
         registerMethods()
 
-        val mainMethod = testScope.methods0.first { it.name == "main" }
+        val mainMethod = testScope.methods.first { it.name == "main" }
         compile(projectFolder, srcFolder, dependencies, mainMethod)
 
         return execute(projectFolder)

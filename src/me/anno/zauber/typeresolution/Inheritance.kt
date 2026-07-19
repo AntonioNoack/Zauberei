@@ -7,6 +7,7 @@ import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.rich.parameter.SuperCall
 import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
+import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.typeresolution.ParameterList.Companion.resolveGenerics
 import me.anno.zauber.typeresolution.members.MatchScore
 import me.anno.zauber.types.Type
@@ -355,6 +356,15 @@ object Inheritance {
                         )
                     ) return false
                 }
+                return true
+            }
+
+            val conversionMethod = actualType.clazz[ScopeInitType.AFTER_CONVERSION_METHODS]
+                .conversionMethods[expectedType]
+            // println("checking conversion $expectedType in $actualType -> $conversionMethod")
+            if (conversionMethod != null) {
+                // todo support generics here, too
+                matchScore?.inc()
                 return true
             }
 

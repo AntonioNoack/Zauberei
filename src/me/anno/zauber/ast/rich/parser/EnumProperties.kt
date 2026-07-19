@@ -25,8 +25,7 @@ fun ZauberASTBuilderBase.readEnumBody(): Int {
     if (endIndex < 0) endIndex = tokens.size
     val enumScope = currPackage
 
-    val companionScope = enumScope.getOrPut("Companion", ScopeType.COMPANION_OBJECT)
-    companionScope.setEmptyTypeParams()
+    val companionScope = enumScope.getOrPutCompanion()
 
     // val needsPrimaryConstructor = companionScope.primaryConstructorScope == null
     val primaryConstructorScope = companionScope.getOrCreatePrimaryConstructorScope()

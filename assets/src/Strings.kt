@@ -27,6 +27,8 @@ class String(val content: ByteArray) {
 
     fun get(index: Int) = content[index].toChar()
 
+    override fun toString(): String = this
+
     fun plus(other: String): String {
         return String(content + other.content)
     }
@@ -182,6 +184,7 @@ class StringBuilder(capacity: Int = 16): CharSequence {
             value.isNaN() -> append("NaN")
             value == Float.POSITIVE_INFINITY -> append("Infinity")
             value == Float.NEGATIVE_INFINITY -> append("-Infinity")
+            // todo bug: why does it think value is Nothing???
             else -> appendFloaty<Float>(value, 7)
         }
         return this
@@ -202,6 +205,10 @@ class StringBuilder(capacity: Int = 16): CharSequence {
         append("some float")
     }
 
+
+    fun clear() {
+        size = 0
+    }
     override fun toString(): String = String(buffer.copyOf(size))
 
 }

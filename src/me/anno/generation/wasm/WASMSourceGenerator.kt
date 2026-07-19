@@ -1872,7 +1872,9 @@ class WASMSourceGenerator : JavaSourceGenerator() {
 
     override fun appendCopy(graph: SimpleGraph, valueType: Type) {
         val valueType = valueType as ClassType
-        val method = valueType.clazz.methods0.first { it.name == "copy" && it.valueParameters.isEmpty() }
+        val method = valueType.clazz.methods
+            .firstOrNull { it.name == "copy" && it.valueParameters.isEmpty() }
+            ?: error("Missing fun $valueType.copy()")
         val methodSpec = Specialization(method.scope, valueType.typeParameters ?: emptyParameterList())
         callMethod(methodSpec)
         nextLine()

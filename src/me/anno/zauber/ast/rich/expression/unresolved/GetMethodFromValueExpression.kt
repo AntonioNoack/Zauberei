@@ -76,7 +76,7 @@ class GetMethodFromValueExpression(
         val valueType = self.resolveValueType(context)
         if (valueType is NonObjectClassType) {
             // todo check visibility... private methods may only be resolved from inside this class...
-            val methods = valueType.type.clazz[ScopeInitType.AFTER_OVERRIDES].methods0
+            val methods = valueType.type.clazz[ScopeInitType.AFTER_OVERRIDES].methods
                 .filter { it.name == name }
             check(methods.isNotEmpty()) { "Failed to resolve $valueType::$name at ${resolveOrigin(origin)}" }
             check(methods.size == 1) {

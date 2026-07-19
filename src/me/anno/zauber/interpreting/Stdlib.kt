@@ -23,6 +23,7 @@ import me.anno.zauber.interpreting.RuntimeCreate.createULong
 import me.anno.zauber.interpreting.RuntimeCreate.createUShort
 import me.anno.zauber.typeresolution.Inheritance
 import me.anno.zauber.typeresolution.TypeResolution.langScope
+import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
 import me.anno.zauber.types.impl.ClassType
@@ -44,6 +45,7 @@ object Stdlib {
     }
 
     fun registerPrintln() {
+        // these are optional:
         runtime.register(langScope, "println", listOf(Types.String)) { _, params ->
             runPrintln(params[0].castToString())
         }
@@ -57,12 +59,39 @@ object Stdlib {
                 runPrintln(value.rawValue.toString())
             }
         }
+        runtime.register(langScope, "flushConsole", emptyList()) { _, _ ->
+            // todo printing to the real console should be optional
+            // todo clearing the buffer can be optional then, too,
+            //  and then we don't need the duplicated 'printed' field in Runtime
+            val instance = runtime.getObjectInstance(langScope)
+            val printed = instance["printed"]
+            val printedType = (printed.clazz.type as ClassType).clazz
+            // call toString(), print it, and then call clear()
+            val toStringMethod = printedType.methods
+                .firstOrNull { it.name == "toString" && it.valueParameters.isEmpty() }
+                ?: error("Missing fun $printedType.toString()")
+            val toStringSpec = Specialization.fromSimple(toStringMethod.scope)
+            val clearMethod = printedType.methods
+                .firstOrNull { it.name == "clear" && it.valueParameters.isEmpty() }
+                ?: error("Missing fun $printedType.clear()")
+            val clearSpec = Specialization.fromSimple(clearMethod.scope)
+            val value = runtime.executeCall(printed, null, toStringSpec, emptyList()).finish()
+            runPrint(value.castToString())
+            runtime.executeCall(printed, null, clearSpec, emptyList()).finish()
+        }
     }
 
     private fun runPrintln(content: String): Instance {
         val rt = runtime
         rt.printed.append(content).append('\n')
         println(content)
+        return rt.getUnit()
+    }
+
+    private fun runPrint(content: String): Instance {
+        val rt = runtime
+        rt.printed.append(content)
+        print(content)
         return rt.getUnit()
     }
 

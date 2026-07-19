@@ -638,7 +638,7 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
     }
 
     fun findMethod(clazz: Scope, name: String, vararg params: Type): MethodLike {
-        val candidates = clazz[ScopeInitType.AFTER_DISCOVERY].methods0
+        val candidates = clazz[ScopeInitType.AFTER_DISCOVERY].methods
         return candidates.firstOrNull {
             it.name == name && equalsParams(params, it.valueParameters)
         } ?: error(
@@ -700,7 +700,7 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
         block.add(allocation)
         dst.allocation = allocation // not really needed
         val constr = resolveConstructor(
-           arrayType.clazz, "(Int)",
+            arrayType.clazz, "(Int)",
             ParameterList(arrayType),
             listOf(Types.Int)
         )
@@ -828,7 +828,7 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
             .firstOrNull { it.name == name }
         if (field != null) return field
 
-        if (scope.scopeType == ScopeType.COMPANION_OBJECT) {
+        if (scope.isCompanionObject()) {
             val memberScope = scope.parent!!
             for (superCall in memberScope.superCalls) {
                 if (!superCall.isInterfaceCall) {
@@ -1174,7 +1174,7 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
 
     fun findLambdaMethod(interfaceScope: Scope): Method {
         interfaceScope[ScopeInitType.AFTER_OVERRIDES]
-        val candidates = interfaceScope.methods0.filter { it.isAbstract() }
+        val candidates = interfaceScope.methods.filter { it.isAbstract() }
         check(candidates.size == 1)
         return candidates.first()
     }
@@ -1258,7 +1258,7 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
                 // println("Resolving static method $owner.$name$descriptor")
                 method = resolveStaticMethod(owner, name, descriptor, typeParameters, valueParameters)
                 val objectScope = method.resolved.scope.parent!!
-                check(objectScope.scopeType == ScopeType.COMPANION_OBJECT)
+                check(objectScope.isCompanionObject())
                 self = block.field(objectScope.typeWithArgs).use()
                 block.add(JVMSimpleGetObject(self, objectScope, methodScope, origin))
             }
@@ -1340,14 +1340,15 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
             .firstOrNull {
                 // equals(typeParameters, it.typeParameters) && // checking valueParams is sufficient, and saves us work
                 equals(valueParameters, it.valueParameters)
-            } ?: error(
-            "Missing constructor $scope<$ownerTypes>$descriptor -> " +
-                    "(${valueParameters.joinToString { it.toString() }}), " +
-                    "options: ${
-                        scope.constructors0
-                            .map { "(${valueParameters.joinToString { it.toString() }})" }
-                    }"
-        )
+            }
+            ?: error(
+                "Missing constructor $scope<$ownerTypes>$descriptor -> " +
+                        "(${valueParameters.joinToString { it.toString() }}), " +
+                        "options: ${
+                            scope.constructors0
+                                .map { "(${valueParameters.joinToString { it.toString() }})" }
+                        }"
+            )
         val spec = Specialization(ClassType(scope, ownerTypes))
             .withScope(methodScope)
         val ctx = ResolutionContext(
@@ -1365,7 +1366,7 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
         while (true) {
 
             val method = scope[ScopeInitType.AFTER_DISCOVERY]
-                .methods0.firstOrNull {
+                .methods.firstOrNull {
                     it.name == methodName &&
                             // equals(typeParameters, it.typeParameters) && // checking valueParams is sufficient, saves work
                             equals1(valueParameters, it.valueParameters)
@@ -1375,7 +1376,7 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
             }
 
             // check super classes
-            scope = if (scope.scopeType == ScopeType.COMPANION_OBJECT) {
+            scope = if (scope.isCompanionObject()) {
                 scope.parent!![ScopeInitType.AFTER_DISCOVERY]
                     .superCalls
                     .firstOrNull { it.isClassCall }
@@ -1390,10 +1391,10 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
             }
         }
 
-        val sameNameOptions = scope0.methods0
+        val sameNameOptions = scope0.methods
             .filter { it.name == methodName }
             .map { "(${it.valueParameters.joinToString { vp -> vp.type.toString() }})" }
-        val nameOptions = scope0.methods0
+        val nameOptions = scope0.methods
             .map { style("\"${it.name}\"", GREEN) }
             .distinct().sorted()
 
@@ -1537,11 +1538,11 @@ class SecondJVMMethodReader(val method: MethodLike, val isStatic: Boolean, param
                 allocation.valueParameters = emptyList()
                 elseBlock.add(allocation)
 
-                val constr = thrownType.clazz[ScopeInitType.AFTER_DISCOVERY]
-                    .constructors0.firstOrNull { it.valueParameters.isEmpty() }
+                val constrScope = thrownType.clazz[ScopeInitType.AFTER_DISCOVERY].children
+                    .firstOrNull { it.selfAsConstructor?.valueParameters?.size == 0 }
                     ?: error("Missing constructor for $thrownType without type-args")
-
-                val constrSpec = Specialization.fromSimple(constr.memberScope)
+                val constr = constrScope.selfAsConstructor!!
+                val constrSpec = Specialization.fromSimple(constrScope)
 
                 val unit = block.field(Types.Unit)
                 val constrCall = JVMSimpleCall(

@@ -4,19 +4,16 @@ import me.anno.utils.StringStyles.ORANGE
 import me.anno.utils.StringStyles.style
 import me.anno.zauber.ast.rich.TokenListIndex.resolveOrigin
 import me.anno.zauber.ast.rich.expression.Expression
-import me.anno.zauber.ast.simple.ASTSimplifier.nativeNumbers
 import me.anno.zauber.ast.simple.SimpleBlock
 import me.anno.zauber.ast.simple.controlflow.FlowResult
 import me.anno.zauber.ast.simple.expression.SimpleMethodCall
 import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.scope.ScopeInitType
-import me.anno.zauber.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauber.typeresolution.ResolutionContext
 import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
-import me.anno.zauber.types.impl.arithmetic.NullType
 
 class JVMSimpleReturn(val value: JVMSimpleField, scope: Scope, origin: Long) : JVMSimpleExpr(scope, origin) {
 
@@ -49,7 +46,7 @@ class JVMSimpleReturn(val value: JVMSimpleField, scope: Scope, origin: Long) : J
             }
             if (methodName != null) {
                 val method = Types.Int.clazz[ScopeInitType.AFTER_DISCOVERY]
-                    .methods0.firstOrNull { it.name == methodName }
+                    .methods.firstOrNull { it.name == methodName }
                     ?: error("Missing method $methodName in ${Types.Int}")
                 val spec = Specialization.fromSimple(method.memberScope)
                 val dst = block0.field(expectedReturnType)

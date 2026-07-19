@@ -19,6 +19,12 @@ enum class ScopeInitType {
     AFTER_RESOLVE_TYPES,
 
     /**
+     * register all implicit conversion methods
+     * */
+    CONVERSION_METHODS,
+    AFTER_CONVERSION_METHODS,
+
+    /**
      * split methods with default parameters into variants
      * */
     DEFAULT_PARAMETERS,

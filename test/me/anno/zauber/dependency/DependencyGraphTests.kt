@@ -27,7 +27,7 @@ class DependencyGraphTests {
             }
         """.trimIndent()
         val testScope = ResolutionUtils.typeResolveScope(code)
-        val method = testScope[ScopeInitType.AFTER_DISCOVERY].methods0.first { it.name == "main" }
+        val method = testScope[ScopeInitType.AFTER_DISCOVERY].methods.first { it.name == "main" }
         Dependencies.addMethod(Specialization(method.scope, emptyParameterList()))
 
         val dependencies = Dependencies.collectDependencies()
@@ -37,9 +37,9 @@ class DependencyGraphTests {
 
         val zauberScope = Zauber.root.getOrPut("zauber", ScopeType.PACKAGE)
         val printlnMethod = zauberScope
-            .methods0.first { it.name == "println" }
+            .methods.first { it.name == "println" }
         val intPlusMethod = Types.Int.clazz
-            .methods0.first { it.name == "plus" }
+            .methods.first { it.name == "plus" }
 
         // validate with what we expect
         val expectedClasses = listOf(

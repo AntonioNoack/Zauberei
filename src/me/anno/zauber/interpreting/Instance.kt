@@ -201,6 +201,12 @@ class Instance(
         fields[fieldIndex] = runtime.createString(value)
     }
 
+    operator fun get(fieldName: String): Instance {
+        val field = clazz.fields.firstOrNull { it.name == fieldName }
+            ?: error("Missing field '$fieldName' in $clazz")
+        return get(field)
+    }
+
     operator fun get(field: Field): Instance {
         val fieldIndex = clazz.fields.indexOf(field)
 
