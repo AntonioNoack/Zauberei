@@ -111,7 +111,11 @@ object FindMemberMatch {
             memberReturnType, hintedReturnType,
             expectedTypeParams, actualTypeParams,
             member.valueParameters, explicitValueParameters, matchScore
-        ) ?: return null
+        )
+        if (generics == null) {
+            LOGGER.info("Rejecting $member, generic-mismatch")
+            return null
+        }
 
         val selfType1 = explicitSelfType ?: memberSelfType
         val specialization = Specialization(member.memberScope, generics)

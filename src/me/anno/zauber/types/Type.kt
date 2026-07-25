@@ -82,10 +82,10 @@ abstract class Type {
         }
     }
 
-    fun nonNull(): Type {
+    fun notNull(): Type {
         return when (this) {
             is ClassType -> this
-            is UnresolvedType -> resolvedName.nonNull()
+            is UnresolvedType -> resolvedName.notNull()
             is NullType -> Types.Nothing
             is UnionType -> {
                 if (types.any { it == NullType }) unionTypes(types - NullType)
@@ -95,7 +95,7 @@ abstract class Type {
                 if (types.any { it is NotType && it.type == NullType }) this
                 else andTypes(this, NotType(NullType))
             }
-            is ModifierType -> withType(type.nonNull())
+            is ModifierType -> withType(type.notNull())
             else -> andTypes(this, NotType(NullType))
         }
     }

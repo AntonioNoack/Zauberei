@@ -809,12 +809,6 @@ abstract class CodeGenerationTests {
                 println("  a  ".trim())
                 println("".trim())
             }
-            package zauber
-            external class Char(val content: Char) {
-                fun isWhitespace() = this in " \t\r\n"
-                external fun equals(other: Char): Boolean
-            }
-            external class Ref<T>
         """.trimIndent()
 
         val printed = generator()

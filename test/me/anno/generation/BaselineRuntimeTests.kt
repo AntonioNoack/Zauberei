@@ -145,9 +145,10 @@ class BaselineRuntimeTests : CodeGenerationTests() {
         testImplicitConversionImpl()
     }
 
+    // todo test writing null == x? a special case...
+
     @Test
     fun testStringOps() {
-        // todo bug: Could not resolve method zauber.Any.equals<?>(NullType)
         // todo bug: zauber.Array.set(zauber.Int, zauber.Byte) is missing; it should not even be available like that...
         testStringOpsImpl()
     }

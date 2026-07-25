@@ -15,6 +15,8 @@ external class Char(val content: Char) {
     fun plus(other: Int): Char = (toInt() + other).toChar()
     fun plus(other: UInt): Char = (toUInt() + other).toChar()
 
+    fun isWhitespace() = this in " \t\r\n"
+
 }
 
 interface CharSequence {}

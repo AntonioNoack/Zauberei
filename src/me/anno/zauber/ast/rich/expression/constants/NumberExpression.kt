@@ -358,7 +358,7 @@ class NumberExpression(val value: String, scope: Scope, origin: Long) : Expressi
 
     override fun resolveValueType(context: ResolutionContext): Type {
         val actualType = resolvedType0
-        val expectedType = context.targetType?.nonNull() ?: return actualType
+        val expectedType = context.targetType?.notNull() ?: return actualType
         if (expectedType == actualType) return expectedType
 
         if ((actualType == Types.Int || actualType == Types.Long || actualType == Types.ULong) &&

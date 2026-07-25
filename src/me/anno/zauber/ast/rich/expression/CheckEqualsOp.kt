@@ -60,7 +60,7 @@ class CheckEqualsOp(
     override fun isResolved(): Boolean = left.isResolved() && right.isResolved() && (byPointer || resolved != null)
     override fun resolveImpl(context: ResolutionContext): Expression {
         val resolved = resolved ?: if (!byPointer) {
-            NamedCallExpression(left, "equals", right, scope, origin)
+            NamedCallExpression(NotNullExpression(left), "equals", right, scope, origin)
                 .resolve(context) as ResolvedCallExpression
         } else null
 
