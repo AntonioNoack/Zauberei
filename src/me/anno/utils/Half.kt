@@ -1,5 +1,7 @@
 package me.anno.utils
 
+import me.anno.utils.FloatFormatter.appendDouble
+
 @JvmInline
 value class Half(val binary: Short) : Comparable<Half> {
     constructor(float: Float) : this(float32ToFloat16(float).toShort())
@@ -19,8 +21,13 @@ value class Half(val binary: Short) : Comparable<Half> {
         return toFloat().compareTo(other.toFloat())
     }
 
+    // todo check that all values of toString().toHalf() return the same Half
     override fun toString(): String {
-        return toFloat().toString()
+        val asFloat = toFloat()
+        if (!asFloat.isFinite()) return asFloat.toString()
+        return StringBuilder(8)
+            .appendDouble(toDouble(), 3)
+            .toString()
     }
 
     companion object {

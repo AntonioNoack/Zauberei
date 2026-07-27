@@ -1,13 +1,13 @@
 package me.anno.zauber.types
 
 import me.anno.generation.Specializations.specialization
-import me.anno.generation.cpp.CppSourceGenerator.Companion.nativeCppTypes
 import me.anno.support.cpp.ast.rich.PointerType
 import me.anno.utils.StringStyles
 import me.anno.utils.StringStyles.GREEN
 import me.anno.utils.StringStyles.style
 import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.rich.parser.ZauberASTBuilderBase.Companion.resolveTypeByName
+import me.anno.zauber.ast.simple.ASTSimplifier
 import me.anno.zauber.expansion.MethodOverrides.debuggedMethodName
 import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
@@ -393,7 +393,7 @@ abstract class Type {
     fun isValueOrNative(): Boolean = isValue() || isNative()
 
     fun isNative(): Boolean {
-        return this in nativeCppTypes
+        return this is ClassType && this in ASTSimplifier.nativeTypes
     }
 
     fun needsCopy(): Boolean {

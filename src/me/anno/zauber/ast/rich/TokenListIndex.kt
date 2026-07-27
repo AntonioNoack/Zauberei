@@ -51,7 +51,7 @@ object TokenListIndex {
     }
 
     fun resolveOrigin(origin: Long): String {
-        if (origin < 0) return origin.toString()
+        if (origin < 0) return "(Unknown)"
         val i0 = unpack64I0(origin)
         val i1 = unpack64I1(origin)
         val tl0 = findTokenList(i0)

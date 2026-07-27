@@ -38,8 +38,19 @@ import kotlin.experimental.xor
  * */
 object Stdlib {
 
-    fun Runtime.registerBinaryMethod(type: ClassType, name: String, calc: (Instance, Instance) -> Instance) {
-        register(type.clazz, name, listOf(type)) { self, params ->
+    inline fun Runtime.registerBinaryMethod(
+        type: ClassType,
+        name: String,
+        crossinline calc: (Instance, Instance) -> Instance
+    ) {
+        registerBinaryMethod(type, type, name, calc)
+    }
+
+    inline fun Runtime.registerBinaryMethod(
+        type: ClassType, argType: ClassType,
+        name: String, crossinline calc: (Instance, Instance) -> Instance
+    ) {
+        register(type.clazz, name, listOf(argType)) { self, params ->
             calc(self, params[0])
         }
     }
@@ -75,9 +86,15 @@ object Stdlib {
                 .firstOrNull { it.name == "clear" && it.valueParameters.isEmpty() }
                 ?: error("Missing fun $printedType.clear()")
             val clearSpec = Specialization.fromSimple(clearMethod.scope)
-            val value = runtime.executeCall(printed, null, toStringSpec, emptyList()).finish()
+            val value = runtime.executeCall(
+                printed, null,
+                toStringSpec, emptyList(), -1
+            ).finish()
             runPrint(value.castToString())
-            runtime.executeCall(printed, null, clearSpec, emptyList()).finish()
+            runtime.executeCall(
+                printed, null,
+                clearSpec, emptyList(), -1
+            ).finish()
         }
     }
 
@@ -168,11 +185,11 @@ object Stdlib {
 
     fun registerByteMethods() {
         val rt = runtime
-        rt.registerBinaryByteMethod("plus", Byte::plus)
-        rt.registerBinaryByteMethod("minus", Byte::minus)
-        rt.registerBinaryByteMethod("times", Byte::times)
-        rt.registerBinaryByteMethod("div", Byte::div)
-        rt.registerBinaryByteMethod("rem", Byte::rem)
+        rt.registerByteIntMethod("plus", Byte::plus)
+        rt.registerByteIntMethod("minus", Byte::minus)
+        rt.registerByteIntMethod("times", Byte::times)
+        rt.registerByteIntMethod("div", Byte::div)
+        rt.registerByteIntMethod("rem", Byte::rem)
         rt.registerBinaryByteMethod2("and", Byte::and)
         rt.registerBinaryByteMethod2("or", Byte::or)
         rt.registerBinaryByteMethod2("xor", Byte::xor)
@@ -184,11 +201,11 @@ object Stdlib {
 
     fun registerUByteMethods() {
         val rt = runtime
-        rt.registerBinaryUByteMethod("plus", UByte::plus)
-        rt.registerBinaryUByteMethod("minus", UByte::minus)
-        rt.registerBinaryUByteMethod("times", UByte::times)
-        rt.registerBinaryUByteMethod("div", UByte::div)
-        rt.registerBinaryUByteMethod("rem", UByte::rem)
+        rt.registerUByteUIntMethod("plus", UByte::plus)
+        rt.registerUByteUIntMethod("minus", UByte::minus)
+        rt.registerUByteUIntMethod("times", UByte::times)
+        rt.registerUByteUIntMethod("div", UByte::div)
+        rt.registerUByteUIntMethod("rem", UByte::rem)
         rt.registerBinaryUByteMethod2("and", UByte::and)
         rt.registerBinaryUByteMethod2("or", UByte::or)
         rt.registerBinaryUByteMethod2("xor", UByte::xor)
@@ -202,11 +219,11 @@ object Stdlib {
 
     fun registerShortMethods() {
         val rt = runtime
-        rt.registerBinaryShortMethod("plus", Short::plus)
-        rt.registerBinaryShortMethod("minus", Short::minus)
-        rt.registerBinaryShortMethod("times", Short::times)
-        rt.registerBinaryShortMethod("div", Short::div)
-        rt.registerBinaryShortMethod("rem", Short::rem)
+        rt.registerShortIntMethod("plus", Short::plus)
+        rt.registerShortIntMethod("minus", Short::minus)
+        rt.registerShortIntMethod("times", Short::times)
+        rt.registerShortIntMethod("div", Short::div)
+        rt.registerShortIntMethod("rem", Short::rem)
         rt.registerBinaryShortMethod2("and", Short::and)
         rt.registerBinaryShortMethod2("or", Short::or)
         rt.registerBinaryShortMethod2("xor", Short::xor)
@@ -218,11 +235,11 @@ object Stdlib {
 
     fun registerUShortMethods() {
         val rt = runtime
-        rt.registerBinaryUShortMethod("plus", UShort::plus)
-        rt.registerBinaryUShortMethod("minus", UShort::minus)
-        rt.registerBinaryUShortMethod("times", UShort::times)
-        rt.registerBinaryUShortMethod("div", UShort::div)
-        rt.registerBinaryUShortMethod("rem", UShort::rem)
+        rt.registerUShortUIntMethod("plus", UShort::plus)
+        rt.registerUShortUIntMethod("minus", UShort::minus)
+        rt.registerUShortUIntMethod("times", UShort::times)
+        rt.registerUShortUIntMethod("div", UShort::div)
+        rt.registerUShortUIntMethod("rem", UShort::rem)
         rt.registerBinaryUShortMethod2("and", UShort::and)
         rt.registerBinaryUShortMethod2("or", UShort::or)
         rt.registerBinaryUShortMethod2("xor", UShort::xor)
@@ -548,9 +565,16 @@ object Stdlib {
         }
     }
 
-    fun Runtime.registerBinaryUByteMethod(name: String, calc: (a: UByte, b: UByte) -> UInt) {
-        registerBinaryMethod(Types.UByte, name) { a, b ->
-            val result = calc(a.castToUByte(), b.castToUByte())
+    fun Runtime.registerByteIntMethod(name: String, calc: (a: Byte, b: Int) -> Int) {
+        registerBinaryMethod(Types.Byte, Types.Int, name) { a, b ->
+            val result = calc(a.castToByte(), b.castToInt())
+            createInt(result)
+        }
+    }
+
+    fun Runtime.registerUByteUIntMethod(name: String, calc: (a: UByte, b: UInt) -> UInt) {
+        registerBinaryMethod(Types.UByte, Types.UInt, name) { a, b ->
+            val result = calc(a.castToUByte(), b.castToUInt())
             createUInt(result)
         }
     }
@@ -569,6 +593,13 @@ object Stdlib {
         }
     }
 
+    fun Runtime.registerShortIntMethod(name: String, calc: (a: Short, b: Int) -> Int) {
+        registerBinaryMethod(Types.Short, Types.Int, name) { a, b ->
+            val result = calc(a.castToShort(), b.castToInt())
+            createInt(result)
+        }
+    }
+
     fun Runtime.registerBinaryShortMethod2(name: String, calc: (a: Short, b: Short) -> Short) {
         registerBinaryMethod(Types.Short, name) { a, b ->
             val result = calc(a.castToShort(), b.castToShort())
@@ -576,9 +607,9 @@ object Stdlib {
         }
     }
 
-    fun Runtime.registerBinaryUShortMethod(name: String, calc: (a: UShort, b: UShort) -> UInt) {
-        registerBinaryMethod(Types.UShort, name) { a, b ->
-            val result = calc(a.castToUShort(), b.castToUShort())
+    fun Runtime.registerUShortUIntMethod(name: String, calc: (a: UShort, b: UInt) -> UInt) {
+        registerBinaryMethod(Types.UShort, Types.UInt, name) { a, b ->
+            val result = calc(a.castToUShort(), b.castToUInt())
             createUInt(result)
         }
     }
@@ -592,7 +623,9 @@ object Stdlib {
 
     fun Runtime.registerBinaryIntMethod(name: String, calc: (a: Int, b: Int) -> Int) {
         registerBinaryMethod(Types.Int, name) { a, b ->
-            val result = calc(a.castToInt(), b.castToInt())
+            val ai = a.castToInt()
+            val bi = b.castToInt()
+            val result = calc(ai, bi)
             createInt(result)
         }
     }
@@ -667,8 +700,7 @@ object Stdlib {
     fun registerEqualsMethods() {
         val rt = runtime
         for (type in nativeNumbers) {
-            // todo small ints have a different function
-            // todo we should be able to call equals on larger types, too...
+            // todo we should be able to call equals on larger types, too..., e.g. 0 == 15L
             rt.registerBinaryMethod(type, "equals") { a, b ->
                 assertEquals(type, a.clazz.type)
                 assertEquals(type, b.clazz.type)
@@ -688,6 +720,9 @@ object Stdlib {
         }
         rt.register(Types.UShort, "equals", listOf(Types.UInt)) { a, (b) ->
             rt.getBool(a.castToUShort().toUInt() == b.castToUInt())
+        }
+        rt.register(Types.Char, "equals", listOf(Types.Char)) { a, (b) ->
+            rt.getBool(a.castToChar() == b.castToChar())
         }
     }
 

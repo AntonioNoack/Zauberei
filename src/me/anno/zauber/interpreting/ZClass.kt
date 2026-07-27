@@ -15,7 +15,6 @@ import me.anno.zauber.scope.ScopeType
 import me.anno.zauber.typeresolution.Inheritance
 import me.anno.zauber.typeresolution.InsertMode
 import me.anno.zauber.typeresolution.ParameterList
-import me.anno.zauber.typeresolution.ParameterList.Companion.emptyParameterList
 import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.Types
@@ -117,7 +116,10 @@ class ZClass(val type: Type) {
 
         val spec = Specialization(type)
             .withScope(primaryConstructor.memberScope)
-        runtime.executeCall(instance, null, spec, emptyList())
+        runtime.executeCall(
+            instance, null,
+            spec, emptyList(), -1
+        )
     }
 
     fun createArray(items: Array<Instance>): Instance {

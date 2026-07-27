@@ -81,10 +81,18 @@ class CheckEqualsOp(
         contextExpr: Expression?
     ): FlowResult {
 
-        val block1 = left.simplify(context, block0, flow0, true)
+        val resolved = resolved!!
+        // correct? could also be resolved to a self-method...
+        val thisParam = resolved.callable.resolved.ownerScope.typeWithArgs2
+        val block1 = left
+            .implicitCastTo(thisParam, context)
+            .simplify(context, block0, flow0, true)
         val block1v = block1.value ?: return block1
 
-        val block2 = right.simplify(context, block1v.block, block1, true)
+        val rightParam = resolved.callable.resolved.valueParameters.first()
+        val block2 = right
+            .implicitCastTo(rightParam, context)
+            .simplify(context, block1v.block, block1, true)
         val block2v = block2.value ?: return block2
 
         val dst = block2v.block.field(Types.Boolean)
@@ -103,7 +111,7 @@ class CheckEqualsOp(
         } else {
             SimpleCheckEquals(
                 dst, left.use(), right.use(),
-                negated, resolved!!.callable as ResolvedMethod,
+                negated, resolved.callable as ResolvedMethod,
                 scope, origin
             )
             // todo handle error

@@ -141,19 +141,21 @@ class Runtime {
         methodOwnerInstance: Instance,
         explicitSelfInstance: Instance?,
         specialization: Specialization,
-        valueParameters: List<SimpleField>
+        valueParameters: List<SimpleField>,
+        origin: Long = -1
     ): BlockReturn {
         val valueParameters = valueParameters.map { valueField ->
             this[valueField].cloneIfValue()
         }
-        return executeCall2(methodOwnerInstance, explicitSelfInstance, specialization, valueParameters)
+        return executeCall2(methodOwnerInstance, explicitSelfInstance, specialization, valueParameters, origin)
     }
 
     fun executeCall2(
         methodOwnerInstance: Instance,
         explicitSelfInstance: Instance?,
         specialization: Specialization,
-        valueParameters: List<Instance>
+        valueParameters: List<Instance>,
+        origin: Long
     ): BlockReturn {
 
         if (LOGGER.isInfoEnabled) LOGGER.info("Calling $specialization on $methodOwnerInstance with $valueParameters")
@@ -175,7 +177,7 @@ class Runtime {
             val value = try {
                 methodImpl.process(methodOwnerInstance, valueParameters)
             } catch (e: Exception) {
-                LOGGER.warn("Issue in $method")
+                LOGGER.warn("Issue in $method\n  at ${resolveOrigin(origin)}")
                 throw e
             }
             return BlockReturn(ReturnType.RETURN, value)
@@ -193,7 +195,7 @@ class Runtime {
         val result = try {
             executeBlock(graph.startBlock)
         } catch (e: Exception) {
-            LOGGER.warn("Issue in $method")
+            LOGGER.warn("Issue in $method\n  at ${resolveOrigin(origin)}")
             throw e
         }
 

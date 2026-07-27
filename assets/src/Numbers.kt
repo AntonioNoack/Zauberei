@@ -22,7 +22,8 @@ external class Byte(val content: Byte) {
 
     external fun compareTo(other: Byte): Int
     external fun equals(other: Byte): Boolean
-    external fun equals(other: Int): Boolean = toInt() == other
+    fun equals(other: Int): Boolean = toInt() == other
+    override fun equals(other: Any?): Boolean = other is Byte && content == other
     override fun hashCode(): Int = toInt()
 
     external fun toByte(): Byte
@@ -63,7 +64,8 @@ external class UByte(val content: UByte) {
 
     external fun compareTo(other: UByte): Int
     external fun equals(other: UByte): Boolean
-    external fun equals(other: UInt): Boolean = toUInt() == other
+    fun equals(other: UInt): Boolean = toUInt() == other
+    override fun equals(other: Any?): Boolean = other is UByte && content == other
     override fun hashCode(): Int = toInt()
 
     external fun toByte(): Byte
@@ -104,7 +106,8 @@ external class Short(val content: Short) {
 
     external fun compareTo(other: Short): Int
     external fun equals(other: Short): Boolean
-    external fun equals(other: Int): Boolean = toInt() == other
+    fun equals(other: Int): Boolean = toInt() == other
+    override fun equals(other: Any?): Boolean = other is Short && content == other
     override fun hashCode(): Int = toInt()
 
     external fun toByte(): Byte
@@ -145,7 +148,8 @@ external class UShort(val content: UShort) {
 
     external fun compareTo(other: UShort): Int
     external fun equals(other: UShort): Boolean
-    external fun equals(other: UInt): Boolean = toUInt() == other
+    fun equals(other: UInt): Boolean = toUInt() == other
+    override fun equals(other: Any?): Boolean = other is UShort && content == other
     override fun hashCode(): Int = toInt()
 
     external fun toByte(): Byte
@@ -185,6 +189,7 @@ external class Int(val content: Int) {
 
     external fun compareTo(other: Int): Int
     external fun equals(other: Int): Boolean
+    override fun equals(other: Any?): Boolean = other is Int && content == other
     override fun hashCode(): Int = this
 
     external fun shl(shift: Int): Int
@@ -230,6 +235,7 @@ external class UInt(val content: UInt) {
 
     external fun compareTo(other: UInt): Int
     external fun equals(other: UInt): Boolean
+    override fun equals(other: Any?): Boolean = other is UInt && content == other
     override fun hashCode(): Int = toInt()
 
     external fun shl(shift: Int): UInt
@@ -275,6 +281,8 @@ external class Long(val content: Long) {
 
     external fun compareTo(other: Long): Int
     external fun equals(other: Long): Boolean
+    fun equals(other: Int): Boolean = this == other.toLong()
+    override fun equals(other: Any?): Boolean = other is Long && content == other
     override fun hashCode(): Int = ushr(32).toInt() * 31 + toInt()
 
     external fun shl(shift: Int): Long
@@ -319,6 +327,7 @@ external class ULong(val content: ULong) {
 
     external fun compareTo(other: ULong): Int
     external fun equals(other: ULong): Boolean
+    override fun equals(other: Any?): Boolean = other is ULong && content == other
     override fun hashCode(): Int = ushr(32).toInt() * 31 + toInt()
 
     external fun shl(shift: Int): ULong
@@ -359,6 +368,7 @@ external class Half(val content: Half) {
 
     external fun compareTo(other: Half): Int
     external fun equals(other: Half): Boolean
+    override fun equals(other: Any?): Boolean = other is Half && content == other
     override external fun hashCode(): Int
     external fun toBits(): Short
 
@@ -375,11 +385,10 @@ external class Half(val content: Half) {
     implicit external fun toDouble(): Double
 
     fun isNaN(): Boolean {
-        // todo properly define the masks!
         val bits = toBits()
         val exp = bits and EXPONENT_MASK
         val frac = bits and MANTISSA_MASK
-        return (exp == EXPONENT_MASK) && (frac != 0L)
+        return (exp == EXPONENT_MASK) && (frac != 0)
     }
 
     external fun isFinite(): Boolean {
@@ -393,8 +402,8 @@ external class Half(val content: Half) {
     companion object {
         external fun fromBits(bits: Short): Half
 
-        const val EXPONENT_MASK = 0x7C00
-        const val MANTISSA_MASK = 0x03FF
+        const val EXPONENT_MASK: Short = 0x7C00 // 5 bits
+        const val MANTISSA_MASK: Short = 0x03FF // 10 bits
 
         const val POSITIVE_INFINITY: Half = 1h / 0h
         const val NEGATIVE_INFINITY: Half = -POSITIVE_INFINITY
@@ -416,6 +425,7 @@ external class Float(val content: Float) {
 
     external fun compareTo(other: Float): Int
     external fun equals(other: Float): Boolean
+    override fun equals(other: Any?): Boolean = other is Float && content == other
     override external fun hashCode(): Int
     external fun toBits(): Int
 
@@ -436,7 +446,7 @@ external class Float(val content: Float) {
         val bits = toBits()
         val exp = bits and EXPONENT_MASK
         val frac = bits and MANTISSA_MASK
-        return (exp == EXPONENT_MASK) && (frac != 0L)
+        return (exp == EXPONENT_MASK) && (frac != 0)
     }
 
     external fun isFinite(): Boolean {
@@ -473,6 +483,7 @@ external class Double(val content: Double) {
 
     external fun compareTo(other: Double): Int
     external fun equals(other: Double): Boolean
+    override fun equals(other: Any?): Boolean = other is Double && content == other
     override external fun hashCode(): Int
     external fun toBits(): Long
 

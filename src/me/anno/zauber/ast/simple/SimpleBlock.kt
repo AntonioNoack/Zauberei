@@ -1,6 +1,5 @@
 package me.anno.zauber.ast.simple
 
-import me.anno.generation.cpp.CppSourceGenerator.Companion.nativeCppTypes
 import me.anno.utils.StringStyles
 import me.anno.utils.StringStyles.GREEN
 import me.anno.utils.StringStyles.style
@@ -18,11 +17,6 @@ import me.anno.zauber.typeresolution.Inheritance.isSubTypeOf
 import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type
 import me.anno.zauber.types.impl.ClassType
-import me.anno.zauber.types.impl.GenericType
-import me.anno.zauber.types.impl.arithmetic.AndType
-import me.anno.zauber.types.impl.arithmetic.NullType
-import me.anno.zauber.types.impl.arithmetic.UnionType
-import me.anno.zauber.types.impl.unresolved.UnresolvedType
 
 class SimpleBlock(val graph: SimpleGraph) {
 

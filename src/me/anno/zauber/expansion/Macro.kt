@@ -176,7 +176,7 @@ object Macro {
         //  only if they're immutable though... maybe we can enforce all parameters to be values?
 
         val method = macro.resolved
-        val result = executeMacroInRuntime(method, macro, valueParameters)
+        val result = executeMacroInRuntime(method, macro, valueParameters, origin)
         val tokenList = extractTokensFromRuntime(result, method, origin)
 
         return LazyExpression.eval(
@@ -191,7 +191,8 @@ object Macro {
     fun executeMacroInRuntime(
         method: Method,
         byMethodCall: ResolvedMember<*>,
-        valueParameters: List<Instance>
+        valueParameters: List<Instance>,
+        origin: Long
     ): BlockReturn {
         val runtime = Runtime.runtime
         val ownerScope = method.scope.parent
@@ -202,7 +203,10 @@ object Macro {
         check(byMethodCall.resolved.memberScope == method1.scope)
 
         val valueParameters1 = valueParameters + runtime.getObjectInstance(macroContextParam)
-        return runtime.executeCall2(owner, null, method1, valueParameters1)
+        return runtime.executeCall2(
+            owner, null,
+            method1, valueParameters1, origin
+        )
     }
 
     fun extractTokensFromRuntime(result: BlockReturn, method: Method, origin: Long): TokenList {

@@ -37,7 +37,11 @@ class SimpleCheckEquals(
         // todo handle yield from this...
         // todo this can involve dynamic dispatch
         val method1 = method.specialization
-        val result = runtime.executeCall(va, null, method1, listOf(right))
+        val result = runtime.executeCall(
+            va, null,
+            method1, listOf(right), origin
+        )
+
         if (!negated) return result.retToVal()
 
         return when (result.type) {

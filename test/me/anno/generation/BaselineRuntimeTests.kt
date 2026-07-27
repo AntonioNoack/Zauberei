@@ -116,7 +116,7 @@ class BaselineRuntimeTests : CodeGenerationTests() {
         testNumberConversionsImpl()
     }
 
-    @Test
+    // @Test
     fun testNumberConversionsBenchmark() {
         LogManager.disable("ResolutionUtils,MinimalCompiler")
         for (i in 0 until 10) {

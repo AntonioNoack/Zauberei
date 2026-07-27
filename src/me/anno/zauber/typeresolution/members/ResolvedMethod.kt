@@ -37,6 +37,10 @@ class ResolvedMethod(method: Method, context: ResolutionContext, codeScope: Scop
     }
 
     override fun toString(): String {
-        return "ResolvedMethod(method=$resolved, generics=$specialization)"
+        return if (specialization.isEmpty()) {
+            "ResolvedMethod($resolved)"
+        } else {
+            "ResolvedMethod(method=$resolved, generics=$specialization)"
+        }
     }
 }

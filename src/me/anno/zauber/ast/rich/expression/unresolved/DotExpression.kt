@@ -234,6 +234,10 @@ class DotExpression(
                 if (callable.resolved !is MethodLike) {
                     error("Implement DotExpression with methodType, but field: $this")
                 }
+
+                @Suppress("UNCHECKED_CAST")
+                callable as ResolvedMember<out MethodLike>
+
                 val targetParams = callable.resolved.valueParameters
                 val isConstrForInnerClass = callable is ResolvedConstructor &&
                         callable.resolved.scope.parent!!.scopeType == ScopeType.INNER_CLASS

@@ -71,6 +71,10 @@ object ASTSimplifier {
         nativeInts + nativeFloats
     }
 
+    val nativeTypes by threadLocal {
+        nativeNumbers + Types.Boolean
+    }
+
     fun unitInstance(graph: SimpleGraph, scope: Scope, origin: Long): SimpleField {
         var field = graph.unitField
         if (field != null) return field

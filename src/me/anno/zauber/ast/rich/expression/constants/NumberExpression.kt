@@ -274,7 +274,6 @@ class NumberExpression(val value: String, scope: Scope, origin: Long) : Expressi
 
     // based on the string content, decide what type this is
     val resolvedType0 = typeBySuffix() ?: when {
-        value.startsWith("'") -> Types.Char
         basis == 16 -> resolveHexIntType()
         basis == 2 -> resolveBinIntType()
         // does Kotlin have numbers with binary exponent? -> no, but it might be useful...
@@ -330,6 +329,7 @@ class NumberExpression(val value: String, scope: Scope, origin: Long) : Expressi
     }
 
     private fun typeBySuffix(): ClassType? {
+        if (isChar) return Types.Char
         if (value.contains('p', true)) {
             return when (value.last()) {
                 'f', 'F' -> Types.Float

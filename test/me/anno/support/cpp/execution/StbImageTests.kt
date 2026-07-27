@@ -112,7 +112,7 @@ class StbImageTests {
             runtime.getObjectInstance(method.ownerScope),
             null, Specialization.fromSimple(method.memberScope), listOf(
                 buffer, size, widthPtr, heightPtr, channelsPtr, desiredChannels
-            )
+            ), -1
         )
         check(result.type.isValue())
 

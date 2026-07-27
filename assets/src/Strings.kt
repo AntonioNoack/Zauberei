@@ -1,4 +1,5 @@
 package zauber
+import zauber.math.min
 import zauber.math.max
 
 external class Char(val content: Char) {
@@ -16,6 +17,9 @@ external class Char(val content: Char) {
     fun plus(other: UInt): Char = (toUInt() + other).toChar()
 
     fun isWhitespace() = this in " \t\r\n"
+
+    external fun equals(other: Char): Boolean
+    override fun equals(other: Any?): Boolean = other is Char && content == other
 
 }
 
@@ -76,7 +80,10 @@ class StringBuilder(capacity: Int = 16): CharSequence {
     companion object {
         // todo bug: this should not be necessary, we import zauber.math.max!
         private fun max(a: Int, b: Int): Int {
-            return if(a > b) a else b
+            return if (a > b) a else b
+        }
+        private fun min(a: Int, b: Int): Int {
+            return if (a < b) a else b
         }
     }
 
@@ -177,9 +184,9 @@ class StringBuilder(capacity: Int = 16): CharSequence {
 
     fun append(value: Half): StringBuilder {
         when {
-            value.isNaN() -> append("NaN")
             value == Half.POSITIVE_INFINITY -> append("Infinity")
             value == Half.NEGATIVE_INFINITY -> append("-Infinity")
+            value.isNaN() -> append("NaN")
             else -> appendDouble(value.toDouble(), 3)
         }
         return this
@@ -187,20 +194,20 @@ class StringBuilder(capacity: Int = 16): CharSequence {
 
     fun append(value: Float): StringBuilder {
         when {
-            value.isNaN() -> append("NaN")
             value == Float.POSITIVE_INFINITY -> append("Infinity")
             value == Float.NEGATIVE_INFINITY -> append("-Infinity")
-            else -> appendDouble(value.toDouble(), 7)
+            value.isNaN() -> append("NaN")
+            else -> appendDouble(value.toDouble(), 9)
         }
         return this
     }
 
     fun append(value: Double): StringBuilder {
         when {
-            value.isNaN() -> append("NaN")
             value == Double.POSITIVE_INFINITY -> append("Infinity")
             value == Double.NEGATIVE_INFINITY -> append("-Infinity")
-            else -> appendDouble(value, 16)
+            value.isNaN() -> append("NaN")
+            else -> appendDouble(value, 17)
         }
         return this
     }
@@ -243,8 +250,8 @@ class StringBuilder(capacity: Int = 16): CharSequence {
             }
         }
 
-        var asLong = value.toLong()
-        var len0 = size // length before appending; e.g. 0
+        val asLong = value.toLong()
+        val len0 = size // length before appending; e.g. 0
         append(asLong)
 
         val len1 = size
@@ -252,15 +259,25 @@ class StringBuilder(capacity: Int = 16): CharSequence {
         value -= asLong
 
         append('.')
+        if (asLong == 0) { // special case: extra zeros don't consume precision
+            precision++ // first zero doesn't count either
+            while (value > 0.0 && value < 0.1) {
+                value *= 10.0
+                append('0')
+            }
+        }
+
+        ensureExtraCapacity(precision) // optional
         do {
             value *= 10.0
-            val asInt = value.toInt()
+            val asInt = min(value.toInt(), 9)
             append('0' + asInt)
             value -= asInt
             precision--
         } while (value > 0.0 && precision > 0)
 
         if (value >= 0.5) {
+            // todo bug: why is this active for Int.MAX_VALUE.toDouble()???
             // round up
             roundUpDouble(len0, asLong)
         } else {
@@ -281,7 +298,7 @@ class StringBuilder(capacity: Int = 16): CharSequence {
         // we must add one
         val buffer = buffer
         while (size > len0) { // condition just in case
-            val digit = buffer[size - 1]
+            val digit = buffer[size - 1].toChar()
             if (digit == '9') {
                 // continue loop
                 size--

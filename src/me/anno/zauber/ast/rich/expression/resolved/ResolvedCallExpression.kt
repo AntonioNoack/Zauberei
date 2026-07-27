@@ -5,6 +5,7 @@ import me.anno.zauber.ast.rich.expression.Expression
 import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.Method
+import me.anno.zauber.ast.rich.member.MethodLike
 import me.anno.zauber.ast.simple.ASTSimplifier.simplifyCall
 import me.anno.zauber.ast.simple.SimpleBlock
 import me.anno.zauber.ast.simple.controlflow.FlowResult
@@ -19,7 +20,7 @@ import me.anno.zauber.types.Type
 class ResolvedCallExpression(
     selfExpr0: Expression?,
     val thisExpr: Expression?,
-    val callable: ResolvedMember<*>,
+    val callable: ResolvedMember<out MethodLike>,
     val valueParameters: List<Expression>,
     scope: Scope, origin: Long
 ) : Expression(scope, origin) {
@@ -101,18 +102,27 @@ class ResolvedCallExpression(
     ): FlowResult {
 
         // (base, block1)
-        val block1 = selfExpr?.simplify(context, block0, flow0, true, contextExpr = this) ?: flow0
+        val block1 = selfExpr?.simplify(
+            context.withTargetType(callable.selfType),
+            block0, flow0, true, contextExpr = this
+        ) ?: flow0
         val base = block1.value ?: return block1
 
         // println("Simplified self to ${expr.self} (${expr.self.javaClass.simpleName})")
         var blockI = block1
-        val valueParameters = valueParameters.map { param ->
-            blockI = param.simplify(context, blockI.value!!.block, blockI, false, contextExpr = this)
+        val valueParameters = valueParameters.mapIndexed { index, param ->
+            blockI = param.simplify(
+                context.withTargetType(callable.resolved.valueParameters[index].type),
+                blockI.value!!.block, blockI, false, contextExpr = this
+            )
             blockI.value?.value ?: return blockI
         }
 
         val thisExpr = if (thisExpr != null) {
-            blockI = thisExpr.simplify(context, blockI.value!!.block, blockI, false, contextExpr = this)
+            blockI = thisExpr.simplify(
+                context.withTargetType(callable.resolved.ownerScope.typeWithArgs2),
+                blockI.value!!.block, blockI, false, contextExpr = this
+            )
             blockI.value?.value ?: return blockI
         } else null
 

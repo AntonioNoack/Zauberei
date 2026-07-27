@@ -231,7 +231,10 @@ class SimpleMethodCall(
 
         val method = methods[thisInstance.clazz.type as ClassType] ?: sample
         val method1 = specialization.withScopeUnknownIfMissing(method.memberScope)
-        return runtime.executeCall(thisInstance, selfInstance, method1, valueParameters).retToVal()
+        return runtime.executeCall(
+            thisInstance, selfInstance,
+            method1, valueParameters, origin
+        ).retToVal()
     }
 
     override fun clone(src: SimpleGraph, dst: SimpleGraph): SimpleInstruction {

@@ -164,7 +164,7 @@ class Array<V>(override val size: Int): MutableList<V> {
     }
 
     fun copyInto(dst: Array<V>, dstStartIndex: Int) {
-        copyInto(dst, dstStartIndex, 0, dst.size)
+        copyInto(dst, dstStartIndex, 0, size)
     }
 
 

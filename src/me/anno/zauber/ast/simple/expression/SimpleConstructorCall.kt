@@ -64,7 +64,10 @@ class SimpleConstructorCall(
 
         initializeArrayIfNeeded(thisInstance, method)
 
-        return runtime.executeCall(thisInstance, null, specialization, valueParameters).retToVal()
+        return runtime.executeCall(
+            thisInstance, null,
+            specialization, valueParameters, origin
+        ).retToVal()
     }
 
     fun initializeArrayIfNeeded(self: Instance, method: MethodLike) {

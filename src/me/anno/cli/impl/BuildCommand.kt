@@ -108,7 +108,10 @@ object BuildCommand : CommandImpl("build", "b") {
                     val specialization = Specialization.fromSimple(test.memberScope)
                     // todo call beforeEach/beforeAll and afterEach/afterAll if defined
                     val self = getSelfInstance(test.memberScope)
-                    runtime.executeCall(self, null, specialization, emptyList())
+                    runtime.executeCall(
+                        self, null,
+                        specialization, emptyList(), -1
+                    )
                 }
             }
             showUnitTestResults(testResults)

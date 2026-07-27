@@ -41,6 +41,9 @@ object ConstExpr {
 
         val methodSpec = Specialization(method.scope, emptyParameterList())
         val methodOwnerInstance = runtime.getObjectInstance(objectScope)
-        return runtime.executeCall(methodOwnerInstance, null, methodSpec, emptyList())
+        return runtime.executeCall(
+            methodOwnerInstance, null,
+            methodSpec, emptyList(), value.origin
+        )
     }
 }
