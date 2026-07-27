@@ -11,7 +11,7 @@ class SimpleReturn(field: SimpleField, scope: Scope, origin: Long) : SimpleExit(
 
     override fun clone(src: SimpleGraph, dst: SimpleGraph): SimpleInstruction {
         return SimpleReturn(
-            src.cloned(field, dst),
+            src.cloned(value, dst),
             scope, origin
         )
     }

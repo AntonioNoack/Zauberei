@@ -38,7 +38,7 @@ class NamedCallExpression(
             this(base, name, nameAsImport, null, emptyList(), scope, origin)
 
     constructor(base: Expression, name: String, other: Expression, scope: Scope, origin: Long) :
-            this(base, name, emptyList(), null, listOf(NamedParameter( other)), scope, origin)
+            this(base, name, emptyList(), null, listOf(NamedParameter(other)), scope, origin)
 
     init {
         check(name != ".")

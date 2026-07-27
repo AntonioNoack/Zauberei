@@ -28,6 +28,11 @@ class RustGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testPrintFloats() {
+        testPrintFloatsImpl()
+    }
+
+    @Test
     fun testMethodCall() {
         testMethodCallImpl()
     }

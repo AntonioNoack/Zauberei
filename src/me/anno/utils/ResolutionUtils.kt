@@ -4,8 +4,6 @@ import me.anno.generation.Specializations
 import me.anno.utils.StringStyles.bold
 import me.anno.utils.StringStyles.style
 import me.anno.zauber.Zauber
-import me.anno.zauber.ast.rich.expression.Expression
-import me.anno.zauber.ast.rich.expression.ExpressionList
 import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.Method
@@ -15,10 +13,8 @@ import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.scope.ScopeType
-import me.anno.zauber.scope.lazy.LazyExpression
 import me.anno.zauber.tokenizer.ZauberTokenizer
 import me.anno.zauber.typeresolution.ResolutionContext
-import me.anno.zauber.typeresolution.TypeResolution
 import me.anno.zauber.types.Type
 
 object ResolutionUtils {
@@ -147,13 +143,12 @@ object ResolutionUtils {
         for (method in data.calledMethods.map { method ->
             val methodStr = when (val method = method.method) {
                 is Method -> {
-                    style(method.flags().toString() + "fun ", StringStyles.ORANGE) +
+                    style(method.ownerScope.pathStr, StringStyles.MEDIUM_BLUE) + "." +
+                            style(method.flags().toString() + "fun ", StringStyles.ORANGE) +
                             style(method.appendSelfType(), StringStyles.MEDIUM_BLUE) +
                             style(method.appendTypeParams(), StringStyles.GREEN) +
                             style(method.name, StringStyles.YELLOW) +
-                            method.appendValueParams() +
-                            " in " +
-                            style(method.ownerScope.pathStr, StringStyles.MEDIUM_BLUE)
+                            method.appendValueParams()
                 }
                 is Constructor -> {
                     style("new " + method.flags(), StringStyles.ORANGE) +
@@ -183,12 +178,8 @@ object ResolutionUtils {
                 else -> getSetStr
             }
             val fieldStr = "${field.selfType ?: field.ownerScope.pathStr}"
-            "  - ${style(field.name, StringStyles.YELLOW)} in ${
-                style(
-                    fieldStr,
-                    StringStyles.MEDIUM_BLUE
-                )
-            }, $fieldSpec: $str"
+            "  - ${style(fieldStr, StringStyles.MEDIUM_BLUE)}." +
+                    "${style(field.name, StringStyles.YELLOW)}, $fieldSpec: $str"
         }.sorted()) {
             LOGGER.info(field)
         }

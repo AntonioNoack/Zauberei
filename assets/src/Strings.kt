@@ -35,6 +35,10 @@ class String(val content: ByteArray) {
         return String(content + other.content)
     }
 
+    operator fun <V> plus(other: V): String {
+        return plus(other?.toString() ?: "null")
+    }
+
     fun trim(): String {
         var i0 = 0
         var i1 = length-1
@@ -176,7 +180,7 @@ class StringBuilder(capacity: Int = 16): CharSequence {
             value.isNaN() -> append("NaN")
             value == Half.POSITIVE_INFINITY -> append("Infinity")
             value == Half.NEGATIVE_INFINITY -> append("-Infinity")
-            else -> appendFloaty<Float>(value.toFloat(), 3)
+            else -> appendDouble(value.toDouble(), 3)
         }
         return this
     }
@@ -186,7 +190,7 @@ class StringBuilder(capacity: Int = 16): CharSequence {
             value.isNaN() -> append("NaN")
             value == Float.POSITIVE_INFINITY -> append("Infinity")
             value == Float.NEGATIVE_INFINITY -> append("-Infinity")
-            else -> appendFloaty<Float>(value, 7)
+            else -> appendDouble(value.toDouble(), 7)
         }
         return this
     }
@@ -196,20 +200,118 @@ class StringBuilder(capacity: Int = 16): CharSequence {
             value.isNaN() -> append("NaN")
             value == Double.POSITIVE_INFINITY -> append("Infinity")
             value == Double.NEGATIVE_INFINITY -> append("-Infinity")
-            else -> appendFloaty<Double>(value, 16)
+            else -> appendDouble(value, 16)
         }
         return this
     }
 
-    private fun <F> appendFloaty(value: F, maxPrecision: Int) {
-        // todo append float
-        append("some float")
+    private fun appendDouble(value: Double, maxPrecision: Int) {
+        var value = value
+        if (value < 0.0) {
+            value = -value
+            append('-')
+        }
+
+        var exponent = 0
+        if (value > 1e9) {
+            while (value >= 1e100) {
+                value *= 1e-99
+                exponent += 99
+            }
+            while (value >= 1e10) {
+                value *= 1e-9
+                exponent += 9
+            }
+            while (value >= 10.0) {
+                value *= 0.1
+                exponent++
+            }
+        }
+
+        if (value < 1e-9) {
+            while (value < 1e-100) {
+                value *= 1e100
+                exponent -= 100
+            }
+            while (value < 1e-10) {
+                value *= 1e10
+                exponent -= 10
+            }
+            while (value < 1.0) {
+                value *= 10.0
+                exponent--
+            }
+        }
+
+        var asLong = value.toLong()
+        var len0 = size // length before appending; e.g. 0
+        append(asLong)
+
+        val len1 = size
+        var precision = maxPrecision + len0 - len1 // e.g. + 0 - 3
+        value -= asLong
+
+        append('.')
+        do {
+            value *= 10.0
+            val asInt = value.toInt()
+            append('0' + asInt)
+            value -= asInt
+            precision--
+        } while (value > 0.0 && precision > 0)
+
+        if (value >= 0.5) {
+            // round up
+            roundUpDouble(len0, asLong)
+        } else {
+            // trim trailing zeros
+            val len1i = len1 + 2 // +2 to retain at least one zero
+            while (size > len1i && endsWith('0')) {
+                size--
+            }
+        }
+
+        if (exponent != 0) {
+            append('e')
+            append(exponent)
+        }
     }
 
+    private fun roundUpDouble(len0: Int, asLong: Long) {
+        // we must add one
+        val buffer = buffer
+        while (size > len0) { // condition just in case
+            val digit = buffer[size - 1]
+            if (digit == '9') {
+                // continue loop
+                size--
+            } else {
+                if (digit == '.') {
+                    // we must increment the integer
+                    size = len0
+                    append(asLong + 1)
+                    append(".0")
+                    return
+                } else {
+                    buffer[size-1]++
+                    return
+                }
+            }
+        }
+    }
+
+    fun endsWith(char: Char): Boolean {
+        return size > 0 && buffer[size-1] == char
+    }
 
     fun clear() {
         size = 0
     }
+
+    fun <V> append(value: V): StringBuilder {
+        return append(value?.toString() ?: "null")
+    }
+
     override fun toString(): String = String(buffer.copyOf(size))
 
 }

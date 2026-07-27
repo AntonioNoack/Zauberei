@@ -55,7 +55,9 @@ abstract class ResolvedMember<V : Member>(
         }
 
         if (type is ClassType) {
-            check(type.clazz.isClassLike()) // just in case
+            check(type.clazz.isClassLike()) {
+                "Expected $type to be classLike for thisExpression"
+            }
             return ThisExpression(type.clazz, scope, origin)
         }
 

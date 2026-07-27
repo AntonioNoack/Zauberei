@@ -17,8 +17,6 @@ import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.simple.ASTSimplifier
 import me.anno.zauber.ast.simple.SimpleBlock
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.needsCopy
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.SimpleMerge
 import me.anno.zauber.ast.simple.constants.SimpleNumber
@@ -828,8 +826,8 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         when (expr) {
             is SimpleNumber, is SimpleGetObject -> {} // skip
             is SimpleReturn -> {
-                val reg = getSimpleFieldReg(graph, expr.field)
-                val type = getLLVMType(expr.field.type)
+                val reg = getSimpleFieldReg(graph, expr.value)
+                val type = getLLVMType(expr.value.type)
 
                 if (type is LLVMType.Ptr && type.isValueType) {
                     // remove *, so we pass values, not instances

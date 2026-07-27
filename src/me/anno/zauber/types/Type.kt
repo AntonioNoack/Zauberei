@@ -1,6 +1,7 @@
 package me.anno.zauber.types
 
 import me.anno.generation.Specializations.specialization
+import me.anno.generation.cpp.CppSourceGenerator.Companion.nativeCppTypes
 import me.anno.support.cpp.ast.rich.PointerType
 import me.anno.utils.StringStyles
 import me.anno.utils.StringStyles.GREEN
@@ -383,4 +384,31 @@ abstract class Type {
     open fun orNull(): Type = unionTypes(this, NullType)
 
     open val resolvedName: Type get() = this
+
+
+    fun isValue(): Boolean {
+        return needsCopy() || isNative()
+    }
+
+    fun isValueOrNative(): Boolean = isValue() || isNative()
+
+    fun isNative(): Boolean {
+        return this in nativeCppTypes
+    }
+
+    fun needsCopy(): Boolean {
+        return this is ClassType && clazz.isValueType()
+    }
+
+    fun isNullable(): Boolean {
+        return when (this) {
+            NullType -> true
+            is ClassType -> false
+            is UnionType -> types.any { it.isNullable() }
+            is AndType -> types.all { it.isNullable() }
+            is GenericType -> superBounds.isNullable()
+            is UnresolvedType -> resolvedName.isNullable()
+            else -> throw NotImplementedError("Can a $this be null?")
+        }
+    }
 }

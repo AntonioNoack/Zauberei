@@ -13,6 +13,14 @@ class SimpleCheckIdentical(
     scope: Scope, origin: Long
 ) : SimpleAssignment(dst, scope, origin) {
 
+    init {
+        val leftIsNative = left.type.isValueOrNative()
+        val rightIsNative = right.type.isValueOrNative()
+        if (leftIsNative || rightIsNative) {
+            error("Should not check values for identical, $this")
+        }
+    }
+
     override fun toString(): String {
         return "$dst = $left ${if (negated) "!==" else "==="} $right"
     }

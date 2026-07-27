@@ -40,6 +40,20 @@ abstract class CodeGenerationTests {
         assertEquals("8\n", printed)
     }
 
+    fun testPrintFloatsImpl() {
+        val code = """
+            fun main() {
+                println(-17.0)
+                println(0.1234)
+                println(0.1)
+            }
+        """.trimIndent()
+
+        val printed = generator()
+            .testCompileMainAndRun(code, ::registerLib)
+        assertEquals("-17.0\n0.1234\n0.1\n", printed)
+    }
+
     fun testMethodCallImpl() {
         val code = """
             fun calc(x: Int) = x+1

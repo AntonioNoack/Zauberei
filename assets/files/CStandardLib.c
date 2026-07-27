@@ -90,7 +90,7 @@ void* __createString(const char* content, void* newStr0) {
         newStr->_class = 1;
         zauber_Array_zauberByte* newBuffer = __gcNew(sizeof(zauber_Array_zauberByte), 2);
         newStr->content = newBuffer;
-        newBuffer->content = content;
+        newBuffer->content = (char*) content; // cast removes const, but we won't modify it anyway
         newBuffer->size = strlen(content);
         // todo we need to copy the data, or set a flag that we don't free it
     }

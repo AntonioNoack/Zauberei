@@ -769,8 +769,14 @@ class ZauberASTBuilder(
         // main elements
         loop@ while (i < tokens.size) {
             var isInfix = false
+            var opLength = 1
             val symbol = when (tokens.getType(i)) {
-                TokenType.SYMBOL, TokenType.KEYWORD -> tokens.toString(i)
+                TokenType.SYMBOL, TokenType.KEYWORD -> {
+                    if (tokens.equals(i, "?") && tokens.equals(i + 1, ".")) {
+                        opLength = 2
+                        "?."
+                    } else tokens.toString(i)
+                }
                 TokenType.NAME -> {
                     isInfix = true
                     val infix = supportedInfixFunctions.firstOrNull { infix -> tokens.equals(i, infix) }
@@ -805,7 +811,7 @@ class ZauberASTBuilder(
                 if (op.precedence < minPrecedence) break@loop
 
                 val origin = origin(i)
-                i++ // consume operator
+                i += opLength // consume operator
 
                 val scope = currPackage
                 expr = when (symbol) {

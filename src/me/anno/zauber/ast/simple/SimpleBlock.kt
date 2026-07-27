@@ -281,31 +281,6 @@ class SimpleBlock(val graph: SimpleGraph) {
     }
 
     companion object {
-
         private val LOGGER = LogManager.getLogger(SimpleBlock::class)
-
-        fun Type.isValue(): Boolean {
-            return needsCopy() || isNative()
-        }
-
-        fun Type.isNative(): Boolean {
-            return this in nativeCppTypes
-        }
-
-        fun Type.needsCopy(): Boolean {
-            return this is ClassType && clazz.isValueType()
-        }
-
-        fun Type.isNullable(): Boolean {
-            return when (this) {
-                NullType -> true
-                is ClassType -> false
-                is UnionType -> types.any { it.isNullable() }
-                is AndType -> types.all { it.isNullable() }
-                is GenericType -> superBounds.isNullable()
-                is UnresolvedType -> resolvedName.isNullable()
-                else -> throw NotImplementedError("Can a $this be null?")
-            }
-        }
     }
 }

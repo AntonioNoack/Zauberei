@@ -15,7 +15,6 @@ import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.rich.member.MethodLike
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.expression.*
 import me.anno.zauber.ast.simple.fields.SimpleField
@@ -56,6 +55,11 @@ open class CSourceGenerator : CppSourceGenerator() {
         }
     }
 
+    init {
+        removeSuperCallsInConstructor = false
+        boxSuffix = "_Ptr"
+    }
+
     lateinit var inheritanceTable: InheritanceTable
 
     var onlyCheapSimplifications = true
@@ -78,6 +82,9 @@ open class CSourceGenerator : CppSourceGenerator() {
         return (packagePath + file.name.replace('.', '_'))
             .joinToString("_").uppercase(Locale.ENGLISH)
     }
+
+    override val keywords: Set<String>
+        get() = CppTokenizer.cKeywords
 
     override fun beginPackageDeclaration(
         packagePath: List<String>, file: File,
@@ -226,22 +233,44 @@ open class CSourceGenerator : CppSourceGenerator() {
         classScope: Scope, className: String,
         packagePrefix: String, fields: Collection<Specialization>,
     ) {
-        appendClassFlags(classScope)
-        builder.append("typedef struct")
-        writeBlock {
-            // append fields; todo initialize this in constructor
-            if (!classScope.isValueType()) {
-                builder.append("uint32_t ").append(CLASS_INDEX_NAME).append(';')
+        val isNative = classScope.typeWithArgs2.isNative()
+        val isValueLike = isNative || classScope.isValueType()
+
+        if (!isNative) {
+            builder.append("typedef struct")
+            writeBlock {
+                // append fields
+                if (!isValueLike) {
+                    builder.append("uint32_t ").append(CLASS_INDEX_NAME).append(';')
+                    nextLine()
+                }
+                declareClassFields(classScope, fields, true, headerOnly = true)
+            }
+            removeTrailingWhitespace()
+            builder.append(' ')
+            builder.append(packagePrefix)
+            builder.append(className)
+            builder.append(";")
+        }
+
+        if (isValueLike) {
+            if (!isNative) {
+                nextLine()
                 nextLine()
             }
-            declareClassFields(classScope, fields, true, headerOnly = true)
-        }
-        removeTrailingWhitespace()
 
-        builder.append(' ')
-        builder.append(packagePrefix)
-        builder.append(className)
-        builder.append(";")
+            builder.append("typedef struct")
+            writeBlock {
+                builder.append("uint32_t ").append(CLASS_INDEX_NAME).append(';'); nextLine()
+                declareClassFields(classScope, fields, true, headerOnly = true)
+            }
+            removeTrailingWhitespace()
+            builder.append(' ')
+            builder.append(packagePrefix)
+            builder.append(className)
+            builder.append(boxSuffix)
+            builder.append(";")
+        }
         nextLine()
     }
 
@@ -276,7 +305,13 @@ open class CSourceGenerator : CppSourceGenerator() {
 
     override fun declareThis(method: MethodLike, scope: Scope) {
         if (hasThis(method)) {
-            appendType(scope.typeWithArgs.specialize(), scope, true, withSuffix = true)
+            val type = scope.typeWithArgs.specialize()
+            appendType(type, scope, true, withSuffix = false)
+            if (type !in nativeTypes && type.isValue()) { // remove box-suffix
+                check(builder.endsWith(boxSuffix))
+                builder.setLength(builder.length - boxSuffix.length)
+            }
+            appendOwnershipSuffix(type, true)
             builder.append(' ').append(thisParamName)
         }
     }
@@ -384,8 +419,7 @@ open class CSourceGenerator : CppSourceGenerator() {
 
         if (hasSelf(method0.method)) {
             if (!builder.endsWith('(')) builder.append(", ")
-            if (expr.selfInstance!!.type.isValue()) markValueAsReference()
-            appendFieldName(graph, expr.selfInstance, "")
+            appendFieldName(graph, expr.selfInstance!!, "")
         }
 
         appendValueParams(graph, expr.valueParameters, withBrackets = false)
@@ -543,8 +577,23 @@ open class CSourceGenerator : CppSourceGenerator() {
                 }
             }
             is SimpleConstructorCall -> {
+                // skip this call, if it just calls Any (a no-op, and difficult for value-classes)
+                if (expr.method.ownerScope == Types.Any.clazz) return
+
                 val methodName = getMethodName(expr.specialization)
                 builder.append(methodName).append('(')
+
+                val srcType = expr.thisInstance.type
+                val dstType = expr.sample.ownerScope.typeWithArgs2
+                    .specialize(expr.specialization)
+                ensureImport(dstType)
+
+                val needsCast = srcType != dstType
+                if (needsCast) {
+                    builder.append('(')
+                    appendType(dstType, expr.scope, true, withSuffix = true)
+                    builder.append(") ")
+                }
                 if (expr.thisInstance.type.isValue()) builder.append('&')
                 appendFieldName(graph, expr.thisInstance, "")
                 appendValueParams(graph, expr.valueParameters, withBrackets = false)
@@ -567,74 +616,127 @@ open class CSourceGenerator : CppSourceGenerator() {
                 val srcRef = !srcNum && !srcValue
                 val dstRef = !dstNum && !dstValue
 
+                val scope = expr.scope
                 when {
-                    dstValue && srcValue -> error("Cannot convert $src to $dst implicitly")
-                    srcValue -> {
-
-                        builder.append('(')
-                        appendType(dst.type, expr.scope, true, withSuffix = true)
-                        builder.append(") ")
-
-                        builder.append("__gcNew(sizeof(")
-                        appendType(src.type, expr.scope, true, withSuffix = false)
-                        val spec = Specialization(src.type as ClassType)
-                        builder.append("), ")
-                            .append(inheritanceTable.getClassIndex(spec))
-                            .append(");"); nextLine()
-
-                        if (src.type in nativeNumbers) {
-                            builder.append("((")
-                            appendType(src.type, expr.scope, true, withSuffix = true)
-                            builder.append(") ")
-                            appendFieldName(graph, dst)
-                            builder.append(")->content = ")
-                            appendFieldName(graph, src)
-                        } else {
-                            val fields = src.type.clazz.fields
-                            for (field in fields) {
-                                builder.append("((")
-                                appendType(src.type, expr.scope, true, withSuffix = true)
-                                builder.append(") ")
-                                appendFieldName(graph, dst)
-                                builder.append(")->").append(field.newName).append(" = ")
-                                appendFieldName(graph, src)
-                                builder.append(".").append(field.newName).append(';')
-                                nextLine()
-                            }
-                        }
-                    }
-                    srcRef && dstNum -> {
-                        // unboxing
-                        builder.append("((")
-                        appendType(dst.type, expr.scope, true, withSuffix = true)
-                        builder.append(") ")
-                        appendFieldName(graph, src)
-                        builder.append(")->content")
-                    }
-                    dstValue -> error("Unboxing $src to $dst")
+                    !srcRef && dstRef -> appendBoxing(graph, src, dst, scope)
+                    srcRef && dstNum -> appendUnboxingToNumber(graph, src, dst, scope)
+                    srcRef && dstValue -> appendUnboxingToValue(graph, src, dst, scope)
                     else -> {
+                        check((srcNum && dstNum) || (srcRef && dstRef)) { "Unknown cast from $srcType to $dstType" }
+
                         builder.append('(')
-                        appendType(expr.dst.type, expr.scope, true, withSuffix = true)
+                        appendType(expr.dst.type, scope, true, withSuffix = true)
                         builder.append(") ")
                         appendFieldName(graph, expr.src)
                     }
                 }
             }
-            is SimpleInstanceOf -> {
-                val type = expr.type
-                val call =
-                    if (type.clazz.isInterface()) inheritanceTable.instanceOfInterfaceCall
-                    else inheritanceTable.instanceOfClassCall
-                builder.append(getMethodName(call))
-                builder.append("(")
-                appendClassIndex(graph, expr.value)
-                builder
-                    .append(", ")
-                    .append(inheritanceTable.getClassIndex(type))
-                    .append(")")
+            is SimpleCheckIdentical -> {
+                appendCastToCommon(expr)
+                appendFieldName(graph, expr.left)
+                builder.append(" == ")
+                appendCastToCommon(expr)
+                appendFieldName(graph, expr.right)
             }
             else -> super.appendInstrImpl(graph, expr)
         }
+    }
+
+    var preferShortCode = false
+
+    fun appendCastToCommon(expr: SimpleInstruction) {
+        if (preferShortCode) {
+            builder.append("(void*)")
+        } else {
+            builder.append('(')
+            appendType(Types.Any, expr.scope, true, withSuffix = true)
+            builder.append(')')
+        }
+    }
+
+    open fun appendBoxing(graph: SimpleGraph, src: SimpleField, dst: SimpleField, scope: Scope) {
+        builder.append('(')
+        appendType(dst.type, scope, true, withSuffix = true)
+        builder.append(") ")
+
+        builder.append("__gcNew(sizeof(")
+        appendType(src.type, scope, true, withSuffix = false)
+        val spec = Specialization(src.type as ClassType)
+        builder.append("), ")
+            .append(inheritanceTable.getClassIndex(spec))
+            .append(");"); nextLine()
+
+        if (src.type in nativeNumbers) {
+            builder.append("((")
+            appendType(src.type, scope, true, withSuffix = true)
+            builder.append(") ")
+            appendFieldName(graph, dst)
+            builder.append(")->content = ")
+            appendFieldName(graph, src)
+        } else {
+            forEachCopyField(src.type) { field ->
+                builder.append("((")
+                appendType(src.type, scope, true, withSuffix = true)
+                builder.append(") ")
+                appendFieldName(graph, dst)
+                builder.append(")->").append(field.newName).append(" = ")
+                appendFieldName(graph, src)
+                builder.append(".").append(field.newName).append(';')
+                nextLine()
+            }
+        }
+    }
+
+    open fun appendUnboxingToNumber(graph: SimpleGraph, src: SimpleField, dst: SimpleField, scope: Scope) {
+        // unboxing
+        builder.append("((")
+        appendType(dst.type, scope, true, withSuffix = true)
+        builder.append(") ")
+        appendFieldName(graph, src)
+        builder.append(")->content")
+    }
+
+    open fun appendUnboxingToValue(graph: SimpleGraph, src: SimpleField, dst: SimpleField, scope: Scope) {
+        check(dst.type is ClassType) { "Expected unboxed value to have ClassType, got $dst (${dst.type.javaClass.simpleName})" }
+        builder.append("{}")
+
+        forEachCopyField(dst.type) { field ->
+            builder.append(";")
+            nextLine()
+            appendFieldName(graph, dst, ".")
+            builder.append(field.newName).append(" = ")
+            builder.append("((")
+            appendType(dst.type, scope, true, withSuffix = true)
+            builder.append(')')
+            appendFieldName(graph, src, "")
+            builder.append(")->")
+            builder.append(field.newName)
+        }
+    }
+
+    fun forEachCopyField(type: Type, callback: (Field) -> Unit) {
+        check(type is ClassType) { "Expected value to have ClassType, got $type (${type.javaClass.simpleName})" }
+        for (field in type.clazz.fields) {
+            if (!needsBackingField(field)) continue
+
+            callback(field)
+        }
+    }
+
+    override fun appendInstanceOf(graph: SimpleGraph, value: SimpleField, type: ClassType, expr: SimpleInstruction) {
+        val call =
+            if (type.clazz.isInterface()) inheritanceTable.instanceOfInterfaceCall
+            else inheritanceTable.instanceOfClassCall
+
+        ensureImport(call.method.ownerScope)
+
+        builder.append(getMethodName(call))
+        builder.append("(")
+        appendClassIndex(graph, value)
+        builder
+            .append(", ")
+            .append(inheritanceTable.getClassIndex(type))
+            .append(")")
     }
 
     open fun appendClassIndex(graph: SimpleGraph, value: SimpleField) {

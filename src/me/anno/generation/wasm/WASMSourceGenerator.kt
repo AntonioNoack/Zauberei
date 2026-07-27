@@ -31,8 +31,6 @@ import me.anno.zauber.ast.rich.member.MethodLike
 import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.simple.ASTSimplifier
 import me.anno.zauber.ast.simple.SimpleBlock
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.isNullable
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.needsCopy
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.SimpleMerge
 import me.anno.zauber.ast.simple.constants.SimpleNumber
@@ -1318,7 +1316,7 @@ class WASMSourceGenerator : JavaSourceGenerator() {
             }
             is SimpleReturn -> {
                 if (hasReturn(graph.method)) {
-                    appendGetField(graph, expr.field); nextLine()
+                    appendGetField(graph, expr.value); nextLine()
                 }
                 ret()
             }

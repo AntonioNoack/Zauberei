@@ -9,7 +9,6 @@ import me.anno.zauber.ast.rich.Flags.hasFlag
 import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.simple.ASTSimplifier
 import me.anno.zauber.ast.simple.ASTSimplifier.nativeNumbers
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.needsCopy
 import me.anno.zauber.ast.simple.constants.SimpleNumber
 import me.anno.zauber.ast.simple.constants.SimpleString
 import me.anno.zauber.ast.simple.expression.SimpleAllocateInstance

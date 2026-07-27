@@ -19,7 +19,7 @@ class SimpleYield(
 
     override fun clone(src: SimpleGraph, dst: SimpleGraph): SimpleInstruction {
         return SimpleYield(
-            src.cloned(field, dst),
+            src.cloned(value, dst),
             src.cloned(continueBlock, dst),
             scope, origin
         )

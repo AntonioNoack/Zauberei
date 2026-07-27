@@ -58,6 +58,22 @@ class CppGenerationTests : CodeGenerationTests() {
                         "else printf(\"%g\\n\",arg0);\n"
             )
         }
+
+        register(
+            TypeResolution.langScope, "flushConsole", emptyList(),
+            """
+                #include <stdio.h>
+                printf("%.*s", zauber_ZauberKt__getObject()->printed->size, zauber_ZauberKt__getObject()->printed->buffer->content);
+                zauber_ZauberKt__getObject()->printed->size = 0; // clear
+            """.trimIndent()
+        )
+
+        register(
+            Types.Double.clazz, "toBits", emptyList(),
+            """
+                return *((int64_t*) &this->content);
+            """.trimIndent()
+        )
     }
 
     override fun generator() = MinimalCppCompiler(true)
@@ -65,6 +81,11 @@ class CppGenerationTests : CodeGenerationTests() {
     @Test
     fun testOperationOrder() {
         testOperationOrderImpl()
+    }
+
+    @Test
+    fun testPrintFloats() {
+        testPrintFloatsImpl()
     }
 
     @Test

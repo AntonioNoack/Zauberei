@@ -33,13 +33,9 @@ import me.anno.zauber.ast.rich.parameter.InnerSuperCallTarget
 import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.simple.ASTSimplifier
 import me.anno.zauber.ast.simple.SimpleBlock
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.constants.SimpleString
-import me.anno.zauber.ast.simple.expression.SimpleAllocateInstance
-import me.anno.zauber.ast.simple.expression.SimpleBoxCast
-import me.anno.zauber.ast.simple.expression.SimpleInstanceOf
-import me.anno.zauber.ast.simple.expression.SimpleMethodCall
+import me.anno.zauber.ast.simple.expression.*
 import me.anno.zauber.ast.simple.fields.LocalField
 import me.anno.zauber.ast.simple.fields.SimpleField
 import me.anno.zauber.ast.simple.fields.SimpleInstruction
@@ -477,13 +473,15 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                         else -> {
                             val methodSpec = specialization
                             check(methodSpec.method === constructor)
-                            appendCode(context, methodSpec, body, true)
+                            appendCode(context, methodSpec, body, removeSuperCallsInConstructor)
                         }
                     }
                 }
             }
         }
     }
+
+    var removeSuperCallsInConstructor = true
 
     open fun appendNumberContentInitialization(constructor: Constructor) {
         builder.append("this->content = content;"); nextLine()
@@ -496,6 +494,8 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         builder.append("*) calloc(size, sizeof(")
         appendType(elementType, constructor.scope, false, withSuffix = true)
         builder.append(")) : NULL;")
+        nextLine()
+        builder.append("this->size = size;")
         nextLine()
     }
 
@@ -532,12 +532,12 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         val selfTypeIfNecessary = method.selfTypeIfNecessary
         if (selfTypeIfNecessary != null) {
             if (!builder.endsWith('(')) builder.append(", ")
-            appendType(selfTypeIfNecessary, scope, false, withSuffix = true)
+            appendType(selfTypeIfNecessary, scope, false /* self is immutable */, withSuffix = true)
             builder.append(" __self")
         }
     }
 
-    override fun declareValueParams(method: MethodLike, scope: Scope) {
+    override fun declareValueParameters(method: MethodLike, scope: Scope) {
         for (param in method.valueParameters) {
             if (!builder.endsWith('(')) builder.append(", ")
             appendType(param.type, scope, false, withSuffix = true)
@@ -763,6 +763,25 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
     override fun appendNumber(type: Type, expr: NumberExpression) {
         when {
             type.isFloat() -> appendFloat(expr.asFloat, "")
+            type == Types.Int -> {
+                if (expr.asInt.toInt() == Int.MIN_VALUE) {
+                    nativeImports += "#include <limits.h>"
+                    builder.append("INT32_MIN")
+                } else {
+                    builder.append(expr.asInt.toInt())
+                }
+            }
+            type == Types.Long -> {
+                if (expr.asInt == Long.MIN_VALUE) {
+                    // parser warns about overflow
+                    nativeImports += "#include <limits.h>"
+                    builder.append("INT64_MIN")
+                } else {
+                    builder.append(expr.asInt).append("LL")
+                }
+            }
+            type == Types.UInt -> builder.append(expr.asInt.toInt()).append('U')
+            type == Types.ULong -> builder.append(expr.asInt).append("ULL")
             else -> super.appendNumber(type, expr)
         }
     }
@@ -886,11 +905,14 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             printedType = printedType.superBounds
         }
         appendTypeImpl(printedType, scope, needsBoxedType)
+        if (printedType.isValue() && needsBoxedType) builder.append(boxSuffix)
 
         if (withSuffix) {
             appendOwnershipSuffix(type, needsBoxedType)
         }
     }
+
+    var boxSuffix = ""
 
     @Deprecated("Use appendType with suffix option")
     override fun appendType(type: Type, scope: Scope, needsBoxedType: Boolean) {
@@ -1127,14 +1149,63 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
                     }
                 }
             }
-            is SimpleInstanceOf -> {
-                builder.append("dynamic_cast<")
-                appendType(expr.type, expr.scope, true, withSuffix = false)
-                builder.append("*>(")
-                appendFieldName(graph, expr.value)
-                builder.append(") != nullptr")
+            is SimpleCheckEquals -> {
+                val leftNative = nativeTypes[expr.left.type]
+                val rightNative = nativeTypes[expr.right.type]
+                when {
+                    leftNative != null && rightNative == null ->
+                        appendPtrEqualsValue(graph, expr.right, expr.left, expr)
+                    leftNative == null && rightNative != null ->
+                        appendPtrEqualsValue(graph, expr.left, expr.right, expr)
+                    else -> super.appendInstrImpl(graph, expr)
+                }
             }
+            is SimpleCheckIdentical -> {
+                val leftNative = nativeTypes[expr.left.type]
+                val rightNative = nativeTypes[expr.right.type]
+                when {
+                    (leftNative != null) != (rightNative != null) -> {
+                        // todo this really should not exist...
+                        builder.append("false")
+                    }
+                    else -> super.appendInstrImpl(graph, expr)
+                }
+            }
+            is SimpleInstanceOf -> appendInstanceOf(graph, expr.value, expr.type, expr)
             else -> super.appendInstrImpl(graph, expr)
+        }
+    }
+
+    open fun appendInstanceOf(graph: SimpleGraph, value: SimpleField, type: ClassType, expr: SimpleInstruction) {
+        builder.append("dynamic_cast<")
+        appendType(type, expr.scope, true, withSuffix = false)
+        builder.append("*>(")
+        appendFieldName(graph, value)
+        builder.append(") != nullptr")
+    }
+
+    fun appendPtrEqualsValue(graph: SimpleGraph, ptr: SimpleField, value: SimpleField, expr: SimpleInstruction) {
+        if (ptr.type.isNullable()) {
+            appendFieldName(graph, ptr, "")
+            builder.append(" != NULL &&")
+            nextLine()
+            builder.append("  ")
+        }
+
+        check(value.type is ClassType) // todo UnionType(Value,Value,Value) could be a value, too...
+        appendInstanceOf(graph, ptr, value.type, expr)
+
+        for (field in value.type.clazz.fields) {
+            builder.append(" &&")
+            nextLine()
+            builder.append("  ((")
+            appendType(value.type, expr.scope, true, withSuffix = true)
+            builder.append(')')
+            appendFieldName(graph, ptr, "")
+            builder.append(")->")
+            builder.append(field.newName).append(" == ")
+            appendFieldName(graph, value, ".")
+            builder.append(field.newName)
         }
     }
 

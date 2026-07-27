@@ -41,6 +41,11 @@ class JavaScriptGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testPrintFloats() {
+        testPrintFloatsImpl()
+    }
+
+    @Test
     fun testMethodCall() {
         testMethodCallImpl()
     }

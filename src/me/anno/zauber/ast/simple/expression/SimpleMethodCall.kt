@@ -29,7 +29,7 @@ class SimpleMethodCall(
     //  method then could be the specialized one...
     val methods: Map<ClassType, MethodLike>,
     thisInstance: SimpleField,
-    val selfInstance: SimpleField?,
+    var selfInstance: SimpleField?,
     specialization: Specialization,
     valueParameters: List<SimpleField>,
     val scopeBridgingParameters: List<SimpleField>,
@@ -222,8 +222,9 @@ class SimpleMethodCall(
             error("Unexpected NPE: $this")
         }
 
+        val selfInstance0 = selfInstance
         val selfInstance =
-            if (selfInstance != null) runtime[selfInstance]
+            if (selfInstance0 != null) runtime[selfInstance0]
             else null
 
         // println("Running $sample with $thisInstance/$selfInstance")

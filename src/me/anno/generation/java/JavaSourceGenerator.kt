@@ -33,8 +33,6 @@ import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.simple.ASTSimplifier
 import me.anno.zauber.ast.simple.ASTSimplifier.needsFieldByParameter
 import me.anno.zauber.ast.simple.SimpleBlock
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.isNullable
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.needsCopy
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.SimpleMerge
 import me.anno.zauber.ast.simple.constants.SimpleNumber
@@ -216,6 +214,7 @@ open class JavaSourceGenerator : Generator() {
     val declaredFields = HashSet<SimpleField>()
     val usedFields = HashSet<SimpleField>()
     var thisParamName = "this"
+    var selfParamName = "__self"
 
     override fun generateCode(dst: File, data: DependencyData, mainMethod: Method) {
         val writer = FileWithImportsWriter(this, dst)
@@ -661,8 +660,10 @@ open class JavaSourceGenerator : Generator() {
         // some spacing
         nextLine()
 
-        appendMethodHeader(classScope, className, method0, headerOnly)
-        appendMethodBody(method0, headerOnly)
+        method0.use {
+            appendMethodHeader(classScope, className, method0, headerOnly)
+            appendMethodBody(method0, headerOnly)
+        }
     }
 
     fun assignSelfType(classScope: Scope, method: Method) {
@@ -954,7 +955,7 @@ open class JavaSourceGenerator : Generator() {
         builder.append('(')
         declareThis(method, scope)
         declareSelf(method, scope)
-        declareValueParams(method, scope)
+        declareValueParameters(method, scope)
         builder.append(')')
     }
 
@@ -970,7 +971,7 @@ open class JavaSourceGenerator : Generator() {
         }
     }
 
-    open fun declareValueParams(method: MethodLike, scope: Scope) {
+    open fun declareValueParameters(method: MethodLike, scope: Scope) {
         for (param in method.valueParameters) {
             if (!builder.endsWith("(")) builder.append(", ")
             appendType(param.type, scope, false)
@@ -1199,7 +1200,7 @@ open class JavaSourceGenerator : Generator() {
     fun SimpleField.isObjectLike() = type is ClassType && type.clazz.isObjectLike()
 
     fun SimpleField.isOwnerThis(graph: SimpleGraph): Boolean {
-        return fromLocalField === graph.thisField
+        return fromLocalField != null && fromLocalField === graph.thisField
     }
 
     open fun appendGetObjectInstance(objectScope: Scope, exprScope: Scope) {
@@ -1373,6 +1374,7 @@ open class JavaSourceGenerator : Generator() {
     ) {
         if (canSkipInstruction(expr)) return
 
+        // comment { builder.append(expr.javaClass.simpleName) }
         appendInstrPrefix(graph, expr)
         appendInstrImpl(graph, expr)
         appendInstrSuffix(graph, expr)
@@ -1475,10 +1477,11 @@ open class JavaSourceGenerator : Generator() {
                 when {
                     leftNative != null && rightNative != null -> {
                         appendFieldName(graph, expr.left)
-                        builder.append(" == ")
+                        builder.append(if (expr.negated) " != " else " == ")
                         appendFieldName(graph, expr.right)
                     }
                     leftCanBeNull && rightCanBeNull -> {
+                        if (expr.negated) builder.append("!(")
                         appendFieldName(graph, expr.left)
                         builder.append(" == null ? ")
                         appendFieldName(graph, expr.right)
@@ -1487,28 +1490,35 @@ open class JavaSourceGenerator : Generator() {
                         builder.append("equals(")
                         appendFieldName(graph, expr.right)
                         builder.append(")")
+                        if (expr.negated) builder.append(')')
                     }
                     leftCanBeNull -> {
+                        if (expr.negated) builder.append("!(")
                         appendFieldName(graph, expr.left)
                         builder.append(" != null && ")
                         appendFieldName(graph, expr.left, ".")
                         builder.append("equals(")
                         appendFieldName(graph, expr.right)
                         builder.append(")")
+                        if (expr.negated) builder.append(')')
                     }
                     rightCanBeNull -> {
+                        if (expr.negated) builder.append("!(")
                         appendFieldName(graph, expr.right)
                         builder.append(" != null && ")
                         appendFieldName(graph, expr.left, ".")
                         builder.append("equals(")
                         appendFieldName(graph, expr.right)
                         builder.append(")")
+                        if (expr.negated) builder.append(')')
                     }
                     else -> {
+                        if (expr.negated) builder.append("!(")
                         appendFieldName(graph, expr.left, ".")
                         builder.append("equals(")
                         appendFieldName(graph, expr.right)
                         builder.append(")")
+                        if (expr.negated) builder.append(')')
                     }
                 }
             }
@@ -1556,13 +1566,13 @@ open class JavaSourceGenerator : Generator() {
                 if (hasReturn(graph.method)) {
                     // todo cast if necessary
                     builder.append(' ')
-                    appendFieldName(graph, expr.field)
+                    appendFieldName(graph, expr.value)
                 }
             }
             is SimpleThrow -> {
                 // todo cast if necessary
                 builder.append("throw ")
-                appendFieldName(graph, expr.field)
+                appendFieldName(graph, expr.value)
             }
             is SimpleMerge -> { /* not usable in Java */
             }
@@ -1855,7 +1865,7 @@ open class JavaSourceGenerator : Generator() {
                 val lookup = specialization[type]
                 if (lookup != null) appendType(lookup, scope, needsBoxedType)
                 else {
-                    comment { builder.append(type.scope.pathStr) }
+                    comment { builder.append(StringStyles.removeStyles(type.scope.pathStr)) }
                     builder.append(type.name)
                 }
             }
@@ -1873,7 +1883,7 @@ open class JavaSourceGenerator : Generator() {
         check(type != Types.NullableAny)
         appendType(Types.NullableAny, scope, true)
         comment {
-            builder.append(type)
+            builder.append(StringStyles.removeStyles(type.toString()))
                 .append(" (")
                 .append(type.javaClass.simpleName)
                 .append(')')

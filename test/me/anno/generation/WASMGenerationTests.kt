@@ -29,6 +29,11 @@ class WASMGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testPrintFloats() {
+        testPrintFloatsImpl()
+    }
+
+    @Test
     fun testMethodCall() {
         LogManager.enable("ASTSimplifier")
         testMethodCallImpl()

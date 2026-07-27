@@ -21,6 +21,11 @@ class CGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testPrintFloats() {
+        testPrintFloatsImpl()
+    }
+
+    @Test
     fun testMethodCall() {
         testMethodCallImpl()
     }

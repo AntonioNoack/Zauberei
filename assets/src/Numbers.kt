@@ -10,17 +10,19 @@ external class Byte(val content: Byte) {
     fun unaryPlus() = toInt()
     fun unaryMinus() = -toInt()
 
-    external fun plus(other: Byte): Int
-    external fun minus(other: Byte): Int
-    external fun times(other: Byte): Int
-    external fun div(other: Byte): Int
-    external fun rem(other: Byte): Int
+    external fun plus(other: Int): Int
+    external fun minus(other: Int): Int
+    external fun times(other: Int): Int
+    external fun div(other: Int): Int
+    external fun rem(other: Int): Int
+
     external fun and(other: Byte): Byte
     external fun or(other: Byte): Byte
     external fun xor(other: Byte): Byte
 
     external fun compareTo(other: Byte): Int
     external fun equals(other: Byte): Boolean
+    external fun equals(other: Int): Boolean = toInt() == other
     override fun hashCode(): Int = toInt()
 
     external fun toByte(): Byte
@@ -49,17 +51,19 @@ external class UByte(val content: UByte) {
     fun unaryPlus() = toInt()
     fun unaryMinus() = -toInt()
 
-    external fun plus(other: UByte): Int
-    external fun minus(other: UByte): Int
-    external fun times(other: UByte): Int
-    external fun div(other: UByte): Int
-    external fun rem(other: UByte): Int
+    external fun plus(other: UInt): UInt
+    external fun minus(other: UInt): UInt
+    external fun times(other: UInt): UInt
+    external fun div(other: UInt): UInt
+    external fun rem(other: UInt): UInt
+
     external fun and(other: UByte): UByte
     external fun or(other: UByte): UByte
     external fun xor(other: UByte): UByte
 
     external fun compareTo(other: UByte): Int
     external fun equals(other: UByte): Boolean
+    external fun equals(other: UInt): Boolean = toUInt() == other
     override fun hashCode(): Int = toInt()
 
     external fun toByte(): Byte
@@ -88,17 +92,19 @@ external class Short(val content: Short) {
     fun unaryPlus() = toInt()
     fun unaryMinus() = -toInt()
 
-    external fun plus(other: Short): Int
-    external fun minus(other: Short): Int
-    external fun times(other: Short): Int
-    external fun div(other: Short): Int
-    external fun rem(other: Short): Int
+    external fun plus(other: Int): Int
+    external fun minus(other: Int): Int
+    external fun times(other: Int): Int
+    external fun div(other: Int): Int
+    external fun rem(other: Int): Int
+
     external fun and(other: Short): Short
     external fun or(other: Short): Short
     external fun xor(other: Short): Short
 
     external fun compareTo(other: Short): Int
     external fun equals(other: Short): Boolean
+    external fun equals(other: Int): Boolean = toInt() == other
     override fun hashCode(): Int = toInt()
 
     external fun toByte(): Byte
@@ -127,17 +133,19 @@ external class UShort(val content: UShort) {
     fun unaryPlus() = toInt()
     fun unaryMinus() = -toInt()
 
-    external fun plus(other: UShort): Int
-    external fun minus(other: UShort): Int
-    external fun times(other: UShort): Int
-    external fun div(other: UShort): Int
-    external fun rem(other: UShort): Int
+    external fun plus(other: UInt): UInt
+    external fun minus(other: UInt): UInt
+    external fun times(other: UInt): UInt
+    external fun div(other: UInt): UInt
+    external fun rem(other: UInt): UInt
+
     external fun and(other: UShort): UShort
     external fun or(other: UShort): UShort
     external fun xor(other: UShort): UShort
 
     external fun compareTo(other: UShort): Int
     external fun equals(other: UShort): Boolean
+    external fun equals(other: UInt): Boolean = toUInt() == other
     override fun hashCode(): Int = toInt()
 
     external fun toByte(): Byte

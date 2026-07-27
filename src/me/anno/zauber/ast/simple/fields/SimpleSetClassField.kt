@@ -13,7 +13,7 @@ import me.anno.zauber.types.Specialization
 class SimpleSetClassField(
     override val self: SimpleField,
     override val field: Field,
-    val value: SimpleField,
+    var value: SimpleField,
     override val specialization: Specialization,
     scope: Scope, origin: Long
 ) : SimpleInstruction(scope, origin), SimpleGSetClassField {

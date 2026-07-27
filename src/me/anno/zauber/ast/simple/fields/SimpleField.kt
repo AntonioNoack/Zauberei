@@ -19,7 +19,6 @@ import me.anno.zauber.types.impl.unresolved.*
  * */
 class SimpleField(
     val type: Type, var id: Int,
-    // todo this should be converted to Instance, so we can use it at runtime (?)
     val constantRef: Expression?
 ) {
 

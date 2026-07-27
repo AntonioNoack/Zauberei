@@ -1,7 +1,6 @@
 package me.anno.generation.structs
 
 import me.anno.zauber.ast.rich.member.Field
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.typeresolution.ResolutionContext

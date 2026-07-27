@@ -7,6 +7,7 @@ import me.anno.zauber.ast.rich.expression.resolved.ResolvedCallExpression
 import me.anno.zauber.ast.rich.expression.resolved.ResolvedGetFieldExpression
 import me.anno.zauber.ast.rich.expression.resolved.ResolvedSetFieldExpression
 import me.anno.zauber.ast.rich.expression.resolved.ThisExpression
+import me.anno.zauber.ast.rich.parameter.NamedParameter
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.typeresolution.ResolutionContext
 import me.anno.zauber.typeresolution.members.ResolvedField
@@ -93,6 +94,14 @@ class AssignmentExpression(val dst: Expression, val src: Expression, val hasValu
                             "${dstExpr.left.javaClass.simpleName} . " +
                             "${dstExpr.right.javaClass.simpleName})"
                 )
+            }
+            is NamedCallExpression if (dstExpr.name == "get") -> {
+                // if (LOGGER.isInfoEnabled) LOGGER.info("Resolving set for $dstExpr")
+                return NamedCallExpression(
+                    dstExpr.self, "set", emptyList() /* todo can we get name-as-import? */,
+                    dstExpr.typeParameters, dstExpr.valueParameters + NamedParameter(newValue),
+                    dstExpr.scope, origin
+                ).resolve(context)
             }
             else -> throw NotImplementedError("Implement assignment to $dst (${dst.javaClass.simpleName})")
         }

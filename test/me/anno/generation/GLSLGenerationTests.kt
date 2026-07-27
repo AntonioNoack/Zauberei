@@ -24,6 +24,11 @@ class GLSLGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testPrintFloats() {
+        testPrintFloatsImpl()
+    }
+
+    @Test
     fun testMethodCall() {
         testMethodCallImpl()
     }

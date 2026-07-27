@@ -10,7 +10,7 @@ class SimpleThrow(field: SimpleField, scope: Scope, origin: Long) : SimpleExit(f
     override val returnType: ReturnType get() = ReturnType.THROW
     override fun clone(src: SimpleGraph, dst: SimpleGraph): SimpleInstruction {
         return SimpleThrow(
-            src.cloned(field, dst),
+            src.cloned(value, dst),
             scope, origin
         )
     }

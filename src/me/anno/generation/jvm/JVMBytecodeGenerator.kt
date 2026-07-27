@@ -911,12 +911,12 @@ class JVMBytecodeGenerator : JavaSourceGenerator() {
                 if (graph.method is Constructor) {
                     code.ret()
                 } else {
-                    locals.loadField(instr.field)
-                    code.returnByType(resolveType(instr.field.type))
+                    locals.loadField(instr.value)
+                    code.returnByType(resolveType(instr.value.type))
                 }
             }
             is SimpleThrow -> {
-                locals.loadField(instr.field)
+                locals.loadField(instr.value)
                 code.athrow()
             }
             else -> {

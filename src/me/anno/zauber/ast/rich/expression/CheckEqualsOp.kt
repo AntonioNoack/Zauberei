@@ -57,14 +57,15 @@ class CheckEqualsOp(
     override fun clone(scope: Scope) =
         CheckEqualsOp(left.clone(scope), right.clone(scope), byPointer, negated, resolved, scope, origin)
 
-    override fun isResolved(): Boolean = left.isResolved() && right.isResolved() && (byPointer || resolved != null)
+    override fun isResolved(): Boolean = left.isResolved() && right.isResolved() && resolved != null
     override fun resolveImpl(context: ResolutionContext): Expression {
-        val resolved = resolved ?: if (!byPointer) {
+        val left = left.resolve(context)
+        val right = right.resolve(context)
+        val resolved = resolved ?: run {
             NamedCallExpression(NotNullExpression(left), "equals", right, scope, origin)
                 .resolve(context) as ResolvedCallExpression
-        } else null
-
-        return CheckEqualsOp(left.resolve(context), right.resolve(context), byPointer, negated, resolved, scope, origin)
+        }
+        return CheckEqualsOp(left, right, byPointer, negated, resolved, scope, origin)
     }
 
     override fun forEachExpression(callback: (Expression) -> Unit) {
@@ -89,17 +90,17 @@ class CheckEqualsOp(
         val dst = block2v.block.field(Types.Boolean)
         val left = block1v.value
         val right = block2v.value
+
+        val byPointer = byPointer &&
+                !left.type.isValueOrNative() &&
+                !right.type.isValueOrNative()
+
         val call = if (byPointer) {
             SimpleCheckIdentical(
                 dst, left.use(), right.use(),
                 negated, scope, origin
             )
         } else {
-            // a == null ? b == null : b != null ? a.equals(b) : false
-            // todo inline this call if both sides are non-nullable??
-            /*if(left.type.mayBeNull() || right.type.mayBeNull()) {
-
-            }*/
             SimpleCheckEquals(
                 dst, left.use(), right.use(),
                 negated, resolved!!.callable as ResolvedMethod,

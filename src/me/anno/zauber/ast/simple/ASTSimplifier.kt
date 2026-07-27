@@ -99,14 +99,15 @@ object ASTSimplifier {
     }
 
     private fun simplifyImpl(method0: Specialization): SimpleGraph {
-        val context = ResolutionContext(method0.scope!!, null, method0, true, null)
+        val method = method0.method
+        val context = ResolutionContext(method.memberScope, null, method0, true, null)
 
         if (LOGGER.isInfoEnabled) LOGGER.info(
             "${bold("Simplifying")} ${method0.scope}, ${method0.method}" +
                     "\n  ${method0.method.body}"
         )
 
-        val expr = method0.method.getSpecializedBody(method0)
+        val expr = method.getSpecializedBody(method0)
             ?: error("Specialized body is null? For $method0")
 
         val graph = SimpleGraph(method0)
@@ -192,13 +193,12 @@ object ASTSimplifier {
     }
 
     private fun isLocalField(graph: SimpleGraph, field: Field): Boolean {
-        var fieldScope = field.scope
+        var scope = field.ownerScope
         while (true) {
-            if (fieldScope.isMethodLike() || fieldScope.isClassLike()) break
-            fieldScope = fieldScope.parent!!
+            if (scope.isMethodLike()) return true
+            if (scope.isClassLike()) return false
+            scope = scope.parent!!
         }
-
-        return graph.method.memberScope == fieldScope
     }
 
     fun simplifyGetField(

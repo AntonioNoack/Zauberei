@@ -24,6 +24,10 @@ class SimpleGetClassField(
             "Field must match specialization scope, ${specialization.scope} != ${field.fieldScope}"
         }
 
+        check(!field.ownerScope.isMethodLike()) {
+            "Field $field must be converted to a local field"
+        }
+
         if (self.type is ClassType) {
             val selfScope = self.type.clazz
             val fieldScope = field.ownerScope

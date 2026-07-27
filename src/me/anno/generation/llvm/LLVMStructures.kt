@@ -5,7 +5,6 @@ import me.anno.generation.java.JavaSourceGenerator.Companion.resolveType
 import me.anno.generation.structs.IntPair
 import me.anno.generation.structs.Structures
 import me.anno.zauber.ast.rich.member.Field
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.types.Specialization
 import me.anno.zauber.types.Type

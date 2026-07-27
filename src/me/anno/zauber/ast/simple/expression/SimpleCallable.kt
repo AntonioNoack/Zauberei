@@ -9,7 +9,7 @@ import me.anno.zauber.types.Specialization
 
 abstract class SimpleCallable(
     dst: SimpleField,
-    val thisInstance: SimpleField,
+    var thisInstance: SimpleField,
     val specialization: Specialization,
     var valueParameters: List<SimpleField>,
     scope: Scope, origin: Long

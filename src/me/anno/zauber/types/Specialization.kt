@@ -34,11 +34,12 @@ class Specialization(val scope: Scope?, typeParameters: ParameterList) {
             this(classType.clazz, classType.createTypeParameterList())
 
     inline fun <R> use(runnable: () -> R): R {
+        val prevSpec = Specializations.specialization
         return try {
-            Specializations.specializations.add(this)
+            Specializations.specialization = this
             runnable()
         } finally {
-            Specializations.specializations.removeLast()
+            Specializations.specialization = prevSpec
         }
     }
 

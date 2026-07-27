@@ -667,6 +667,8 @@ object Stdlib {
     fun registerEqualsMethods() {
         val rt = runtime
         for (type in nativeNumbers) {
+            // todo small ints have a different function
+            // todo we should be able to call equals on larger types, too...
             rt.registerBinaryMethod(type, "equals") { a, b ->
                 assertEquals(type, a.clazz.type)
                 assertEquals(type, b.clazz.type)
@@ -674,6 +676,18 @@ object Stdlib {
                 check(b.rawValue != null)
                 rt.getBool(a.rawValue == b.rawValue)
             }
+        }
+        rt.register(Types.Byte, "equals", listOf(Types.Int)) { a, (b) ->
+            rt.getBool(a.castToByte().toInt() == b.castToInt())
+        }
+        rt.register(Types.Short, "equals", listOf(Types.Int)) { a, (b) ->
+            rt.getBool(a.castToShort().toInt() == b.castToInt())
+        }
+        rt.register(Types.UByte, "equals", listOf(Types.UInt)) { a, (b) ->
+            rt.getBool(a.castToUByte().toUInt() == b.castToUInt())
+        }
+        rt.register(Types.UShort, "equals", listOf(Types.UInt)) { a, (b) ->
+            rt.getBool(a.castToUShort().toUInt() == b.castToUInt())
         }
     }
 

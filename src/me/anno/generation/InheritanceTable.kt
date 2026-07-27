@@ -160,11 +160,13 @@ class InheritanceTable(val data: DependencyData) {
         if (LOGGER.isInfoEnabled) LOGGER.info("children for $method0: $children")
 
         val implementations = collectChildImplementations(method)
-        val adapted = children.map { child ->
+        val adapted = children.mapNotNull { child ->
             val impl = implementations[child.scope!!]
-                ?: error("Missing $method in $child")
-            val joinedTypeParams = method0 + child
-            joinedTypeParams.withScope(impl.scope)
+            //   ?: error("Missing implementation for $method in $child")
+            if (impl != null) {
+                val joinedTypeParams = method0 + child
+                joinedTypeParams.withScope(impl.scope)
+            } else null
         }
 
         childImplementations[method0] = adapted

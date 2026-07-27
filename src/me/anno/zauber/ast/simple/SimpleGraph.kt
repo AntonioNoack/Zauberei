@@ -1,14 +1,17 @@
 package me.anno.zauber.ast.simple
 
+import me.anno.generation.java.JavaSourceGenerator.Companion.isCast
 import me.anno.utils.StringStyles.bold
 import me.anno.utils.assertEquals
 import me.anno.zauber.ast.reverse.SimpleTailCall
 import me.anno.zauber.ast.rich.Flags
 import me.anno.zauber.ast.rich.TokenListIndex.resolveOrigin
 import me.anno.zauber.ast.rich.expression.Expression
+import me.anno.zauber.ast.rich.expression.constants.NumberExpression
 import me.anno.zauber.ast.rich.member.Field
 import me.anno.zauber.ast.rich.member.MethodLike
-import me.anno.zauber.ast.simple.SimpleBlock.Companion.isValue
+import me.anno.zauber.ast.simple.ASTSimplifier.nativeNumbers
+import me.anno.zauber.ast.simple.controlflow.SimpleReturn
 import me.anno.zauber.ast.simple.expression.SimpleAssignment
 import me.anno.zauber.ast.simple.expression.SimpleBoxCast
 import me.anno.zauber.ast.simple.expression.SimpleCallable
@@ -124,7 +127,7 @@ class SimpleGraph(val method0: Specialization) {
     fun removeSuperCalls() {
         for (block in blocks) {
             block.instructions.removeIf {
-                it is SimpleConstructorCall
+                it is SimpleConstructorCall && !it.forAllocation
             }
         }
     }
@@ -303,47 +306,47 @@ class SimpleGraph(val method0: Specialization) {
             var i = instructions.size - 1
             while (i >= 0) {
                 when (val instr = instructions[i]) {
-                    // getters are always fine
                     is SimpleSetClassField -> {
                         val contextI = context.withSpec(instr.specialization)
                         val dstType = instr.field.resolveValueType(contextI)
                             .specialize()
-                        val srcType = instr.value.type
-                        if (needsCast(srcType, dstType, findAllCasts)) {
-                            TODO("Create cast for $instr, $dstType != $srcType")
-                        }
+                        instr.value = addCastIfNeeded(
+                            instr.value, dstType,
+                            findAllCasts, instructions, i, instr
+                        )
                     }
+                    // getters are always fine <- todo check whether we can remove this block
                     is SimpleGetLocalField -> {
                         val srcType = instr.field.type
                         val dstType = instr.dst.type
                         if (needsCast(srcType, dstType, findAllCasts)) {
-                            val tmpField = field(srcType)
+                            // reversed assignment
                             println("get-cast: $srcType -> $dstType")
+                            val tmpField = field(srcType)
                             val cast = SimpleBoxCast(instr.dst, tmpField, instr.scope, instr.origin)
                             instructions.add(i + 1, cast)
                             instr.dst = tmpField.use()
                         }
                     }
-                    is SimpleSetLocalField -> {
-                        val srcType = instr.value.type
-                        val dstType = instr.field.type
-                        if (needsCast(srcType, dstType, findAllCasts)) {
-                            val tmpField = field(dstType)
-                            println("set-cast: $srcType -> $dstType")
-                            val cast = SimpleBoxCast(tmpField, instr.value, instr.scope, instr.origin)
-                            instructions.add(i, cast)
-                            instr.value = tmpField.use()
-                        }
-                    }
+                    is SimpleSetLocalField -> instr.value = addCastIfNeeded(
+                        instr.value, instr.field.type,
+                        findAllCasts, instructions, i, instr
+                    )
+                    is SimpleReturn -> instr.value = addCastIfNeeded(
+                        instr.value, expectedReturnType,
+                        findAllCasts, instructions, i, instr
+                    )
                     is SimpleMerge -> {
-                        val dstType = instr.dst.type
-                        val ifType = instr.ifField.type
-                        val elseType = instr.elseField.type
-                        if (needsCast(ifType, dstType, findAllCasts)) {
-                            TODO("Insert cast into merge $instr")
-                        }
-                        if (needsCast(elseType, dstType, findAllCasts)) {
-                            TODO("Insert cast into merge $instr")
+                        if (instr.dst.dst.numReads > 0) {
+                            val dstType = instr.dst.type
+                            val ifType = instr.ifField.type
+                            val elseType = instr.elseField.type
+                            if (needsCast(ifType, dstType, findAllCasts)) {
+                                TODO("Insert cast into merge $instr")
+                            }
+                            if (needsCast(elseType, dstType, findAllCasts)) {
+                                TODO("Insert cast into merge $instr")
+                            }
                         }
                     }
                     // todo calls and constructors can require casts, too
@@ -353,24 +356,60 @@ class SimpleGraph(val method0: Specialization) {
                             "Value-Params/Callable mismatch for ${instr.sample}\n" +
                                     "  at ${resolveOrigin(instr.origin)}"
                         }
-                        for (i in instr.valueParameters.indices) {
-                            val parameter = instr.valueParameters[i]
-                            val dstType = instr.sample.valueParameters[i].type
+
+                        /*val srcType0 = instr.thisInstance.type
+                        val dstType0 = instr.sample.ownerScope.typeWithArgs2
+                            .specialize(instr.specialization)
+                        if (needsCast(srcType0, dstType0, findAllCasts)) {
+                            val tmpField = field(dstType0)
+                            val cast = SimpleBoxCast(tmpField, instr.thisInstance, instr.scope, instr.origin)
+                            instructions.add(i, cast)
+                            instr.thisInstance = tmpField.use()
+                        }
+
+                        if (instr is SimpleMethodCall && instr.sample.hasExplicitSelfType) {
+                            val srcType1 = instr.selfInstance!!.type
+                            val dstType1 = instr.sample.selfType!!
                                 .specialize(instr.specialization)
-                            val srcType = parameter.type
-                            if (needsCast(srcType, dstType, findAllCasts)) {
-                                println("call-cast: $srcType -> $dstType")
-                                val tmpField = field(dstType)
-                                val cast = SimpleBoxCast(tmpField, parameter, instr.scope, instr.origin)
+                            if (needsCast(srcType1, dstType1, findAllCasts)) {
+                                val tmpField = field(dstType1)
+                                val cast = SimpleBoxCast(tmpField, instr.selfInstance!!, instr.scope, instr.origin)
                                 instructions.add(i, cast)
-                                instr.setValueParameter(i, tmpField.use())
+                                instr.selfInstance = tmpField.use()
                             }
+                        }*/
+
+                        for (i in instr.valueParameters.indices) {
+                            val src = instr.valueParameters[i]
+                            val dst = instr.sample.valueParameters[i]
+                            val dstType = dst.type.specialize(instr.specialization)
+                            val tmpField = addCastIfNeeded(src, dstType, findAllCasts, instructions, i, instr)
+                            if (tmpField !== src) instr.setValueParameter(i, tmpField)
                         }
                     }
                 }
                 i--
             }
         }
+    }
+
+    fun addCastIfNeeded(
+        src: SimpleField, dstType: Type, findAllCasts: Boolean,
+        instructions: ArrayList<SimpleInstruction>, i: Int,
+        self: SimpleInstruction
+    ): SimpleField {
+        val srcType = src.type
+        return if (needsCast(srcType, dstType, findAllCasts)) {
+            // println("cast: $srcType -> $dstType")
+            if (isConstNumberCast(src, dstType)) {
+                field(dstType, src.constantRef)
+            } else {
+                val tmpField = field(dstType)
+                val cast = SimpleBoxCast(tmpField, src, self.scope, self.origin)
+                instructions.add(i, cast)
+                tmpField
+            }.use()
+        } else src
     }
 
     fun needsCast(srcType: Type, dstType: Type, findAllCasts: Boolean): Boolean {
@@ -438,6 +477,17 @@ class SimpleGraph(val method0: Specialization) {
         }
 
         return cloned
+    }
+
+    fun isConstNumberCast(src: SimpleField, dstType: Type): Boolean {
+        val srcType = src.type
+        if (srcType is ClassType &&
+            src.constantRef is NumberExpression &&
+            srcType in nativeNumbers
+        ) {
+            val castMethod = srcType.clazz.implicitCastMethods[dstType]
+            return castMethod != null && isCast(castMethod.name)
+        } else return false
     }
 
     fun cloned(field: SimpleField, cloned: SimpleGraph): SimpleField {
