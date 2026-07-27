@@ -1,7 +1,6 @@
 package me.anno.zauber.types
 
 import me.anno.generation.Specializations.specialization
-import me.anno.support.cpp.ast.rich.PointerType
 import me.anno.utils.StringStyles
 import me.anno.utils.StringStyles.GREEN
 import me.anno.utils.StringStyles.style
@@ -164,7 +163,6 @@ abstract class Type {
             is UnresolvedUnionType -> unionTypes(types.map { it.resolve(selfScope) })
             is UnresolvedAndType -> andTypes(types.map { it.resolve(selfScope) })
             is NotType -> withType(type.resolve(selfScope))
-            is PointerType -> PointerType(type.resolve(selfScope))
             else -> throw NotImplementedError("Resolve type ${javaClass.simpleName}, $this")
         }
     }
@@ -298,7 +296,6 @@ abstract class Type {
             is UnresolvedClassType -> resolvedName.specialize(spec)
             // todo we need selfType to properly resolve them...
             is ThisType, is SelfType -> type.specialize(spec)
-            is PointerType -> PointerType(type.specialize(spec))
             else -> error("Specialize ${javaClass.simpleName}")
         }
     }
@@ -411,4 +408,6 @@ abstract class Type {
             else -> throw NotImplementedError("Can a $this be null?")
         }
     }
+
+    fun ptr() = Types.Pointer.withTypeParameter(this)
 }

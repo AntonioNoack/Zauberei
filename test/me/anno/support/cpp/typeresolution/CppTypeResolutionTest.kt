@@ -5,7 +5,6 @@ import me.anno.support.cpp.ast.rich.ArrayType.Companion.createArrayType
 import me.anno.support.cpp.ast.rich.CppASTBuilder
 import me.anno.support.cpp.ast.rich.CppParsingTest.Companion.testCppParsing
 import me.anno.support.cpp.ast.rich.CppStandard
-import me.anno.support.cpp.ast.rich.PointerType.Companion.ptr
 import me.anno.support.cpp.tokenizer.CppTokenizer
 import me.anno.utils.ResolutionUtils.ctr
 import me.anno.utils.ResolutionUtils.getField

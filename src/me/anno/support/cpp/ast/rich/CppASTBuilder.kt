@@ -4,7 +4,6 @@ import me.anno.langserver.VSCodeModifier
 import me.anno.langserver.VSCodeType
 import me.anno.support.Language
 import me.anno.support.cpp.ast.rich.ArrayType.Companion.createArrayType
-import me.anno.support.cpp.ast.rich.PointerType.Companion.ptr
 import me.anno.support.java.ast.JavaASTBuilder
 import me.anno.utils.ResetThreadLocal.Companion.threadLocal
 import me.anno.utils.StringStyles
