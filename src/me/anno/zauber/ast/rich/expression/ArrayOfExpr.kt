@@ -64,12 +64,8 @@ class ArrayOfExpr(val values: List<Expression>, val type: Type, scope: Scope, or
         val arrayType = resolveValueType(context)
         val instanceType = (arrayType as ClassType).typeParameters!![0]
 
-        val subContext = context
-            .withAllowTypeless(false)
-            .withTargetType(instanceType)
-
         val values: List<SimpleField> = values.map { value ->
-            flowI = value.simplify(subContext, blockI, flowI, true)
+            flowI = value.simplifyTo(context, instanceType, blockI, flowI, true)
             val blockIv = flowI.value ?: return flowI
             blockI = blockIv.block
             blockIv.value

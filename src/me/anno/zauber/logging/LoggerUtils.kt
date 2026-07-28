@@ -12,7 +12,7 @@ object LoggerUtils {
                     "LambdaExpression,DataClassGenerator," +
                     "UnderdefinedValueParameter," +
                     "Runtime,BuildCommand,CodeReconstruction," +
-                    "SimpleMethodCall,MethodOverrides"
+                    "SimpleMethodCall,MethodOverrides,DefaultParameters,TypeUtils"
         )
     }
 }

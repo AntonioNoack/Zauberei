@@ -194,7 +194,7 @@ class Runtime {
 
         val result = try {
             executeBlock(graph.startBlock)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             LOGGER.warn("Issue in $method\n  at ${resolveOrigin(origin)}")
             throw e
         }

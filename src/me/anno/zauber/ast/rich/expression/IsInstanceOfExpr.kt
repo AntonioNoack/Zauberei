@@ -50,7 +50,7 @@ class IsInstanceOfExpr(val value: Expression, val type: Type, scope: Scope, orig
         needsValue: Boolean,
         contextExpr: Expression?
     ): FlowResult {
-        val block1 = value.simplify(context, block0, flow0, true)
+        val block1 = value.simplifyTo(context, context.targetType, block0, flow0, true)
         val block1v = block1.value ?: return block1
         val block1b = block1v.block
         val dst = block1b.field(Types.Boolean)

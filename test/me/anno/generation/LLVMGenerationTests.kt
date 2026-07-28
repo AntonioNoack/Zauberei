@@ -115,6 +115,11 @@ class LLVMGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testImplicitNumberConversion() {
+        testImplicitNumberConversionImpl()
+    }
+
+    @Test
     fun testNonNumberComparisons() {
         testNonNumberComparisonsImpl()
     }

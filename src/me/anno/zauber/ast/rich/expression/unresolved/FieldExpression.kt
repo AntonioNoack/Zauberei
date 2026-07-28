@@ -43,7 +43,8 @@ class FieldExpression(
         val fieldReturnType = FieldResolver.getFieldReturnType(scope, scopeSelfType, field, context.targetType)
         return FindMemberMatch.findMemberMatch(
             field, fieldReturnType, context.targetType,
-            scopeSelfType, null, emptyList(), context.specialization, scope, origin
+            scopeSelfType, null, emptyList(),
+            context.withCodeScope(scope), origin
         ) as? ResolvedField ?: error(
             "Generics could not be resolved for $field at " +
                     TokenListIndex.resolveOrigin(origin)

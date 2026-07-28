@@ -40,7 +40,7 @@ class ThrowExpression(value: Expression, scope: Scope, origin: Long) :
         needsValue: Boolean,
         contextExpr: Expression?
     ): FlowResult {
-        val field = value.simplify(context, block0, flow0, true)
+        val field = value.simplifyTo(context, Types.Throwable, block0, flow0, true)
         val field1v = field.value ?: return field
         return field.joinThrownNoValue(field1v.value.use(), field1v.block)
     }

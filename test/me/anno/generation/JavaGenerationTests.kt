@@ -133,6 +133,11 @@ class JavaGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testImplicitNumberConversion() {
+        testImplicitNumberConversionImpl()
+    }
+
+    @Test
     fun testNonNumberComparisons() {
         testNonNumberComparisonsImpl()
     }

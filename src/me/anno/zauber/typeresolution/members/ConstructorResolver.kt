@@ -74,7 +74,7 @@ object ConstructorResolver : MemberResolver<Constructor, ResolvedConstructor>() 
                 constructor, constructor.selfType, returnType,
                 null,
                 typeParameters, valueParameters,
-                context.specialization,/* todo is this ok?? */scope, origin
+                context.withCodeScope(scope), origin
             ) as? ResolvedConstructor
             LOGGER.info("Match($constructor): $match")
             if (match != null && (bestMatch == null || match.matchScore < bestMatch.matchScore)) {

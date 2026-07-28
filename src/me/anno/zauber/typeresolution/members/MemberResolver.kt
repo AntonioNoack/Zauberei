@@ -36,8 +36,15 @@ abstract class MemberResolver<Resource : Member, Resolved : ResolvedMember<Resou
             expectedValueParameters: List<Parameter>,
             actualValueParameters: List<ValueParameter>,
 
-            matchScore: MatchScore?
+            matchScore: MatchScore?,
+            context: ResolutionContext
         ): ParameterList? { // found generic values for a match
+
+            val expectedSelfType = expectedSelfType?.specialize(context)
+            val actualSelfType = actualSelfType?.specialize(context)
+
+            val expectedReturnType = expectedReturnType?.specialize(context)
+            val actualReturnType = actualReturnType?.specialize(context)
 
             // todo objects don't need actualSelfType, if properly in scope or imported...
             if ((expectedSelfType != null) != (actualSelfType != null)) {

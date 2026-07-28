@@ -172,6 +172,11 @@ class CppGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testImplicitNumberConversion() {
+        testImplicitNumberConversionImpl()
+    }
+
+    @Test
     fun testNonNumberComparisons() {
         testNonNumberComparisonsImpl()
     }

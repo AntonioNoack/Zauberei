@@ -53,11 +53,13 @@ class ResolvedCompareOp(
         contextExpr: Expression?
     ): FlowResult {
 
-        val block1 = left.simplify(context, block0, flow0, true)
+        val leftType = callable.resolved.selfType ?: callable.resolved.ownerScope.typeWithArgs2
+        val block1 = left.simplifyTo(context, leftType, block0, flow0, true)
         val block1v = block1.value ?: return block1
         val left = block1v.value
 
-        val block2 = right.simplify(context, block1v.block, block1, false)
+        val rightType = callable.resolved.valueParameters.first().type
+        val block2 = right.simplifyTo(context, rightType, block1v.block, block1, false)
         val block2v = block2.value ?: return block2
         val right = block2v.value
 

@@ -103,7 +103,7 @@ data class ResolutionContext(
         )
     }
 
-    fun withScope(newCodeScope: Scope): ResolutionContext {
+    fun withCodeScope(newCodeScope: Scope): ResolutionContext {
         if (this.codeScope == newCodeScope) return this
         return ResolutionContext(
             newCodeScope, selfType, specialization, allowTypeless,

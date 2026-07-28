@@ -24,6 +24,11 @@ abstract class Type {
 
     companion object {
         private val LOGGER = LogManager.getLogger(Type::class)
+
+        fun Type?.and(other: Type): Type {
+            return if (this == null) other
+            else andTypes(this, other)
+        }
     }
 
     fun contains(type: GenericType): Boolean {

@@ -1,9 +1,9 @@
 package me.anno.zauber.typeresolution.members
 
-import me.anno.zauber.ast.rich.member.Member
-import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.ast.rich.expression.Expression
 import me.anno.zauber.ast.rich.expression.resolved.ThisExpression
+import me.anno.zauber.ast.rich.member.Member
+import me.anno.zauber.ast.rich.parameter.Parameter
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.scope.ScopeType
 import me.anno.zauber.typeresolution.ParameterList
@@ -45,8 +45,7 @@ abstract class ResolvedMember<V : Member>(
             val resolvedScope = getScopeOfResolved()
             var baseScope = resolvedScope
             while (true) {
-                val scopeType = baseScope.scopeType
-                if (scopeType != null && (scopeType.isClassLike() || scopeType == ScopeType.PACKAGE)) {
+                if (baseScope.isClassLike() || baseScope.isPackage()) {
                     return ThisExpression(baseScope, codeScope, origin)
                 }
                 baseScope = baseScope.parent
@@ -55,7 +54,13 @@ abstract class ResolvedMember<V : Member>(
         }
 
         if (type is ClassType) {
-            check(type.clazz.isClassLike()) {
+            var type = type
+            while (type is ClassType && !(type.clazz.isClassLike() || type.clazz.isPackage())) {
+                type = ClassType(type.clazz.parent!!, type.typeParameters)
+                // println("ThisExpr modified: $type")
+            }
+
+            check(type.clazz.isClassLike() || type.clazz.isPackage()) {
                 "Expected $type to be classLike for thisExpression"
             }
             return ThisExpression(type.clazz, scope, origin)

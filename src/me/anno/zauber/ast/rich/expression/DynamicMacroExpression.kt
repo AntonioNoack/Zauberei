@@ -72,13 +72,14 @@ class DynamicMacroExpression(
     ): FlowResult {
 
         // (base, block1)
-        val block1 = self.simplify(context, block0, flow0, true)
+        val block1 = self.simplifyTo(context, context.targetType, block0, flow0, true)
         val base = block1.value ?: return block1
 
         // println("Simplified self to ${expr.self} (${expr.self.javaClass.simpleName})")
         var blockI = block1
-        val valueParameters = valueParameters.map { param ->
-            blockI = param.simplify(context, blockI.value!!.block, blockI, false)
+        val valueParameters = valueParameters.mapIndexed { index, param ->
+            val targetType = method.resolved.valueParameters[index].type
+            blockI = param.simplifyTo(context, targetType, blockI.value!!.block, blockI, false)
             blockI.value?.value ?: return blockI
         }
 

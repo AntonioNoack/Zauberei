@@ -41,7 +41,7 @@ object FieldResolver : MemberResolver<Field, ResolvedField>() {
                 field, valueType,
                 returnType, selfType,
                 typeParameters, valueParameters,
-                context.specialization, context.codeScope, origin
+                context, origin
             ) as? ResolvedField
             bestMatch = joinMatches(bestMatch, match)
         }
@@ -55,7 +55,7 @@ object FieldResolver : MemberResolver<Field, ResolvedField>() {
                     field, valueType,
                     returnType, selfType,
                     typeParameters, valueParameters,
-                    context.specialization, scope, origin
+                    context.withCodeScope(scope), origin
                 ) as? ResolvedField
                 bestMatch = joinMatches(bestMatch, match)
             }
@@ -77,7 +77,7 @@ object FieldResolver : MemberResolver<Field, ResolvedField>() {
                 field, valueType,
                 returnType, selfType,
                 typeParameters, valueParameters,
-                context.specialization, scope, origin
+                context.withCodeScope(scope), origin
             ) as? ResolvedField
             bestMatch = joinMatches(bestMatch, match)
         }
@@ -189,7 +189,7 @@ object FieldResolver : MemberResolver<Field, ResolvedField>() {
             field, valueType,
             context.targetType, selfType,
             typeParameters, emptyList(),
-            context.specialization, scope, origin
+            context.withCodeScope(scope), origin
         ) as? ResolvedField
     }
 

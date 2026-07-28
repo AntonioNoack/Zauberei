@@ -101,7 +101,7 @@ object DefaultParameters {
                 origin
             )
             scope.selfAsMethod = newMethod
-            LOGGER.info("Created $newMethod")
+            if (LOGGER.isInfoEnabled) LOGGER.info("Created $newMethod")
         }
     }
 
@@ -132,7 +132,7 @@ object DefaultParameters {
                         method.selfType == self.selfType &&
                         matchesParameters(expectedParamsForMatch, method.valueParameters)
                 if (matches) {
-                    LOGGER.info("Unused default-parameter: '$self'.${param.name} is already defined by $childScope")
+                    if (LOGGER.isInfoEnabled) LOGGER.info("Unused default-parameter: '$self'.${param.name} is already defined by $childScope")
                     continue
                 }
             }
@@ -159,7 +159,7 @@ object DefaultParameters {
                 self.flags, origin
             )
             scope.selfAsConstructor = newConstructor
-            LOGGER.info("Created $newConstructor")
+            if (LOGGER.isInfoEnabled) LOGGER.info("Created $newConstructor")
         }
     }
 }

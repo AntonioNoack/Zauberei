@@ -89,7 +89,7 @@ class SimpleMethodCall(
 
                         // todo this is incorrect for Lambdas: somehow, resolve does not
                         //  map zauber.Function2.P0 to Int, even though we specified selfScope
-                        println(
+                        if (LOGGER.isInfoEnabled) LOGGER.info(
                             "Looking for $methodTypeParameters, $methodValueParameters in " +
                                     "$childType: ${childType.clazz.superCalls}"
                         )

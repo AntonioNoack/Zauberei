@@ -131,6 +131,11 @@ class BaselineRuntimeTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testImplicitNumberConversion() {
+        testImplicitNumberConversionImpl()
+    }
+
+    @Test
     fun testNonNumberComparisons() {
         testNonNumberComparisonsImpl()
     }
@@ -154,7 +159,9 @@ class BaselineRuntimeTests : CodeGenerationTests() {
 
     @Test
     fun testStringOps() {
+        // todo bug: Could not resolve method zauber.Array.size.plus<?>(zauber.Int) <- it thinks that Array.size is its own type???
         // todo bug: zauber.Array.set(zauber.Int, zauber.Byte) is missing; it should not even be available like that...
+        LogManager.enable("TypeResolution,FieldResolver,MemberResolver,Inheritance")
         testStringOpsImpl()
     }
 

@@ -53,7 +53,7 @@ class YieldExpression(value: Expression, scope: Scope, origin: Long) :
         needsValue: Boolean,
         contextExpr: Expression?
     ): FlowResult {
-        val field = value.simplify(context, block0, flow0, true)
+        val field = value.simplifyTo(context, null, block0, flow0, true)
         val field1v = field.value ?: return field
         val continueBlock = block0.graph.addBlock()
         field1v.block.add(SimpleYield(field1v.value.use(), continueBlock, scope, origin))

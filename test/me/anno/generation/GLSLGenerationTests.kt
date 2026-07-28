@@ -114,6 +114,11 @@ class GLSLGenerationTests : CodeGenerationTests() {
     }
 
     @Test
+    fun testImplicitNumberConversion() {
+        testImplicitNumberConversionImpl()
+    }
+
+    @Test
     fun testNonNumberComparisons() {
         testNonNumberComparisonsImpl()
     }

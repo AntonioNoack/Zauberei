@@ -37,8 +37,7 @@ object FindMemberMatch {
 
         explicitTypeParameters: List<Type>?,
         explicitValueParameters: List<ValueParameter>,
-        ctxSpec: Specialization,
-        codeScope: Scope, origin: Long
+        context: ResolutionContext, origin: Long
     ): ResolvedMember<*>? {
 
         var explicitSelfType = explicitSelfType
@@ -101,7 +100,7 @@ object FindMemberMatch {
             if (explicitTypeParameters != null) {
                 ParameterList(targetTypeParams, explicitTypeParameters)
             } else null,
-            ctxSpec, origin
+            context.specialization, origin
         )
 
         if (LOGGER.isInfoEnabled) LOGGER.info("Resolving generics for $member")
@@ -110,7 +109,8 @@ object FindMemberMatch {
             memberSelfType, explicitSelfType,
             memberReturnType, hintedReturnType,
             expectedTypeParams, actualTypeParams,
-            member.valueParameters, explicitValueParameters, matchScore
+            member.valueParameters, explicitValueParameters, matchScore,
+            context
         )
         if (generics == null) {
             LOGGER.info("Rejecting $member, generic-mismatch")
@@ -119,6 +119,7 @@ object FindMemberMatch {
 
         val selfType1 = explicitSelfType ?: memberSelfType
         val specialization = Specialization(member.memberScope, generics)
+        val codeScope = context.codeScope
         val context = ResolutionContext(codeScope, selfType1, specialization, false, hintedReturnType)
         return when (member) {
             is Method -> ResolvedMethod(member, context, codeScope, matchScore)

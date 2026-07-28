@@ -1,5 +1,6 @@
 package me.anno.zauber.types.impl
 
+import me.anno.zauber.logging.LogManager
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.typeresolution.members.ResolvedMember.Companion.resolveGenerics
@@ -10,6 +11,8 @@ import me.anno.zauber.types.impl.arithmetic.UnionType
 import me.anno.zauber.types.impl.unresolved.UnresolvedType
 
 object TypeUtils {
+
+    private val LOGGER = LogManager.getLogger(TypeUtils::class)
 
     fun ClassType.isChildTypeOf(parent: ClassType): Boolean {
 
@@ -51,7 +54,7 @@ object TypeUtils {
             bDepth--
         }
 
-        println("$typeA -$aDepth> $superTypeA =?= $superTypeB <$bDepth- $typeB")
+        if (LOGGER.isInfoEnabled) LOGGER.info("$typeA -$aDepth> $superTypeA =?= $superTypeB <$bDepth- $typeB")
 
         return superTypeA != superTypeB
     }

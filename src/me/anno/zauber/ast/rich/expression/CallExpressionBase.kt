@@ -226,7 +226,6 @@ abstract class CallExpressionBase(
                 //  -> no, we can always inline :)
                 if (shouldBeInlined) {
                     val params0 = reorderParameters(valueParameters, method.valueParameters, scope, origin)
-                        .applyImplicitCasts(method.valueParameters, context)
                     resolveInlineMethod(context, callable, params0)
                 } else {
                     // todo base must be defined, so resolve instance/this
@@ -244,7 +243,6 @@ abstract class CallExpressionBase(
                     val paramContext = context.withSpec(context.specialization + callable.specialization)
                     // println("Base for $this: $base, targetParams: $targetParams, ctx: $paramContext")
                     val params = reorderResolveParameters(paramContext, valueParameters, targetParams, scope, origin)
-                        .applyImplicitCasts(method.valueParameters, context)
                     val thisExpr = if (callable.resolved.hasExplicitSelfType) {
                         // todo check that 'this' is accessible from 'scope'
                         ThisExpression(callable.resolved.ownerScope, scope, origin)
@@ -281,18 +279,10 @@ abstract class CallExpressionBase(
                 val calledMethod = callable.resolveCalledMethod(typeParameters, valueParameters1)
                 val targetParams = calledMethod.resolved.valueParameters
                 val params = reorderResolveParameters(context, valueParameters, targetParams, scope, origin)
-                    .applyImplicitCasts(targetParams, context)
                 val base1 = ResolvedGetFieldExpression(base, callable, scope, origin)
                 ResolvedCallExpression(base1, null, calledMethod, params, scope, origin)
             }
             else -> throw NotImplementedError()
-        }
-    }
-
-    fun List<Expression>.applyImplicitCasts(params: List<Parameter>, context: ResolutionContext): List<Expression> {
-        return mapIndexed { index, expression ->
-            val type = params[index].type.specialize(context)
-            expression.implicitCastTo(params[index], context.withTargetType(type))
         }
     }
 

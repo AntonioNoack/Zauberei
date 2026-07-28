@@ -158,7 +158,8 @@ class Array<V>(override val size: Int): MutableList<V> {
     }
 
     operator fun plus(other: Array<V>): Array<V> {
-        val result = copyOf(size + other.size)
+        val newSize = size + other.size
+        val result = copyOf(newSize)
         other.copyInto(result, size, 0, other.size)
         return result
     }
@@ -166,7 +167,6 @@ class Array<V>(override val size: Int): MutableList<V> {
     fun copyInto(dst: Array<V>, dstStartIndex: Int) {
         copyInto(dst, dstStartIndex, 0, size)
     }
-
 
     fun copyInto(dst: Array<V>, dstStartOffset: Int, srcStartIndex: Int, srcEndIndex: Int) {
         val srcToDst = dstStartOffset - srcStartIndex

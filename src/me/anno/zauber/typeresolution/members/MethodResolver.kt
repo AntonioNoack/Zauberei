@@ -59,7 +59,7 @@ object MethodResolver : MemberResolver<Method, ResolvedMethod>() {
             val match = FindMemberMatch.findMemberMatch(
                 method, methodReturnType1, returnType,
                 selfType, typeParameters, valueParameters,
-                context.specialization,/* todo is this fine??? */scope, origin
+                context.withCodeScope(scope), origin
             ) as? ResolvedMethod
             if (match != null && (bestMatch == null || match.matchScore < bestMatch.matchScore)) {
                 bestMatch = match

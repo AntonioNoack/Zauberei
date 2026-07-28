@@ -140,7 +140,7 @@ class AssignIfMutableExpr(
     override fun resolveImpl(context: ResolutionContext): Expression {
         val (_, _, dstField, method) = resolveMethod(context)
         val left = left.resolve(context)
-        val right = right.resolve(context).implicitCastTo(method.resolved.valueParameters[0], context)
+        val right = right.resolve(context)
         val call = ResolvedCallExpression(left, null, method, listOf(right), scope, origin)
         if (dstField != null) {
             // an assignment

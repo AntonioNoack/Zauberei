@@ -179,7 +179,7 @@ class TryCatchBlock(
         val thrownField = catch.parameter.getOrCreateField(null, Flags.NONE)
         val thrownLocalField = block0.block.graph.getOrPutLocalField(thrownField, context)
         ifBlock.add(SimpleSetLocalField(thrownLocalField, block0.value, expr.scope, expr.origin))
-        return catch.body.simplify(context, ifBlock, ifFlow, needsValue)
+        return catch.body.simplifyTo(context, context.targetType, ifBlock, ifFlow, needsValue)
     }
 
     private fun simplifyCatchContinueBranch(
@@ -225,7 +225,7 @@ class TryCatchBlock(
 
     private fun simplifyImpl(context: ResolutionContext, expr: Expression, flow0: FlowResult): FlowResult {
         val block0 = flow0.value ?: return flow0
-        return expr.simplify(context, block0.block, flow0, needsValue = false)
+        return expr.simplifyTo(context, context.targetType, block0.block, flow0, needsValue = false)
     }
 
 }

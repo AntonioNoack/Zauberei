@@ -102,25 +102,23 @@ class ResolvedCallExpression(
     ): FlowResult {
 
         // (base, block1)
-        val block1 = selfExpr?.simplify(
-            context.withTargetType(callable.selfType),
-            block0, flow0, true, contextExpr = this
-        ) ?: flow0
+        val selfTargetType = callable.selfType// ?: callable.resolved.ownerScope.typeWithArgs2
+        val block1 = selfExpr?.simplifyTo(context, selfTargetType, block0, flow0, true, contextExpr = this) ?: flow0
         val base = block1.value ?: return block1
 
         // println("Simplified self to ${expr.self} (${expr.self.javaClass.simpleName})")
         var blockI = block1
         val valueParameters = valueParameters.mapIndexed { index, param ->
-            blockI = param.simplify(
-                context.withTargetType(callable.resolved.valueParameters[index].type),
+            blockI = param.simplifyTo(
+                context, callable.resolved.valueParameters[index].type,
                 blockI.value!!.block, blockI, false, contextExpr = this
             )
             blockI.value?.value ?: return blockI
         }
 
         val thisExpr = if (thisExpr != null) {
-            blockI = thisExpr.simplify(
-                context.withTargetType(callable.resolved.ownerScope.typeWithArgs2),
+            blockI = thisExpr.simplifyTo(
+                context, callable.resolved.ownerScope.typeWithArgs2,
                 blockI.value!!.block, blockI, false, contextExpr = this
             )
             blockI.value?.value ?: return blockI

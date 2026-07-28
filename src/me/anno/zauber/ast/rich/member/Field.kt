@@ -220,6 +220,7 @@ class Field(
 
     private fun createFieldScope(): Scope {
         val scope = ownerScope.getOrPut(name, ScopeType.FIELD)
+        scope.setEmptyTypeParams()
         check(scope.selfAsField == null || scope.selfAsField === this) {
             LOGGER.warn("Field1: ${resolveOrigin(scope.selfAsField!!.origin)}")
             LOGGER.warn("Field2: ${resolveOrigin(origin)}")

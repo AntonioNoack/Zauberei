@@ -145,7 +145,9 @@ class ClassType(val clazz: Scope, typeParameters0: ParameterList?) : Type() {
     }
 
     override fun specialize(spec: Specialization): ClassType {
-        return ClassType(clazz, typeParameters!!.map { it.specialize(spec) })
+        check(clazz[ScopeInitType.AFTER_DISCOVERY].hasTypeParameters) { "Class $clazz is missing type parameters" }
+        val typeParameters = typeParameters ?: ParameterList(clazz.typeParameters)
+        return ClassType(clazz, typeParameters.map { param -> param.specialize(spec) })
     }
 
     private fun toStringImplForInnerClasses(depth: Int): String {

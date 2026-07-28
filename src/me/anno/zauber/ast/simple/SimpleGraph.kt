@@ -400,7 +400,7 @@ class SimpleGraph(val method0: Specialization) {
     ): SimpleField {
         val srcType = src.type
         return if (needsCast(srcType, dstType, findAllCasts)) {
-            // println("cast: $srcType -> $dstType")
+            println("cast: $srcType -> $dstType")
             if (isConstNumberCast(src, dstType)) {
                 field(dstType, src.constantRef)
             } else {
@@ -414,7 +414,7 @@ class SimpleGraph(val method0: Specialization) {
 
     fun needsCast(srcType: Type, dstType: Type, findAllCasts: Boolean): Boolean {
         return dstType != srcType &&
-                (findAllCasts || dstType.isValue() || srcType.isValue())
+                (findAllCasts || dstType.isValueOrNative() || srcType.isValueOrNative())
     }
 
     fun clone(): SimpleGraph {

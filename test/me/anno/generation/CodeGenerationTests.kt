@@ -565,6 +565,19 @@ abstract class CodeGenerationTests {
         assertEqualsNumbers(expected, names, printed)
     }
 
+    fun testImplicitNumberConversionImpl() {
+        val code = """
+            fun main() {
+                val x: Int = 5
+                val y: Float = x // conversion
+                println(y)
+            }
+        """.trimIndent()
+        val printed = generator()
+            .testCompileMainAndRun(code, ::registerLib)
+        assertEquals("5.0\n", printed)
+    }
+
     fun assertEqualsNumbers(expected: List<String>, names: List<String>, printed: String) {
         val actual = printed.lines()
             .filter { it.isNotEmpty() }

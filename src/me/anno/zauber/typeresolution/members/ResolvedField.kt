@@ -82,7 +82,7 @@ class ResolvedField(
                         else -> null
                     }
                     if (newType != null) {
-                        println("applying newType: $newType onto $type")
+                        if (LOGGER.isInfoEnabled) LOGGER.info("applying newType: $newType onto $type")
                         val newType2 = if (expr.negated) {
                             newType.not()
                         } else newType
@@ -90,7 +90,7 @@ class ResolvedField(
                     } else type
                 }
                 else -> {
-                    LOGGER.info("!Ignoring $expr for $field")
+                    if (LOGGER.isInfoEnabled) LOGGER.info("!Ignoring $expr for $field")
                     type
                 }
             }
@@ -254,7 +254,7 @@ class ResolvedField(
 
             return FindMemberMatch.findMemberMatch(
                 method, methodReturnType, context.targetType, scopeSelfType,
-                typeParameters, valueParameters, specialization, codeScope, resolved.origin
+                typeParameters, valueParameters, context.withCodeScope(codeScope), resolved.origin
             ) as? ResolvedMethod
                 ?: error("Failed to resolve fun-interface on lambda, $lambdaClassName (${valueParameters.size})")
         }

@@ -6,6 +6,7 @@ import me.anno.zauber.ast.simple.expression.SimpleGetTypeFromInstance
 import me.anno.zauber.scope.Scope
 import me.anno.zauber.typeresolution.ResolutionContext
 import me.anno.zauber.types.Type
+import me.anno.zauber.types.Type.Companion.and
 import me.anno.zauber.types.Types
 
 class GetClassFromValueExpression(val value: Expression, scope: Scope, origin: Long) : Expression(scope, origin) {
@@ -42,7 +43,8 @@ class GetClassFromValueExpression(val value: Expression, scope: Scope, origin: L
         needsValue: Boolean,
         contextExpr: Expression?
     ): FlowResult {
-        val block1 = value.simplify(context, block0, flow0, true)
+        val targetType = context.targetType.and(Types.TypeT)
+        val block1 = value.simplifyTo(context, targetType, block0, flow0, true)
         val block1v = block1.value ?: return block1
         val dst = block0.field(resolveValueType(context))
         block0.add(SimpleGetTypeFromInstance(dst, block1v.value.use(), scope, origin))

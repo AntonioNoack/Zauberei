@@ -83,16 +83,12 @@ class CheckEqualsOp(
 
         val resolved = resolved!!
         // correct? could also be resolved to a self-method...
-        val thisParam = resolved.callable.resolved.ownerScope.typeWithArgs2
-        val block1 = left
-            .implicitCastTo(thisParam, context)
-            .simplify(context, block0, flow0, true)
+        val leftTargetType = resolved.callable.resolved.ownerScope.typeWithArgs2
+        val block1 = left.simplifyTo(context, leftTargetType, block0, flow0, true)
         val block1v = block1.value ?: return block1
 
-        val rightParam = resolved.callable.resolved.valueParameters.first()
-        val block2 = right
-            .implicitCastTo(rightParam, context)
-            .simplify(context, block1v.block, block1, true)
+        val rightTargetType = resolved.callable.resolved.valueParameters.first().type
+        val block2 = right.simplifyTo(context, rightTargetType, block1v.block, block1, true)
         val block2v = block2.value ?: return block2
 
         val dst = block2v.block.field(Types.Boolean)

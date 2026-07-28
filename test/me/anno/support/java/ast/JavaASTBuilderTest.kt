@@ -28,14 +28,12 @@ class JavaASTBuilderTest {
 
     private val javaStdlib = """
 package zauber
-class Any
 class Object extends Any
 class System
 
 // todo is this properly supported???
 @interface SuppressWarnings
 
-class Throwable
 class StackTraceElement
 
 class Error extends Throwable

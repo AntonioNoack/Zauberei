@@ -39,10 +39,10 @@ class ReturnExpression(value: Expression, label: String?, scope: Scope, origin: 
         contextExpr: Expression?
     ): FlowResult {
 
-        val field = value.simplify(context, block0, flow0, true, this)
+        val expectedReturnType = block0.graph.expectedReturnType
+        val field = value.simplifyTo(context, expectedReturnType, block0, flow0, true, this)
         val field1v = field.value ?: return field
 
-        val expectedReturnType = block0.graph.expectedReturnType
         val actualReturnType = field1v.value.type.specialize(block0.graph.method0)
         check(isSubTypeOf(expectedReturnType, actualReturnType)) {
             val method = block0.graph.method

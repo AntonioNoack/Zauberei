@@ -118,7 +118,7 @@ object ASTSimplifier {
         graph.initializeSpecialFields(context)
 
         val flow0 = FlowResult(Flow(unitInstance(graph, expr), graph.startBlock), null, null)
-        val flow1 = expr.simplify(context, graph.startBlock, flow0, false)
+        val flow1 = expr.simplifyTo(context, null, graph.startBlock, flow0, false)
         finishFlows(flow1, method0, expr)
 
         if (LOGGER.isInfoEnabled) LOGGER.info("\n${bold("Simplified")} $method0:\n  $flow1\n  to $graph\n")
@@ -258,7 +258,7 @@ object ASTSimplifier {
             self0 = ThisExpression(field.ownerScope, expr.scope, expr.origin)
         }
 
-        val block1 = self0.simplify(contextI, block0, flow0, true, expr)
+        val block1 = self0.simplifyTo(contextI, selfType, block0, flow0, true, expr)
         val block1v = block1.value ?: return block1
         val self = block1v.value
 
@@ -353,8 +353,7 @@ object ASTSimplifier {
 
         if (isLocalField(graph, field)) {
             val localField = graph.getOrPutLocalField(field, context)
-            val contextI = context.withTargetType(localField.type)
-            val block2 = expr.value.simplify(contextI, block0, flow0, true)
+            val block2 = expr.value.simplifyTo(context, localField.type, block0, flow0, true)
             val block2v = block2.value ?: return block2
             val value = block2v.value
 
@@ -362,13 +361,13 @@ object ASTSimplifier {
             return block2.withValue(unitInstance(graph, expr))
         }
 
-        val block1 = expr.self.simplify(context, block0, flow0, true)
+        val expectedSelfType = field.selfType ?: field.ownerScope.typeWithArgs2
+        val block1 = expr.self.simplifyTo(context, expectedSelfType, block0, flow0, true)
         val block1v = block1.value ?: return block1
         val self = block1v.value
 
         val expectedValueType = field.resolveValueType(context)
-        val contextI = context.withTargetType(expectedValueType)
-        val block2 = expr.value.simplify(contextI, block1v.block, block1, true)
+        val block2 = expr.value.simplifyTo(context, expectedValueType, block1v.block, block1, true)
         val block2v = block2.value ?: return block2
         val value = block2v.value
 

@@ -127,7 +127,8 @@ class IfElseBranch(
         needsValue: Boolean,
         contextExpr: Expression?
     ): FlowResult {
-        val block1 = condition.simplify(context, block0, flow0, true)
+
+        val block1 = condition.simplifyTo(context, Types.Boolean, block0, flow0, true)
         val block1v = block1.value ?: return block1
         val condition = block1v.value
 
@@ -146,15 +147,15 @@ class IfElseBranch(
         val elseFlow = block1.withValue(unit, elseBlock)
 
         if (elseBranch == null) {
-            val ifValue = ifBranch.simplify(context, ifBlock, ifFlow, needsValue)
+            val ifValue = ifBranch.simplifyTo(context, context.targetType, ifBlock, ifFlow, needsValue)
             ifValue.value?.block?.nextBranch = elseBlock
 
             return elseFlow
                 .joinReturnAndThrown(ifValue)
                 .withValue(unit, elseBlock)
         } else {
-            val ifValue = ifBranch.simplify(context, ifBlock, ifFlow, needsValue)
-            val elseValue = elseBranch.simplify(context, elseBlock, elseFlow, needsValue)
+            val ifValue = ifBranch.simplifyTo(context, context.targetType, ifBlock, ifFlow, needsValue)
+            val elseValue = elseBranch.simplifyTo(context, context.targetType, elseBlock, elseFlow, needsValue)
             return ifValue.joinWith(elseValue)
         }
     }
