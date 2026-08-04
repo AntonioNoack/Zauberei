@@ -9,10 +9,12 @@ import me.anno.generation.c.CSourceGenerator.Companion.hashMethodParameters
 import me.anno.generation.java.JavaSourceGenerator
 import me.anno.utils.ByteArrayOutputStream2
 import me.anno.utils.FullMap
+import me.anno.utils.StringStyles
 import me.anno.utils.assertEquals
 import me.anno.zauber.ast.rich.expression.CompareType
 import me.anno.zauber.ast.rich.expression.Expression
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression
+import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.getNumBits
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isFloat
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isUnsigned
 import me.anno.zauber.ast.rich.expression.constants.SpecialValue
@@ -47,10 +49,6 @@ import kotlin.math.max
  * */
 class LLVMSourceGenerator : JavaSourceGenerator() {
 
-    companion object {
-
-    }
-
     var nextRegisterId = 0
     var nextLabelId = 0
 
@@ -64,6 +62,11 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
     val fieldBranches = HashMap<SimpleField, String>()
     val stringByOffset = HashMap<String, Int>()
     var currBranch = "?"
+
+    init {
+        thisParamName = "%this"
+        selfParamName = "%__self"
+    }
 
     private val stringBuffer = ByteArrayOutputStream2()
 
@@ -82,6 +85,9 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         this.objects = objects
         objectGetters = getters
     }
+
+    override val keywords: Set<String>
+        get() = emptySet()
 
     override fun generateCode(dst: File, data: DependencyData, mainMethod: Method) {
 
@@ -128,8 +134,9 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         dst.writeText(builder.toString())
         builder.clear()
 
-        inheritanceTable.generateFiles(dst.parentFile)
-        stringBuffer.writeTo(File(dst.parentFile, "data/Strings.bin"))
+        val dstFolder = dst.parentFile
+        inheritanceTable.generateFiles(dstFolder)
+        stringBuffer.writeTo(File(dstFolder.parentFile, "data/Strings.bin"))
     }
 
     fun appendMainMethodCode(mainMethod: Method) {
@@ -218,33 +225,42 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         }
     }
 
-    fun appendMethodHeader(method: Specialization) {
+    fun appendMethodHeader(method0: Specialization) {
 
-        val returnType = getLLVMType(
-            method.method.resolveReturnType(method)
-        )
-
-        builder.append("define ")
-            .append(returnType.ir)
-        if (returnType is LLVMType.Ptr && returnType.isValueType) {
-            builder.setLength(builder.length - 1) // delete star
+        val method = method0.method
+        if (hasReturn(method)) {
+            val returnType = method.resolveReturnType(method0)
+            val returnType1 = getLLVMType(returnType)
+            builder.append("define ").append(returnType1.ir)
+            if (returnType1 is LLVMType.Ptr && returnType1.isValueType) {
+                builder.setLength(builder.length - 1) // delete star
+            }
+        } else {
+            builder.append("define void")
         }
-        builder.append(" ")
-            .append(getMethodName(method)).append("(")
 
-        builder.append(getLLVMType(method.method.ownerScope.typeWithArgs).ir)
-            .append(" %this")
+        builder.append(' ')
+            .append(getMethodName(method0)).append("(")
 
-        // todo append self-type
+        if (hasThis(method)) {
+            builder.append(getLLVMType(method.ownerScope.typeWithArgs).ir)
+                .append(' ').append(thisParamName)
+        }
 
-        for (param in method.method.valueParameters) {
-            builder.append(", ")
+        if (hasSelf(method)) {
+            val selfType = resolveType(method.selfType!!)
+            builder.append(getLLVMType(selfType).ir)
+                .append(' ').append(selfParamName)
+        }
+
+        for (param in method0.method.valueParameters) {
+            if (!builder.endsWith('(')) builder.append(", ")
             ensureFieldName(param)
             builder.append(getLLVMType(param.type).ir).append(" %")
             appendFieldName(param)
         }
 
-        builder.append(")")
+        builder.append(')')
     }
 
     override fun getMethodName(method0: Specialization): String {
@@ -285,11 +301,15 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
                     val suffix = "ret"
                     val i = findSuffixOffset(suffix)
                     if (!builder.startsWith(suffix, i)) {
-                        // return is typically missing
-                        val instanceReg = if (method.ownerScope == Types.Unit.clazz) "%this"
-                        else getObjectInstanceField(Types.Unit.clazz)
-                        builder.append("ret ").append(getLLVMType(Types.Unit).ir)
-                            .append(" ").append(instanceReg)
+                        if (hasReturn(method)) {
+                            // return is typically missing
+                            val instanceReg = if (method.ownerScope == Types.Unit.clazz) "%this"
+                            else getObjectInstanceField(Types.Unit.clazz)
+                            builder.append("ret ").append(getLLVMType(Types.Unit).ir)
+                                .append(" ").append(instanceReg)
+                        } else {
+                            builder.append("ret void")
+                        }
                         nextLine()
                     }
                 }
@@ -374,8 +394,10 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
 
         // return
         val unit = getObjectInstanceField(Types.Unit.clazz)
-        builder.append("ret ").append(getLLVMType(Types.Unit).ir)
-            .append(' ').append(unit)
+        if (hasReturn(method0.method)) {
+            builder.append("ret ").append(getLLVMType(Types.Unit).ir)
+                .append(' ').append(unit)
+        } else builder.append("ret void")
         nextLine()
     }
 
@@ -773,7 +795,10 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
                         stringBuffer.write(bytes)
                         offset
                     }
-                    "getString($addr)"
+                    val tmp = nextReg()
+                    builder.append(tmp).append(" = call %zauber.String* @getString(i32 ")
+                        .append(addr).append(')'); nextLine()
+                    tmp
                 }
                 null -> {
                     check(field.id >= 0) { "Invalid field $field in $graph" }
@@ -838,11 +863,12 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         nextLine()
     }
 
-    override fun canSkipInstruction(expr: SimpleInstruction): Boolean = false
+    override fun canSkipInstruction(expr: SimpleInstruction): Boolean =
+        (expr is SimpleMerge && expr.dst.numReads <= 0)
 
     override fun appendInstrImpl(graph: SimpleGraph, expr: SimpleInstruction) {
 
-        if (false) {
+        if (true) {
             builder.append(";; ").append(expr.javaClass.simpleName)
             nextLine()
         }
@@ -850,24 +876,26 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         when (expr) {
             is SimpleNumber, is SimpleGetObject -> {} // skip
             is SimpleReturn -> {
-                val reg = getSimpleFieldReg(graph, expr.value)
-                val type = getLLVMType(expr.value.type)
+                if (hasReturn(graph.method)) {
+                    val reg = getSimpleFieldReg(graph, expr.value)
+                    val type = getLLVMType(expr.value.type)
 
-                if (type is LLVMType.Ptr && type.isValueType) {
-                    // remove *, so we pass values, not instances
-                    val valueReg = nextReg()
-                    builder.append(valueReg).append(" = load ").append(type.ir)
-                    builder.setLength(builder.length - 1)
-                    builder.append(", ptr ").append(reg)
-                    nextLine()
+                    if (type is LLVMType.Ptr && type.isValueType) {
+                        // remove *, so we pass values, not instances
+                        val valueReg = nextReg()
+                        builder.append(valueReg).append(" = load ").append(type.ir)
+                        builder.setLength(builder.length - 1)
+                        builder.append(", ptr ").append(reg)
+                        nextLine()
 
-                    builder.append("ret ").append(type.ir)
-                    builder.setLength(builder.length - 1)
-                    builder.append(" ").append(valueReg)
-                } else {
-                    builder.append("ret ").append(type.ir)
-                        .append(" ").append(reg)
-                }
+                        builder.append("ret ").append(type.ir)
+                        builder.setLength(builder.length - 1)
+                        builder.append(' ').append(valueReg)
+                    } else {
+                        builder.append("ret ").append(type.ir)
+                            .append(' ').append(reg)
+                    }
+                } else builder.append("ret void")
             }
             is SimpleConstructorCall -> {
                 appendConstructorCallImpl(graph, expr)
@@ -912,7 +940,7 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
                 }
             }
             is SimpleGetLocalField -> {
-                if (!expr.field.isInsideMethod) {
+                if (!expr.field.isInsideMethod) { // parameter or this
                     renames[expr.dst] = expr.field.name
                     builder.append(";; rename: %tmp${expr.dst.id} = ${expr.field.name}")
                 } else {
@@ -1022,6 +1050,8 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
             }
             is SimpleSpecialValue -> {
                 // should this not be a constant?
+                if (expr.dst.id < 0) return
+                appendAssign(expr.dst)
                 when (expr.type) {
                     SpecialValue.TRUE -> builder.append("1")
                     SpecialValue.FALSE -> builder.append("0")
@@ -1059,8 +1089,11 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
             val outType = getLLVMType(outType0)
 
             if (inType == outType) {
-                renames[expr.dst] = "%tmp${expr.thisInstance.id}"
-                builder.append(";; rename-cast: %tmp${expr.dst.id} = %tmp${expr.thisInstance.id}")
+                renames[expr.dst] = getSimpleFieldReg(graph, expr.thisInstance)
+                builder.append(
+                    ";; rename-cast: %tmp${expr.dst.id} = %tmp${expr.thisInstance.id} " +
+                            "(${StringStyles.removeStyles("$type -> $outType0")})"
+                )
                 return true
             }
 
@@ -1127,7 +1160,7 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
             "minus" -> if (type.isFloat()) "fsub" else "sub"
             "times" -> if (type.isFloat()) "fmul" else "mul"
             "div" -> if (type.isFloat()) "fdiv" else if (type.isUnsigned()) "udiv" else "sdiv"
-            "rem" -> if (type.isFloat()) "fmod" /* todo does this exist? */ else if (type.isUnsigned()) "umod" else "smod"
+            "rem" -> if (type.isFloat()) "frem" else if (type.isUnsigned()) "urem" else "srem"
             "and" -> "and"
             "or" -> "or"
             "xor" -> "xor"
@@ -1142,14 +1175,9 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         val v0 = getSimpleFieldReg(graph, expr.thisInstance)
         val v1 = getSimpleFieldReg(graph, expr.valueParameters[0])
 
-        val needsCastToI32 = when (type) {
-            Types.Byte, Types.UByte,
-            Types.Short, Types.UShort -> when (methodName) {
-                "and", "or", "xor" -> false
-                else -> true
-            }
-            else -> false
-        }
+        val dstType = expr.dst.type
+        val needsCastToI32 =
+            (dstType == Types.Int || dstType == Types.UInt) && type.getNumBits() < 32
 
         val unsigned = type.isUnsigned()
         val llvmType = getLLVMType(type).ir
@@ -1171,12 +1199,27 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
                 .append(symbol).append(" i32 ")
                 .append(i0).append(", ").append(i1)
 
+        } else if (methodName == "plus" && dstType == Types.Char) {
+
+            val tmp = nextReg()
+            builder.append(tmp).append(" = trunc i32 ")
+                .append(v1).append(" to i16"); nextLine()
+
+            appendAssign(expr.dst)
+            builder
+                .append(symbol).append(' ')
+                .append(llvmType)
+                .append(' ').append(v0).append(", ").append(tmp)
+
         } else {
             appendAssign(expr.dst)
             builder
                 .append(symbol).append(' ')
                 .append(llvmType)
                 .append(' ').append(v0).append(", ").append(v1)
+        }
+        if (builder.endsWith("add i16 48, %tmp9")) {
+            error("Invalid[$needsCastToI32,$type->$dstType]: ${builder.toString().substringAfterLast('\n')}")
         }
         return true
     }
@@ -1335,7 +1378,8 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
 
         for (i in args.indices) {
             if (i > 0) builder.append(", ")
-            builder.append(methodParams[i].ir).append(" ").append(args[i])
+            val typeName = methodParams[i].ir
+            builder.append(typeName).append(' ').append(args[i])
         }
 
         builder.append(")")
