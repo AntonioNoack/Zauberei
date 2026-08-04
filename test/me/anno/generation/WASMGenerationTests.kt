@@ -6,10 +6,6 @@ import me.anno.zauber.logging.LogManager
 import me.anno.zauber.typeresolution.TypeResolution
 import org.junit.jupiter.api.Test
 
-/**
- * execution time: 3.6s,
- * main cost is loading Node via NVM, I think -> yesss, custom runtime is 10x faster
- * */
 class WASMGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {

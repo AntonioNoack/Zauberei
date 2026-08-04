@@ -6,9 +6,6 @@ import me.anno.generation.rust.RustSourceGenerator.Companion.nativeRustNumbers
 import me.anno.zauber.typeresolution.TypeResolution
 import org.junit.jupiter.api.Test
 
-/**
- * execution time: 1.3s with preserveFolder=true instead of ~10s
- * */
 class RustGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {

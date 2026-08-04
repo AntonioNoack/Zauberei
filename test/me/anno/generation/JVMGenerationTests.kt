@@ -4,9 +4,6 @@ import me.anno.compilation.MinimalJVMCompiler
 import me.anno.zauber.logging.LogManager
 import org.junit.jupiter.api.Test
 
-/**
- * execution time: todo get working and measure
- * */
 class JVMGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {

@@ -6,10 +6,6 @@ import me.anno.zauber.typeresolution.TypeResolution
 import me.anno.zauber.types.Types
 import org.junit.jupiter.api.Test
 
-/**
- * execution time: 4.1s
- * ~2s for all when preserveFolder=true, instead of 3s
- * */
 class CppGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {

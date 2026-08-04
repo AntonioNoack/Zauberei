@@ -5,9 +5,6 @@ import me.anno.zauber.logging.LogManager
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-/**
- * execution time: ~250 ms
- * */
 class BaselineRuntimeTests : CodeGenerationTests() {
 
     override fun registerLib() {}

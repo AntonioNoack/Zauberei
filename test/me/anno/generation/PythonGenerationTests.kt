@@ -8,9 +8,6 @@ import me.anno.zauber.ast.simple.ASTSimplifier.nativeNumbers
 import me.anno.zauber.typeresolution.TypeResolution
 import org.junit.jupiter.api.Test
 
-/**
- * execution time: ~0.4s for all
- * */
 class PythonGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {

@@ -4,9 +4,6 @@ import me.anno.compilation.MinimalCCompiler
 import me.anno.utils.assertEquals
 import org.junit.jupiter.api.Test
 
-/**
- * execution time: todo measure
- * */
 class CGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {

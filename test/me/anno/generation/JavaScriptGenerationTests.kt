@@ -7,9 +7,6 @@ import me.anno.zauber.typeresolution.TypeResolution
 import me.anno.zauber.types.Types
 import org.junit.jupiter.api.Test
 
-/**
- * execution time: ~1.0s for all
- * */
 class JavaScriptGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {

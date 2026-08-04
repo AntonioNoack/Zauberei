@@ -4,9 +4,6 @@ import me.anno.compilation.MinimalWASMRuntimeCompiler
 import me.anno.zauber.logging.LogManager
 import org.junit.jupiter.api.Test
 
-/**
- * execution time: 0.2s
- * */
 class WASMRuntimeTests : CodeGenerationTests() {
 
     override fun registerLib() {} // stdlib defined in MinimalWASMRuntimeCompiler

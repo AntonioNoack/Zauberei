@@ -8,9 +8,6 @@ import org.junit.jupiter.api.Test
 //  - try-catch
 //  - yield
 
-/**
- * Execution speed: ~1.0s
- * */
 class LLVMGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
