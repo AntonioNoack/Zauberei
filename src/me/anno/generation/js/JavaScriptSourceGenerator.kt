@@ -301,6 +301,23 @@ open class JavaScriptSourceGenerator : JavaSourceGenerator() {
         appendConstructorBody(classScope, className, constructor, headerOnly)
     }
 
+    override fun getBinarySymbol(type: Type, methodName: String): String? {
+        return when (methodName) {
+            "plus" -> " + "
+            "minus" -> " - "
+            "times" -> " * "
+            "div" -> " / "
+            "rem" -> " % "
+            "and" -> " & "
+            "or" -> " | "
+            "xor" -> " ^ "
+            "shl" -> "<<"
+            "shr" -> if (type.isUnsigned()) ">>>" else ">>"
+            "ushr" -> ">>>"
+            else -> null
+        }
+    }
+
     override fun appendConstructorBody(
         classScope: Scope, className: String,
         constructor: Constructor, headerOnly: Boolean
@@ -353,8 +370,11 @@ open class JavaScriptSourceGenerator : JavaSourceGenerator() {
                     val type = it.value.resolveValueType(context)
                     ValueParameterImpl(it.name, type, false)
                 }
+                val superTypeI = if (superCall.target == InnerSuperCallTarget.THIS) {
+                    classScope.typeWithArgs2.specialize()
+                } else superType
                 val foundConstructor = ConstructorResolver.findMemberInScope(
-                    superType.clazz, superCall.origin, superType.clazz.name,
+                    superTypeI.clazz, superCall.origin, superTypeI.clazz.name,
                     null, valueParams, context
                 )
                     ?: error("Missing $superCall in $superType for $className, valueParams: $valueParams")
@@ -583,6 +603,15 @@ open class JavaScriptSourceGenerator : JavaSourceGenerator() {
             Types.Half -> builder.append(expr.asFloat.toHalf().toFloat())
             Types.Float -> builder.append(expr.asFloat.toFloat()) // f is not supported
             Types.Double -> builder.append(expr.asFloat)
+            Types.Char -> {
+                if (expr.asInt in 32..127 && expr.asInt.toInt().toChar() != '\'') {
+                    builder.append('\'')
+                    builder.append(expr.asInt)
+                    builder.append('\'')
+                } else {
+                    builder.append("String.fromCharCode(").append(expr.asInt).append(')')
+                }
+            }
             else -> throw NotImplementedError("Append number of type $type")
         }
     }

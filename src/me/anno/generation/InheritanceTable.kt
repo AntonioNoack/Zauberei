@@ -31,6 +31,18 @@ class InheritanceTable(val data: DependencyData) {
         private val LOGGER = LogManager.getLogger(InheritanceTable::class)
 
         val loadInit = loadLazyCode("src/IndirectCall.kt")
+
+        fun OutputStream.writeLE32(data: Int) {
+            write(data)
+            write(data shr 8)
+            write(data shr 16)
+            write(data shr 24)
+        }
+
+        fun OutputStream.writeLE64(data: Long) {
+            writeLE32(data.toInt())
+            writeLE32((data shr 32).toInt())
+        }
     }
 
     init {
@@ -356,10 +368,4 @@ class InheritanceTable(val data: DependencyData) {
         }
     }
 
-    private fun OutputStream.writeLE32(data: Int) {
-        write(data)
-        write(data shr 8)
-        write(data shr 16)
-        write(data shr 24)
-    }
 }

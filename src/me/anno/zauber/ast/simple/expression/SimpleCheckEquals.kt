@@ -11,7 +11,7 @@ import me.anno.zauber.typeresolution.members.ResolvedMethod
 
 class SimpleCheckEquals(
     dst: SimpleField,
-    val left: SimpleField, val right: SimpleField,
+    val left: SimpleField, var right: SimpleField,
     val negated: Boolean,
     val method: ResolvedMethod,
     scope: Scope, origin: Long

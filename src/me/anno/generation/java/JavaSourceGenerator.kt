@@ -1,5 +1,6 @@
 package me.anno.generation.java
 
+import com.sun.org.apache.xalan.internal.xsltc.compiler.sym
 import me.anno.generation.*
 import me.anno.generation.Specializations.specialization
 import me.anno.generation.java.JavaSuperCallWriter.appendSuperCall
@@ -716,11 +717,13 @@ open class JavaSourceGenerator : Generator() {
             }
             isArrayGetter(methodSpec) -> appendArrayGetter(methodSpec)
             isArraySetter(methodSpec) -> appendArraySetter(methodSpec)
-            else -> {
-                builder.append(";")
-                nextLine()
-            }
+            else -> appendEmptyBody(methodSpec)
         }
+    }
+
+    open fun appendEmptyBody(methodSpec: Specialization) {
+        builder.append("; // body missing")
+        nextLine()
     }
 
     open fun appendArrayGetter(method0: Specialization) {
@@ -1657,8 +1660,16 @@ open class JavaSourceGenerator : Generator() {
             "plus" -> " + "
             "minus" -> " - "
             "times" -> " * "
-            "div" -> " / "
-            "rem" -> " % "
+            "div" -> when (type) {
+                Types.UByte, Types.UShort, Types.UInt -> "Integer.remainderUnsigned("
+                Types.ULong -> "Long.remainderUnsigned("
+                else -> " / "
+            }
+            "rem" -> when (type) {
+                Types.UByte, Types.UShort, Types.UInt -> "Integer.divideUnsigned("
+                Types.ULong -> "Long.divideUnsigned("
+                else -> " % "
+            }
             "and" -> " & "
             "or" -> " | "
             "xor" -> " ^ "
@@ -1691,20 +1702,23 @@ open class JavaSourceGenerator : Generator() {
         val symbol = getBinarySymbol(type, methodName)
             ?: return false
 
-        // some unsigned operations need special helpers: unsigned div, unsigned rem
-        if ((methodName == "div" || methodName == "rem") && type.isUnsigned()) {
-            TODO("Special call: $methodName on $type")
-        }
-
         when (type) {
             Types.Short, Types.UShort -> builder.append("(short) (")
             Types.Byte, Types.UByte -> builder.append("(byte) (")
             else -> {}
         }
 
-        appendFirstParameter(graph, type, expr)
-        builder.append(symbol)
-        appendFieldName(graph, expr.valueParameters[0])
+        if (symbol.endsWith('(')) {
+            builder.append(symbol)
+            appendFirstParameter(graph, type, expr)
+            builder.append(", ")
+            appendFieldName(graph, expr.valueParameters[0])
+            builder.append(')')
+        } else {
+            appendFirstParameter(graph, type, expr)
+            builder.append(symbol)
+            appendFieldName(graph, expr.valueParameters[0])
+        }
 
         when (type) {
             Types.Short, Types.UShort,
@@ -1731,8 +1745,12 @@ open class JavaSourceGenerator : Generator() {
     open fun appendNonNativeCall(expr: SimpleMethodCall, graph: SimpleGraph) {
         appendFieldName(graph, expr.thisInstance, ".")
         val methodName = getMethodName(expr.specialization)
-        builder.append(methodName)
-        appendValueParams(graph, expr.valueParameters)
+        builder.append(methodName).append('(')
+        if (hasSelf(expr.specialization.method)) {
+            appendFieldName(graph, expr.selfInstance!!, "")
+        }
+        appendValueParams(graph, expr.valueParameters, withBrackets = false)
+        builder.append(')')
     }
 
     open fun appendNativeCall(

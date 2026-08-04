@@ -13,6 +13,10 @@ import org.junit.jupiter.api.Test
 class CppGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
+        registerLib(false)
+    }
+
+    fun registerLib(isC: Boolean) {
         for (type in listOf(Types.Byte, Types.Short, Types.Int)) {
             register(
                 TypeResolution.langScope, "println", listOf(type),
@@ -57,13 +61,36 @@ class CppGenerationTests : CodeGenerationTests() {
 
         register(
             TypeResolution.langScope, "flushConsole", emptyList(),
-            """
+            if (isC) {
+                """
                 #include <stdio.h>
                 printf("%.*s", zauber_ZauberKt__getObject()->printed->size, zauber_ZauberKt__getObject()->printed->buffer->content);
                 zauber_ZauberKt__getObject()->printed->size = 0; // clear
             """.trimIndent()
+            } else {
+                """
+                #include <stdio.h>
+                printf("%.*s", this->printed->size, this->printed->buffer->content);
+                this->printed->size = 0; // clear
+            """.trimIndent()
+            }
         )
 
+        // todo convert floatBits to halfBits:
+        register(
+            Types.Half.clazz, "toBits", emptyList(),
+            """
+                int32_t floatBits = *((int32_t*) &this->content);
+                return floatBits;
+            """.trimIndent()
+        )
+
+        register(
+            Types.Float.clazz, "toBits", emptyList(),
+            """
+                return *((int32_t*) &this->content);
+            """.trimIndent()
+        )
         register(
             Types.Double.clazz, "toBits", emptyList(),
             """

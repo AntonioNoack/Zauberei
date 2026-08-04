@@ -40,7 +40,7 @@ class UnresolvedFieldExpression(
 
     override fun resolveValueType(context: ResolutionContext): Type {
         val field = resolveField(context)
-        println("ufe: $field -> ${field?.getValueType()} in $context")
+        // println("ufe: $field -> ${field?.getValueType()} in $context")
         if (field != null) return field.getValueType()
 
         val type0 = try {
@@ -49,7 +49,7 @@ class UnresolvedFieldExpression(
         } catch (_: Exception) {
             error("Failed to resolve field '$name' in $scope\n  at ${resolveOrigin(origin)}")
         }
-        println("ufe/2: $type0")
+        // println("ufe/2: $type0")
         check(type0 is ClassType) { "Expected $type0 from $this to be ClassType" }
         return NonObjectClassType(type0)
     }

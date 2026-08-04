@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 class CGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
-        CppGenerationTests().registerLib()
+        CppGenerationTests().registerLib(isC = true)
     }
 
     override fun generator() = MinimalCCompiler()

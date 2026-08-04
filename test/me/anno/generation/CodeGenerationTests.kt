@@ -375,7 +375,10 @@ abstract class CodeGenerationTests {
             1e38f, -1e38f,
             1e308, -1e308,
         ).map { it.toString() }
-        val names = numberTypes.map { it.toString() }
+        val names = numberTypes.flatMap {
+            val tn = it.toString()
+            listOf(tn, tn)
+        }
         val code = numberTypes.joinToString("", "fun main() {", "}") { type ->
             val max = getBigValueForTesting(type)
             val type = type.clazz.name
@@ -582,10 +585,13 @@ abstract class CodeGenerationTests {
         val actual = printed.lines()
             .filter { it.isNotEmpty() }
         assertEquals(expected.size, actual.size)
+        assertEquals(expected.size, names.size)
         var mismatches = 0
         for (i in expected.indices) {
             try {
                 assertEqualsNumber(expected[i], actual[i])
+            } catch (e: IndexOutOfBoundsException) {
+                throw e
             } catch (e: Throwable) {
                 var message = (e.message ?: "")
                 if (message.endsWith(": ")) message = message.dropLast(2)

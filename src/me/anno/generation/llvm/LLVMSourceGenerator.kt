@@ -1,11 +1,14 @@
 package me.anno.generation.llvm
 
 import me.anno.generation.InheritanceTable
+import me.anno.generation.InheritanceTable.Companion.writeLE64
 import me.anno.generation.Specializations.specialization
 import me.anno.generation.c.CSourceGenerator
 import me.anno.generation.c.CSourceGenerator.Companion.hashMethodParameters
 import me.anno.generation.java.JavaSourceGenerator
+import me.anno.utils.ByteArrayOutputStream2
 import me.anno.utils.FullMap
+import me.anno.utils.assertEquals
 import me.anno.zauber.ast.rich.expression.CompareType
 import me.anno.zauber.ast.rich.expression.Expression
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression
@@ -13,6 +16,7 @@ import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.i
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isUnsigned
 import me.anno.zauber.ast.rich.expression.constants.SpecialValue
 import me.anno.zauber.ast.rich.expression.constants.SpecialValueExpression
+import me.anno.zauber.ast.rich.expression.constants.StringExpression
 import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.simple.ASTSimplifier
@@ -20,6 +24,7 @@ import me.anno.zauber.ast.simple.SimpleBlock
 import me.anno.zauber.ast.simple.SimpleGraph
 import me.anno.zauber.ast.simple.SimpleMerge
 import me.anno.zauber.ast.simple.constants.SimpleNumber
+import me.anno.zauber.ast.simple.constants.SimpleSpecialValue
 import me.anno.zauber.ast.simple.controlflow.SimpleReturn
 import me.anno.zauber.ast.simple.expression.*
 import me.anno.zauber.ast.simple.fields.*
@@ -56,7 +61,10 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
     val objectGlobals = HashMap<Scope, Int>()
     val renames = HashMap<SimpleField, String>()
     val fieldBranches = HashMap<SimpleField, String>()
+    val stringByOffset = HashMap<String, Int>()
     var currBranch = "?"
+
+    private val stringBuffer = ByteArrayOutputStream2()
 
     lateinit var objectGetters: Map<Scope, Int>
     lateinit var objects: List<Specialization>
@@ -88,6 +96,8 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         }
         builder.append("declare ptr @calloc(i64, i64)")
         nextLine()
+        builder.append("declare ptr @getString(i32)")
+        nextLine()
 
         val methodImports = builder.toString()
         builder.clear()
@@ -118,6 +128,7 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
         builder.clear()
 
         inheritanceTable.generateFiles(dst.parentFile)
+        stringBuffer.writeTo(File(dst.parentFile, "data/Strings.bin"))
     }
 
     fun appendMainMethodCode(mainMethod: Method) {
@@ -751,11 +762,21 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
                     SpecialValue.TRUE -> "1"
                     SpecialValue.FALSE -> "0"
                 }
+                is StringExpression -> {
+                    val addr = stringByOffset.getOrPut(expr.value) {
+                        val offset = stringBuffer.size
+                        val bytes = expr.value.encodeToByteArray()
+                        stringBuffer.writeLE64(0) // address once allocated
+                        stringBuffer.write(bytes)
+                        offset
+                    }
+                    "getString($addr)"
+                }
                 null -> {
                     check(field.id >= 0) { "Invalid field $field in $graph" }
                     renames[field] ?: "%tmp${field.id}"
                 }
-                else -> throw NotImplementedError("Append constant field $expr")
+                else -> throw NotImplementedError("Append constant field $expr (${expr.javaClass.simpleName})")
             }
         }
     }
@@ -983,7 +1004,7 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
             }
             is SimpleCheckEquals -> {
                 val type = expr.left.type
-                check(type == expr.right.type)
+                assertEquals(type, expr.right.type)
                 check(type in nativeNumbers)
 
                 val left = getSimpleFieldReg(graph, expr.left)
@@ -995,6 +1016,14 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
                     .append(if (expr.negated) " ne " else " eq ")
                     .append(getLLVMType(type).ir)
                     .append(left).append(", ").append(right)
+            }
+            is SimpleSpecialValue -> {
+                // should this not be a constant?
+                when (expr.type) {
+                    SpecialValue.TRUE -> builder.append("1")
+                    SpecialValue.FALSE -> builder.append("0")
+                    SpecialValue.NULL -> builder.append("0") // is this right?
+                }
             }
             else -> throw NotImplementedError("Implement writing $expr (${expr.javaClass.simpleName})")
         }

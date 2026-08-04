@@ -7,7 +7,9 @@ import me.anno.zauber.scope.ScopeInitType
 import me.anno.zauber.typeresolution.ResolutionContext
 
 // todo test this class
-// todo use this to find captured fields early on
+// todo use this to find captured fields for ASTSimplifier:
+//  val-fields become extra parameters
+//  var-fields and functions are referenced by one extra method-reference-parameter
 object CapturedFields : MethodOrClassColoring<Set<Field>>() {
 
     override fun getSelfColor(key: MethodOrClassSpecialization): Set<Field> {

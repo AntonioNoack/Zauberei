@@ -15,6 +15,7 @@ import me.anno.zauber.ast.simple.controlflow.SimpleReturn
 import me.anno.zauber.ast.simple.expression.SimpleAssignment
 import me.anno.zauber.ast.simple.expression.SimpleBoxCast
 import me.anno.zauber.ast.simple.expression.SimpleCallable
+import me.anno.zauber.ast.simple.expression.SimpleCheckEquals
 import me.anno.zauber.ast.simple.expression.SimpleConstructorCall
 import me.anno.zauber.ast.simple.fields.*
 import me.anno.zauber.scope.Scope
@@ -336,6 +337,13 @@ class SimpleGraph(val method0: Specialization) {
                         instr.value, expectedReturnType,
                         findAllCasts, instructions, i, instr
                     )
+                    is SimpleCheckEquals -> {
+                        val type = instr.left.type
+                        instr.right = addCastIfNeeded(
+                            instr.right, type,
+                            findAllCasts, instructions, i, instr
+                        )
+                    }
                     is SimpleMerge -> {
                         if (instr.dst.dst.numReads > 0) {
                             val dstType = instr.dst.type

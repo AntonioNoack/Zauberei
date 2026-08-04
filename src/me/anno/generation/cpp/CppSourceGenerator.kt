@@ -349,13 +349,15 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             builder.append("namespace ")
             for (i in packagePath.indices) {
                 if (i > 0) builder.append('_')
-                builder.append(packagePath[i])
+                val part = packagePath[i]
+                builder.append(part.toNamespaceName())
             }
             builder.append("{")
             nextLine()
         } else {
             for (part in packagePath) {
-                builder.append("namespace ").append(part).append(" {")
+                builder.append("namespace ")
+                    .append(part.toNamespaceName()).append(" {")
                 nextLine()
             }
         }
@@ -429,16 +431,24 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
             builder.append("using namespace ")
             for (i in import.indices) {
                 if (i > 0) builder.append("::")
-                builder.append(import[i])
+                builder.append(import[i].toNamespaceName())
             }
             builder.append(";")
             nextLine()
         }
     }
 
+    fun String.toNamespaceName(): String {
+        var name = lowercase()
+        if (name in keywords) name = "${name}_"
+        return name
+    }
+
     override fun appendImport(packagePath: List<String>, import: List<String>, importedScope: Scope?) {
         builder.append("#include \"")
-        builder.appendRelativePath(packagePath, import)
+        builder.appendRelativePath(packagePath, import.mapIndexed { index, it ->
+            if (index == import.lastIndex) it else it.toNamespaceName()
+        })
         builder.append(".hpp\"")
         nextLine()
     }
@@ -912,6 +922,18 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
         }
     }
 
+    override fun appendClassType(type: Scope, specialization: Specialization) {
+        val type1 = type.typeWithArgs2.specialize(specialization)
+        if (type1 == Types.Array) error("Cannot import non-specialized array")
+        ensureImport(type1) // scope-reference without import is impossible
+        super.appendClassType(type, specialization)
+    }
+
+    override fun appendClassName(path: List<String>, scope: Scope) {
+        val escapedPath = path.mapIndexed { index, it -> if (index == path.lastIndex) it else it.toNamespaceName() }
+        super.appendClassName(escapedPath, scope)
+    }
+
     var boxSuffix = ""
 
     @Deprecated("Use appendType with suffix option")
@@ -942,6 +964,14 @@ open class CppSourceGenerator(val cppVersion: Int = 11) : JavaSourceGenerator() 
 
         CodeReconstruction.createCodeFromGraph(graph, true)
         graph.renumberFields() // necessary
+    }
+
+    override fun appendEmptyBody(methodSpec: Specialization) {
+        writeBlock {
+            if (hasReturn(methodSpec.method)) builder.append("return {};")
+            else builder.append("return;")
+            nextLine()
+        }
     }
 
     override fun appendCode(
