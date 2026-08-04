@@ -2,6 +2,7 @@ package me.anno.generation
 
 import me.anno.compilation.MinimalCompiler
 import me.anno.compilation.MinimalLLVMCompiler
+import me.anno.support.Language
 import org.junit.jupiter.api.Test
 
 // todo we need more tests:
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.Test
 class LLVMGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
-        CGenerationTests().registerLib()
+        CppGenerationTests().registerLib(Language.LLVM_IR)
     }
 
     override fun generator(): MinimalCompiler = MinimalLLVMCompiler()

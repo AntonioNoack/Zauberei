@@ -2,6 +2,7 @@ package me.anno.generation
 
 import me.anno.compilation.MinimalCppCompiler
 import me.anno.generation.java.JavaSourceGenerator.Companion.register
+import me.anno.support.Language
 import me.anno.zauber.typeresolution.TypeResolution
 import me.anno.zauber.types.Types
 import org.junit.jupiter.api.Test
@@ -9,10 +10,10 @@ import org.junit.jupiter.api.Test
 class CppGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
-        registerLib(false)
+        registerLib(Language.CPP)
     }
 
-    fun registerLib(isC: Boolean) {
+    fun registerLib(language: Language) {
         for (type in listOf(Types.Byte, Types.Short, Types.Int)) {
             register(
                 TypeResolution.langScope, "println", listOf(type),
@@ -57,7 +58,7 @@ class CppGenerationTests : CodeGenerationTests() {
 
         register(
             TypeResolution.langScope, "flushConsole", emptyList(),
-            if (isC) {
+            if (language == Language.C) {
                 """
                 #include <stdio.h>
                 printf("%.*s", zauber_ZauberKt__getObject()->printed->size, zauber_ZauberKt__getObject()->printed->buffer->content);

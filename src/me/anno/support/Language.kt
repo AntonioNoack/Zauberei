@@ -9,13 +9,15 @@ enum class Language {
     PYTHON,
     RUST,
     JAVA,
-    TYPESCRIPT;
+    TYPESCRIPT,
+
+    LLVM_IR;
 
     val allowsDefaultsInParameterDeclaration: Boolean
         get() = this == KOTLIN || this == ZAUBER || this == CSHARP
 
     val allowsValuesAsTypes: Boolean
-        get() = this == KOTLIN || this == ZAUBER || this == TYPESCRIPT
+        get() = this == ZAUBER || this == TYPESCRIPT
 
     val hasSaveAssignments: Boolean
         get() = this == KOTLIN || this == ZAUBER || this == PYTHON
@@ -37,6 +39,8 @@ enum class Language {
         fun byFileName(fileName: String): Language {
             return when {
                 fileName.endsWith(".kt") || fileName.endsWith(".kts") -> KOTLIN
+                fileName.endsWith(".cpp") || fileName.endsWith(".hpp") -> CPP
+                fileName.endsWith(".c") || fileName.endsWith(".h") -> C
                 fileName.endsWith(".java") -> JAVA
                 fileName.endsWith(".cs") -> CSHARP
                 fileName.endsWith(".rs") -> RUST

@@ -1353,13 +1353,17 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
     ) {
 
         val method = method0.method
-
-        val returnType = getLLVMType(method.resolveReturnType(method0))
-
-        builder.append("call ")
-            .append(returnType.ir)
-            .append(" ").append(getMethodName(method0))
-            .append("(")
+        if (hasReturn(method)) {
+            val returnType = getLLVMType(method.resolveReturnType(method0))
+            builder.append("call ")
+                .append(returnType.ir)
+                .append(" ").append(getMethodName(method0))
+                .append("(")
+        } else {
+            builder.append("call void ")
+                .append(getMethodName(method0))
+                .append("(")
+        }
 
         val methodParams = ArrayList<LLVMType>()
         method0.use { // <- for resolving types

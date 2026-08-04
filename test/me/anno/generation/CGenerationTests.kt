@@ -1,13 +1,14 @@
 package me.anno.generation
 
 import me.anno.compilation.MinimalCCompiler
+import me.anno.support.Language
 import me.anno.utils.assertEquals
 import org.junit.jupiter.api.Test
 
 class CGenerationTests : CodeGenerationTests() {
 
     override fun registerLib() {
-        CppGenerationTests().registerLib(isC = true)
+        CppGenerationTests().registerLib(Language.C)
     }
 
     override fun generator() = MinimalCCompiler()
