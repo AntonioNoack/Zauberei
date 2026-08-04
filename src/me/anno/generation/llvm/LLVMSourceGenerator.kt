@@ -1,6 +1,7 @@
 package me.anno.generation.llvm
 
 import me.anno.generation.InheritanceTable
+import me.anno.generation.InheritanceTable.Companion.writeLE32
 import me.anno.generation.InheritanceTable.Companion.writeLE64
 import me.anno.generation.Specializations.specialization
 import me.anno.generation.c.CSourceGenerator
@@ -766,7 +767,9 @@ class LLVMSourceGenerator : JavaSourceGenerator() {
                     val addr = stringByOffset.getOrPut(expr.value) {
                         val offset = stringBuffer.size
                         val bytes = expr.value.encodeToByteArray()
+                        stringBuffer.align(8)
                         stringBuffer.writeLE64(0) // address once allocated
+                        stringBuffer.writeLE32(bytes.size)
                         stringBuffer.write(bytes)
                         offset
                     }

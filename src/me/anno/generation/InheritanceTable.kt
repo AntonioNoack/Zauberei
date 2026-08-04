@@ -55,10 +55,9 @@ class InheritanceTable(val data: DependencyData) {
 
     val interfaceCallSpec by lazy { funToSpec("resolveInterfaceCall") }
     val methodCallSpec by lazy { funToSpec("resolveClassCall") }
-
     val instanceOfClassCall by lazy { funToSpec("isInstanceOfClass") }
-
     val instanceOfInterfaceCall by lazy { funToSpec("isInstanceOfInterface") }
+    val createStringCall by lazy { funToSpec("createString") }
 
     // todo build class-call and interface-call table.
     //  class-call:

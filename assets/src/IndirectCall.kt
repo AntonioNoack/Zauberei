@@ -12,6 +12,8 @@ private external fun readFromSuperClassTable(addr: Int): Int
 // class -> i0 + i1, i0 .. i1 |=| interface
 private external fun readFromClassToInterfaceTable(addr: Int): Int
 
+private external fun createString(offset: Int): String
+
 @Suppress("unused")
 fun resolveClassCall(classIndex: Int, methodIndex: Int): Int {
     val offset = readFromClassCallTable(classIndex)

@@ -1,10 +1,12 @@
 package me.anno.generation.wasm
 
 import me.anno.generation.InheritanceTable
+import me.anno.generation.InheritanceTable.Companion.writeLE32
 import me.anno.generation.c.CSourceGenerator
 import me.anno.generation.c.CSourceGenerator.Companion.hashMethodParameters
 import me.anno.generation.java.JavaSourceGenerator
 import me.anno.generation.wasm.WASMType.Companion.anyRef
+import me.anno.utils.ByteArrayOutputStream2
 import me.anno.utils.CollectionUtils.partitionBy
 import me.anno.utils.FullMap
 import me.anno.utils.ListOfByteArrays
@@ -25,6 +27,7 @@ import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.i
 import me.anno.zauber.ast.rich.expression.constants.NumberExpression.Companion.isUnsigned
 import me.anno.zauber.ast.rich.expression.constants.SpecialValue
 import me.anno.zauber.ast.rich.expression.constants.SpecialValueExpression
+import me.anno.zauber.ast.rich.expression.constants.StringExpression
 import me.anno.zauber.ast.rich.member.Constructor
 import me.anno.zauber.ast.rich.member.Method
 import me.anno.zauber.ast.rich.member.MethodLike
@@ -172,6 +175,9 @@ class WASMSourceGenerator : JavaSourceGenerator() {
     override fun generateCode(dst: File, data: DependencyData, mainMethod: Method) {
 
         inheritanceTable = InheritanceTable(data)
+        if (Specialization(Types.String) in data.createdClasses) {
+            data.calledMethods += inheritanceTable.createStringCall
+        }
 
         registerMethods(data, mainMethod)
         defineObjectGetters(data)
@@ -230,6 +236,19 @@ class WASMSourceGenerator : JavaSourceGenerator() {
         binary.writeExportSection(exportList)
         binary.writeCodeSection(bodies)
         binary.out.removeSection(0, start)
+
+        writeBinaryBuffer()
+    }
+
+    val strings = HashMap<String, Int>()
+    val binaryBuffer = ByteArrayOutputStream2()
+
+    fun writeBinaryBuffer() {
+
+        // todo write inheritance table to binary buffer
+        // todo store offsets somehow
+        //  maybe like GLSL with const offsets
+
     }
 
     @Suppress("unused")
@@ -1194,6 +1213,22 @@ class WASMSourceGenerator : JavaSourceGenerator() {
                     SpecialValue.TRUE -> i32Const(1)
                     SpecialValue.FALSE -> i32Const(0)
                 }
+                is StringExpression -> {
+                    // string is a reference
+                    // byte-array is a reference
+                    // its content is a native array
+                    // its content is allocated somehow
+                    val addr = strings.getOrPut(expr.value) {
+                        val offset = binaryBuffer.size
+                        val bytes = expr.value.encodeToByteArray()
+                        binaryBuffer.align(8)
+                        binaryBuffer.writeLE32(bytes.size)
+                        binaryBuffer.write(bytes)
+                        offset
+                    }
+                    i32Const(addr); nextLine()
+                    callMethod(inheritanceTable.createStringCall)
+                }
                 null -> {
                     check(field.id >= 0) { "Invalid field $field in $graph" }
                     val localField = field.fromLocalField
@@ -1880,7 +1915,7 @@ class WASMSourceGenerator : JavaSourceGenerator() {
 
     fun getSimpleMathOp(type: Type, symbol: String): Int {
         return when (type) {
-            Types.Byte, Types.Short, Types.Int,
+            Types.Byte, Types.Short, Types.Int, Types.Char,
             Types.UByte, Types.UShort, Types.UInt -> when (symbol) {
                 "add" -> WASMOpcode.I32_ADD
                 "sub" -> WASMOpcode.I32_SUB
@@ -1949,7 +1984,7 @@ class WASMSourceGenerator : JavaSourceGenerator() {
             val options = inheritanceTable.createSwitchList(expr.specialization)
             if (options.size < 2) {
                 val specialization = if (options.isNotEmpty()) options.first().second else expr.specialization
-                appendGetField(graph, expr.thisInstance)
+                if (hasThis(expr.sample)) appendGetField(graph, expr.thisInstance)
                 appendValueParams(graph, expr.valueParameters)
                 callMethod(specialization)
                 nextLine()
@@ -1962,7 +1997,7 @@ class WASMSourceGenerator : JavaSourceGenerator() {
             // todo if thisInstance is strictly known (no child types),
             //  just call it directly
 
-            appendGetField(graph, expr.thisInstance)
+            if (hasThis(expr.sample)) appendGetField(graph, expr.thisInstance)
             appendValueParams(graph, expr.valueParameters)
 
             appendGetField(graph, expr.thisInstance)

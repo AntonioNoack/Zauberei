@@ -25,6 +25,14 @@ class ByteArrayOutputStream2 : OutputStream() {
         write(b, 0, b.size)
     }
 
+    fun align(alignment: Int) {
+        val mask = alignment - 1
+        check(alignment.and(mask) == 0)
+        while ((size.and(mask)) != 0) {
+            write(0)
+        }
+    }
+
     fun ensureExtra(extraSize: Int) {
         val requiredSize = size + extraSize
         if (requiredSize >= bytes.size) {
